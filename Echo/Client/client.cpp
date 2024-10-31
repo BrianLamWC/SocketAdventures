@@ -7,7 +7,7 @@
 #include <netinet/in.h>
 #include <netdb.h>
 
-#define PORTNUM 3333
+#define PORTNUM 7001
 #define SERVER_ADDRESS "localhost"
 
 void error(const char *msg)
