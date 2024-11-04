@@ -9,6 +9,7 @@ class Batcher
 private:
 
     std::vector<Request> batch;
+    static const int BATCH_SIZE = 10;
 
 public:
 
