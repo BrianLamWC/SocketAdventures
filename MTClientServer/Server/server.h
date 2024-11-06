@@ -33,16 +33,15 @@ struct ServerArgs
     struct sockaddr_in server_addr;
 };
 
-void* serverListener(void *args);
-void* pingServers(void *args);
-bool pingAServer(const std::string &ip, int port);
+struct Transaction {
+    std::string data;          // type of transaction: "READ" or "WRITE"        
+};
 
 struct Request {
     int client_id;
-    std::string data;
+    Transaction transaction;
 };
 
-// thread safe queue
 template <typename T>
 class Queue_TS
 {
@@ -55,11 +54,13 @@ private:
 public:
 
     void push(T const& val);
-    bool pop();
-
+    std::vector<T> popAll();
 };
 
+extern Queue_TS<Request> requestQueue;
 
-
+void* serverListener(void *args);
+void* pingServers(void *args);
+bool pingAServer(const std::string &ip, int port);
 
 #endif // SERVER_H

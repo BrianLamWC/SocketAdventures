@@ -13,6 +13,12 @@ void error(const char *msg)
     exit(1);
 }
 
+void threadError(const char *msg)
+{
+    perror(msg);
+    pthread_exit(NULL);  // Terminate only the calling thread
+}
+
 int setupListenfd(int my_port)
 {
 

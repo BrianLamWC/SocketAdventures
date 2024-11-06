@@ -21,7 +21,7 @@ void* clientListener(void *args)
                 usleep(10000);
                 continue;
             } else{
-                error("clientListener: error accepting connection");
+                threadError("clientListener: error accepting connection");
             }
             
         }
@@ -32,7 +32,7 @@ void* clientListener(void *args)
         if (!client_args)
         {
             close(connfd);
-            error("clientListener: memory allocation failed");
+            threadError("clientListener: memory allocation failed");
         }
 
         client_args->connfd = connfd;
@@ -44,7 +44,7 @@ void* clientListener(void *args)
         {
             free(client_args);  // Free memory on thread creation failure
             close(connfd);
-            error("clientListener: error creating thread");
+            threadError("clientListener: error creating thread");
         }
 
         pthread_detach(client_thread);
@@ -71,38 +71,34 @@ void* handleClient(void *client_args)
     // set up buffer
     char buffer[256];
     int buffer_size = sizeof(buffer);
-    int received_bytes, sent_bytes;
+    int received_bytes;
+    
+    // clear buffer 
+    memset(buffer, 0, buffer_size);
 
-    while (1)
+    // read the message from the client
+    received_bytes = read(connfd, buffer, 255); // leave one byte for null terminator
+
+    if (received_bytes < 0)
     {
-        // clear buffer 
-        memset(buffer, 0, buffer_size);
-
-        // read the message from the client
-        received_bytes = read(connfd, buffer, 255); // leave one byte for null terminator
-
-        if (received_bytes < 0)
-        {
-            error("error reading from socket"); 
-        }
-
-        if (received_bytes == 0)
-        {
-            printf("Client %s:%d closed their connection\n", client_ip, client_port);
-            break;
-        }
-
-        // print received message
-        printf("Client %s:%d: %s\n", client_ip, client_port, buffer);
-
-        // send the received message back to the client (echo)
-        sent_bytes = write(connfd, buffer, strlen(buffer));
-        if (sent_bytes < 0)
-        {
-            error("error writing to socket");
-        }
+        threadError("error reading from socket"); 
     }
 
+    if (received_bytes == 0)
+    {
+        printf("Client %s:%d closed their connection\n", client_ip, client_port);
+        pthread_exit(NULL);
+    }
+
+    Transaction txn;
+    txn.data = std::string(buffer);
+
+    printf("Client %s:%d: %s\n", client_ip, client_port, txn.data.c_str());
+
+    Request req = {connfd, txn};
+
+    requestQueue.push(req);
+    
     close(connfd);
     pthread_exit(NULL);
 }
