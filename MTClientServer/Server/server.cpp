@@ -5,6 +5,8 @@
 #include <unistd.h>
 #include <cstring>
 
+Queue_TS requestQueue;
+
 void* handleServer(void *server_args)
 {
     ServerArgs* my_args = (ServerArgs*) server_args;
@@ -138,19 +140,17 @@ bool pingAServer(const std::string &ip, int port)
     return true;
 }
 
-template <typename T>
-void Queue_TS<T>::push(T const& val){
+void Queue_TS::push(const Request& val){
 
     std::lock_guard<std::mutex> lock(mtx);
     q.push(val);
 
 }
 
-template <typename T>
-std::vector<T> Queue_TS<T>::popAll() {
+std::vector<Request> Queue_TS::popAll() {
 
     std::lock_guard<std::mutex> lock(mtx);
-    std::vector<T> result;
+    std::vector<Request> result;
 
     while (!q.empty()) {
         result.push_back(q.front());

@@ -1,6 +1,7 @@
 #include "server.h"
 #include "client.h"
 #include "utils.h"
+#include "batcher.h"
 #include <unistd.h>
 #include <pthread.h>
 #include <iostream>
@@ -61,6 +62,9 @@ int main(int argc, char *argv[])
 
     // detach the pinger thread so that resources are automatically reclaimed
     pthread_detach(pinger_thread);
+
+    // run batcher
+    Batcher batcher;
 
     pthread_join(client_listener_thread, NULL);
     pthread_join(server_listener_thread, NULL);

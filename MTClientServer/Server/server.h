@@ -42,22 +42,21 @@ struct Request {
     Transaction transaction;
 };
 
-template <typename T>
 class Queue_TS
 {
 private:
 
-    std::queue<T> q;
+    std::queue<Request> q;
     std::condition_variable cv;
     std::mutex mtx;
 
 public:
 
-    void push(T const& val);
-    std::vector<T> popAll();
+    void push(const Request& val);
+    std::vector<Request> popAll();
 };
 
-extern Queue_TS<Request> requestQueue;
+extern Queue_TS requestQueue;
 
 void* serverListener(void *args);
 void* pingServers(void *args);
