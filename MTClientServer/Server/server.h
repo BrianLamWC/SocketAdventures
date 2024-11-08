@@ -8,12 +8,17 @@
 #include <condition_variable>
 #include <mutex>
 
+extern int my_port;
+
 struct server
 {
     std::string ip;
     int port;
     bool isOnline;
 };
+
+
+extern std::vector<server> servers;
 
 struct ListenerThreadsArgs
 {

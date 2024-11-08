@@ -6,6 +6,8 @@
 #include <cstring>
 
 Queue_TS requestQueue;
+std::vector<server> servers;
+int my_port;
 
 void* handleServer(void *server_args)
 {

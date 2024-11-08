@@ -15,22 +15,22 @@ int main(int argc, char *argv[])
         return 1;
     }
 
-    int server_port = std::stoi(argv[1]);
+    my_port = std::stoi(argv[1]);
     int client_port = std::stoi(argv[2]);
 
     // get list of servers
-    std::vector<server> servers = getServers();
+    servers = getServers();
     int num_servers = servers.size();
 
     // set up listening sockets
-    int server_listenfd = setupListenfd(server_port);
+    int server_listenfd = setupListenfd(my_port);
     int client_listenfd = setupListenfd(client_port);
 
     // listening for incoming connections
     listen(server_listenfd, 5);
     listen(client_listenfd, 5);
 
-    printf("Listening for servers on port %d\n", server_port);
+    printf("Listening for servers on port %d\n", my_port);
     printf("Listening for clients on port %d\n", client_port);
 
     // arguments for listener threads
@@ -51,7 +51,7 @@ int main(int argc, char *argv[])
     }
 
     // arguments for pinger thread
-    PingerThreadArgs pinger_args = { &servers, num_servers, server_port};
+    PingerThreadArgs pinger_args = { &servers, num_servers, my_port};
 
     // create a thread to handle pinging servers periodically
     pthread_t pinger_thread;
