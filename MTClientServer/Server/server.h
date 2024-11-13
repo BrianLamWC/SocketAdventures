@@ -7,8 +7,7 @@
 #include <queue>
 #include <condition_variable>
 #include <mutex>
-
-extern int my_port;
+#include <unordered_map>
 
 struct server
 {
@@ -16,9 +15,6 @@ struct server
     int port;
     bool isOnline;
 };
-
-
-extern std::vector<server> servers;
 
 struct ListenerThreadsArgs
 {
@@ -39,7 +35,7 @@ struct ServerArgs
 };
 
 struct Transaction {
-    std::string data;          // type of transaction: "READ" or "WRITE"        
+    std::string data;              
 };
 
 struct Request {
@@ -61,7 +57,16 @@ public:
     std::vector<Request> popAll();
 };
 
+struct DataItem
+{
+    std::string val;
+    std::string primaryCopyID;
+};
+
+extern int my_port;
+extern std::vector<server> servers;
 extern Queue_TS requestQueue;
+extern std::unordered_map<std::string, DataItem> mockDB;
 
 void* serverListener(void *args);
 void* pingServers(void *args);

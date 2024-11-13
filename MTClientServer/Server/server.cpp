@@ -8,6 +8,7 @@
 Queue_TS requestQueue;
 std::vector<server> servers;
 int my_port;
+std::unordered_map<std::string, DataItem> mockDB;
 
 void* handleServer(void *server_args)
 {
@@ -109,33 +110,7 @@ void* pingServers(void *args)
 bool pingAServer(const std::string &ip, int port)
 {
 
-    int connfd = socket(AF_INET, SOCK_STREAM, 0);
-    struct sockaddr_in server_addr = {};
-    struct hostent *server;
-
-    if (connfd < 0)
-    {
-        error("pingAServer: error opening socket");
-    }
-
-    server = gethostbyname(ip.c_str());
-
-    if (server == NULL)
-    {
-        error("pingAServer: server does not exist");
-    }
-
-    server_addr.sin_family = AF_INET;
-
-    memcpy((void *)&server_addr.sin_addr.s_addr, server->h_addr, server->h_length);
-
-    server_addr.sin_port = htons(port);
-
-    if (connect(connfd, (struct sockaddr *)&server_addr, sizeof(server_addr)) < 0)
-    {
-        close(connfd);
-        return false;
-    }
+    int connfd = setupConnection(ip, port);
 
     close(connfd);
 

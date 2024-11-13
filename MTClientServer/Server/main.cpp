@@ -18,6 +18,9 @@ int main(int argc, char *argv[])
     my_port = std::stoi(argv[1]);
     int client_port = std::stoi(argv[2]);
 
+    // setup mockdb
+    setupMockDB();
+
     // get list of servers
     servers = getServers();
     int num_servers = servers.size();

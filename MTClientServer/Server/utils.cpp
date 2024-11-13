@@ -4,6 +4,8 @@
 #include <fcntl.h>
 #include "json.hpp"
 #include "server.h"
+#include <netdb.h>
+#include <unistd.h>
 
 using json = nlohmann::json;
 
@@ -84,6 +86,59 @@ bool setNonBlocking(int listenfd)
 
     return true;
 }
+
+int setupConnection(const std::string& ip, int port) {
+    int connfd = socket(AF_INET, SOCK_STREAM, 0);
+    struct sockaddr_in server_addr = {};
+    struct hostent* server;
+
+    if (connfd < 0) {
+        perror("setupConnection: error opening socket");
+        return -1;
+    }
+
+    server = gethostbyname(ip.c_str());
+    if (server == NULL) {
+        perror("setupConnection: server does not exist");
+        close(connfd);
+        return -1;
+    }
+
+    server_addr.sin_family = AF_INET;
+    memcpy((void*)&server_addr.sin_addr.s_addr, server->h_addr, server->h_length);
+    server_addr.sin_port = htons(port);
+
+    if (connect(connfd, (struct sockaddr*)&server_addr, sizeof(server_addr)) < 0) {
+        perror("setupConnection: error connecting");
+        close(connfd);
+        return -1;
+    }
+
+    return connfd;  // Return the connected socket descriptor
+}
+
+void setupMockDB(){
+    
+    std::ifstream file(MOCKDB);
+
+    if (!file.is_open())
+    {
+        error("getServers: error opening file");
+        exit(1);
+    }
+
+    json data = json::parse(file);
+
+    auto data_items = data["data_items"];
+
+    for (auto data_item : data_items)
+    {
+        mockDB.insert({data_item["key"], {data_item["value"], data_item["primaryCopy"]} });
+    }
+    
+    file.close();
+
+};
 
 std::vector<server> getServers()
 {
