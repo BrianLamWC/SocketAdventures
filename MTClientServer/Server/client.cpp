@@ -3,6 +3,7 @@
 #include <unistd.h>
 #include <arpa/inet.h>
 #include <string.h>
+#include "../proto/request.pb.h"
 
 void* clientListener(void *args)
 {
@@ -90,15 +91,36 @@ void* handleClient(void *client_args)
         pthread_exit(NULL);
     }
 
-    Transaction txn;
-    txn.data = std::string(buffer);
+    // Deserialize the protobuf message from the buffer
+    request::Request req_proto;
 
-    printf("Client %s:%d: %s\n", client_ip, client_port, txn.data.c_str());
+    if (!req_proto.ParseFromArray(buffer, received_bytes))
+    {
+        printf("Failed to parse request from client %s:%d\n", client_ip, client_port);
+        close(connfd);
+        pthread_exit(NULL);
+    }
 
-    Request req = {connfd, txn};
+    std::vector<Operation> operations;
 
-    requestQueue.push(req);
+    for (const auto& op_proto : req_proto.transaction().operations())
+    {
+        Operation operation;
+        operation.type = (op_proto.type() == request::Operation::WRITE) ? OperationType::WRITE : OperationType::READ;
+        operation.key = op_proto.key();
+        
+        if (op_proto.has_value() && operation.type == OperationType::WRITE)
+        {
+            operation.value = op_proto.value();
+        }
+
+        operations.push_back(operation);
+    }
+
+    Transaction transaction(connfd, operations);
     
+    requestQueue.push(transaction);
+
     close(connfd);
     pthread_exit(NULL);
 }

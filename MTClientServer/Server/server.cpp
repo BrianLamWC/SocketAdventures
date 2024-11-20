@@ -117,17 +117,17 @@ bool pingAServer(const std::string &ip, int port)
     return true;
 }
 
-void Queue_TS::push(const Request& val){
+void Queue_TS::push(const Transaction& val){
 
     std::lock_guard<std::mutex> lock(mtx);
     q.push(val);
 
 }
 
-std::vector<Request> Queue_TS::popAll() {
+std::vector<Transaction> Queue_TS::popAll() {
 
     std::lock_guard<std::mutex> lock(mtx);
-    std::vector<Request> result;
+    std::vector<Transaction> result;
 
     while (!q.empty()) {
         result.push_back(q.front());

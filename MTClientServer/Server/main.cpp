@@ -63,7 +63,7 @@ int main(int argc, char *argv[])
         error("error creating thread for pinging servers");
     }
 
-    // detach the pinger thread so that resources are automatically reclaimed
+    // detach the pinger thread 
     pthread_detach(pinger_thread);
 
     // run batcher

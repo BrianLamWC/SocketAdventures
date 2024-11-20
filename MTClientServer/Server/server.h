@@ -13,6 +13,7 @@ struct server
 {
     std::string ip;
     int port;
+    std::string id;
     bool isOnline;
 };
 
@@ -34,30 +35,48 @@ struct ServerArgs
     struct sockaddr_in server_addr;
 };
 
-struct Transaction {
-    std::string data;              
+enum class OperationType {
+    READ,
+    WRITE
 };
 
-struct Request {
+struct Operation {
+    OperationType type;
+    std::string key;
+    std::string value;  // Only used for write operations
+    
+};
+
+class Transaction
+{
+private:
     int client_id;
-    Transaction transaction;
+    std::vector<Operation> operations;
+public:
+    // Constructor to initialize a Transaction
+    Transaction(int client_id, const std::vector<Operation>& ops)
+        : client_id(client_id), operations(ops) {}
+
+    // Getters to access client ID and operations
+    int getClientId() const { return client_id; }
+    const std::vector<Operation>& getOperations() const { return operations; }
 };
 
 class Queue_TS
 {
 private:
 
-    std::queue<Request> q;
-    std::condition_variable cv;
+    std::queue<Transaction> q;
     std::mutex mtx;
 
 public:
 
-    void push(const Request& val);
-    std::vector<Request> popAll();
+    void push(const Transaction& val);
+    std::vector<Transaction> popAll();
+
 };
 
-struct DataItem
+struct DataItem // for mock database
 {
     std::string val;
     std::string primaryCopyID;

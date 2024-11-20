@@ -1,0 +1,23 @@
+syntax = "proto2";
+
+package request;
+
+message Operation {
+  enum OperationType {
+    READ = 0;
+    WRITE = 1;
+  }
+
+  required OperationType type = 1;  // Type of operation: READ or WRITE
+  required string key = 2;    // The data item on which the operation is being performed
+  optional string value = 3;        // Value to be written if it's a WRITE operation (not needed for READ)
+}
+
+message Transaction {
+  repeated Operation operations = 1;  // A list of operations that are part of the transaction
+}
+
+message Request {
+  optional int32 client_id = 1;     // Client ID making the request
+  required Transaction transaction = 2;  // The transaction being requested
+}

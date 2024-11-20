@@ -109,7 +109,7 @@ int setupConnection(const std::string& ip, int port) {
     server_addr.sin_port = htons(port);
 
     if (connect(connfd, (struct sockaddr*)&server_addr, sizeof(server_addr)) < 0) {
-        perror("setupConnection: error connecting");
+        // perror("setupConnection: error connecting");
         close(connfd);
         return -1;
     }
@@ -157,9 +157,9 @@ std::vector<server> getServers()
 
     auto servers = data["servers"];
 
-    for (auto server : servers)
+    for (auto& server : servers)
     {
-        result.push_back({server["ip"], server["port"], false});
+        result.push_back({server["ip"], server["port"], server["id"], false});
     }
 
     file.close();

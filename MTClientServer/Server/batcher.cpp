@@ -24,25 +24,30 @@ void Batcher::batchRequests()
 
 }
 
-void Batcher::processBatch(const std::vector<Request>& batch)
+void Batcher::processBatch(const std::vector<Transaction>& batch)
 {
     
-    for (const Request &req : batch)
+    for (const Transaction &txn : batch)
     {
-        Transaction txn = req.transaction;
-        printf("BATCHERS: %s\n", txn.data.c_str());
+        std::vector<Operation> operations = txn.getOperations();
+
+        printf("(BATCHER) Transaction for client %d:\n", txn.getClientId());
+
+        for (const auto& op : operations) {
+            // Convert the enum type to string
+            std::string operationTypeStr = (op.type == OperationType::WRITE) ? "WRITE" : "READ";
+            
+            // For write operations, print the value as well
+            if (op.type == OperationType::WRITE) {
+                printf("  Operation: %s, Key: %s, Value: %s\n", operationTypeStr.c_str(), op.key.c_str(), op.value.c_str());
+            } else {
+                // For read operations, value is not printed
+                printf("  Operation: %s, Key: %s\n", operationTypeStr.c_str(), op.key.c_str());
+            }
+        }
+        
     }
     
-    for (auto& server : servers)
-    {
-        if (server.port == my_port)
-        {
-            continue;
-        }
-
-        printf("server %s:%d status: %d\n", server.ip.c_str(), server.port, server.isOnline);
-    }
-
 }
 
 // Constructor

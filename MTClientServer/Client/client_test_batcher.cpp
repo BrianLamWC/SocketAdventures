@@ -8,6 +8,7 @@
 #include <netdb.h>
 #include <iostream>
 #include <pthread.h>
+#include "../proto/request.pb.h"
 
 #define SERVER_ADDRESS "localhost"
 
@@ -53,27 +54,40 @@ void *clientThread(void *args)
             error("error connecting");
         }
 
-        // Send and receive data
-        char buffer[256];
-        int received_bytes, sent_bytes;
+        // Create a Request message
+        request::Request request;
+        request.set_client_id(sockfd);
 
-        memset(buffer, 0, sizeof(buffer));
-        snprintf(buffer, sizeof(buffer) - 1, "Hello from %s!", name);
+        // Create the Transaction and add Operations
+        request::Transaction *transaction = request.mutable_transaction();
 
-        sent_bytes = write(sockfd, buffer, strlen(buffer));
+        // Add write operation W(1, 2)
+        request::Operation *op1 = transaction->add_operations();
+        op1->set_type(request::Operation::WRITE);
+        op1->set_key("1");
+        op1->set_value("2");
+
+        // Add write operation W(2, 3)
+        request::Operation *op2 = transaction->add_operations();
+        op2->set_type(request::Operation::WRITE);
+        op2->set_key("2");
+        op2->set_value("3");
+
+        // Serialize the Request message
+        std::string serialized_request;
+        if (!request.SerializeToString(&serialized_request))
+        {
+            error("error serializing request");
+        }
+
+        // Send serialized request
+        int sent_bytes = write(sockfd, serialized_request.c_str(), serialized_request.size());
         if (sent_bytes < 0)
         {
             error("error writing to socket");
         }
 
-        memset(buffer, 0, sizeof(buffer));
-        received_bytes = read(sockfd, buffer, 255);
-        if (received_bytes < 0)
-        {
-            error("error reading from socket");
-        }
-
-        printf("%s received: %s\n", name, buffer);
+        printf("%s sent a request with %d bytes.\n", name, sent_bytes);
 
         // Close the connection
         close(sockfd);
@@ -93,6 +107,8 @@ int main(int argc, char *argv[])
         return 1;
     }
 
+    GOOGLE_PROTOBUF_VERIFY_VERSION;
+
     int server_port = std::stoi(argv[1]);
     pthread_t threads[3];
 
@@ -111,6 +127,8 @@ int main(int argc, char *argv[])
     {
         pthread_join(threads[i], NULL);
     }
+
+    google::protobuf::ShutdownProtobufLibrary();
 
     return 0;
 }
