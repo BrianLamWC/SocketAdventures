@@ -17,8 +17,8 @@ public:
     Batcher();
     void batchRequests();
     void processBatch(const std::vector<Transaction>& batch);
+    void sendTransaction(const Transaction& txn, const std::string& id);
 
 };
-
 
 #endif

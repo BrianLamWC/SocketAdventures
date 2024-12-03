@@ -3,6 +3,7 @@ syntax = "proto2";
 package request;
 
 message Operation {
+
   enum OperationType {
     READ = 0;
     WRITE = 1;
@@ -18,6 +19,17 @@ message Transaction {
 }
 
 message Request {
+
+  enum RequestRecipient {
+    BATCHER = 0;
+    PARTIAL = 1;
+    MERGER = 3;
+    PING = 4;
+  }
+
   optional int32 client_id = 1;     // Client ID making the request
-  required Transaction transaction = 2;  // The transaction being requested
+  optional int32 server_id = 2;     // Server ID making the request
+  required Transaction transaction = 3;  // The transaction being requested
+  required RequestRecipient recipient = 4; // The recipient of the request
+
 }

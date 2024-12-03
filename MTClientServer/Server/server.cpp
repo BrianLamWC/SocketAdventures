@@ -4,11 +4,14 @@
 #include <netdb.h>
 #include <unistd.h>
 #include <cstring>
+#include "../proto/request.pb.h"
 
 Queue_TS requestQueue;
+Queue_TS partialSequence;
 std::vector<server> servers;
 int my_port;
 std::unordered_map<std::string, DataItem> mockDB;
+std::string my_id;
 
 void* handleServer(void *server_args)
 {
@@ -22,10 +25,62 @@ void* handleServer(void *server_args)
     char *server_ip = inet_ntoa(server_addr.sin_addr);
     int server_port = ntohs(server_addr.sin_port);
 
-    printf("pinged by %s:%d\n", server_ip, server_port);
+    // set up buffer
+    char buffer[256];
+    int buffer_size = sizeof(buffer);
+    int received_bytes;
+    
+    // clear buffer 
+    memset(buffer, 0, buffer_size);
 
+    // read the message from the server
+    received_bytes = read(connfd, buffer, 255); // leave one byte for null terminator
+
+    if (received_bytes < 0)
+    {
+        threadError("error reading from socket"); 
+    }
+
+    if (received_bytes == 0)
+    {
+        printf("Server %s:%d closed their connection\n", server_ip, server_port);
+        pthread_exit(NULL);
+    }
+
+    // Deserialize the protobuf message from the buffer
+    request::Request req_proto;
+
+    if (!req_proto.ParseFromArray(buffer, received_bytes))
+    {
+        printf("Failed to parse request from server %s:%d\n", server_ip, server_port);
+        close(connfd);
+        pthread_exit(NULL);
+    }
+
+    // Check the recipient
+    if (req_proto.recipient() == request::Request::PING)
+    {
+        //printf("pinged by: %d\n", req_proto.server_id());
+        close(connfd);
+        pthread_exit(NULL);
+
+    }else if (req_proto.recipient() == request::Request::PARTIAL)
+    {
+        printf("received transaction from: %d\n", req_proto.server_id());
+        close(connfd);
+        pthread_exit(NULL);
+
+    }else if (req_proto.recipient() == request::Request::MERGER)
+    {
+        /* code */
+    }else{
+
+    }
+    
+    
     close(connfd);
     pthread_exit(NULL);
+
 }
 
 void* serverListener(void *args)
@@ -63,16 +118,16 @@ void* serverListener(void *args)
         server_args->connfd = connfd;
         server_args->server_addr = server_addr;
 
-        pthread_t client_thread;
+        pthread_t server_thread;
 
-        if (pthread_create(&client_thread, NULL, handleServer, (void*)server_args) != 0)
+        if (pthread_create(&server_thread, NULL, handleServer, (void*)server_args) != 0)
         {
             free(server_args);
             close(connfd);
             error("serverListener: error creating thread");
         }
 
-        pthread_detach(client_thread);
+        pthread_detach(server_thread);
         
     }
     
@@ -107,10 +162,39 @@ void* pingServers(void *args)
 
 }
 
-bool pingAServer(const std::string &ip, int port)
+bool pingAServer(const std::string &ip, int port)   
 {
 
     int connfd = setupConnection(ip, port);
+
+    if (connfd < 0)
+    {
+        return false;
+    }
+
+    // create a Request message
+    request::Request request;
+    request.set_server_id(atoi(my_id.c_str()));
+
+    // Set the recipient
+    request.set_recipient(request::Request::PING);
+
+    // Create the empty Transaction 
+    request::Transaction *transaction = request.mutable_transaction();
+
+    // Serialize the Request message
+    std::string serialized_request;
+    if (!request.SerializeToString(&serialized_request))
+    {
+        error("error serializing request");
+    }
+
+    // Send serialized request
+    int sent_bytes = write(connfd, serialized_request.c_str(), serialized_request.size());
+    if (sent_bytes < 0)
+    {
+        error("error writing to socket");
+    }
 
     close(connfd);
 

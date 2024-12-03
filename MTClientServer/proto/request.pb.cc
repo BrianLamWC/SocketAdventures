@@ -75,7 +75,7 @@ static void InitDefaultsscc_info_Transaction_request_2eproto() {
       &scc_info_Operation_request_2eproto.base,}};
 
 static ::PROTOBUF_NAMESPACE_ID::Metadata file_level_metadata_request_2eproto[3];
-static const ::PROTOBUF_NAMESPACE_ID::EnumDescriptor* file_level_enum_descriptors_request_2eproto[1];
+static const ::PROTOBUF_NAMESPACE_ID::EnumDescriptor* file_level_enum_descriptors_request_2eproto[2];
 static constexpr ::PROTOBUF_NAMESPACE_ID::ServiceDescriptor const** file_level_service_descriptors_request_2eproto = nullptr;
 
 const ::PROTOBUF_NAMESPACE_ID::uint32 TableStruct_request_2eproto::offsets[] PROTOBUF_SECTION_VARIABLE(protodesc_cold) = {
@@ -102,14 +102,18 @@ const ::PROTOBUF_NAMESPACE_ID::uint32 TableStruct_request_2eproto::offsets[] PRO
   ~0u,  // no _oneof_case_
   ~0u,  // no _weak_field_map_
   PROTOBUF_FIELD_OFFSET(::request::Request, client_id_),
+  PROTOBUF_FIELD_OFFSET(::request::Request, server_id_),
   PROTOBUF_FIELD_OFFSET(::request::Request, transaction_),
+  PROTOBUF_FIELD_OFFSET(::request::Request, recipient_),
   1,
+  2,
   0,
+  3,
 };
 static const ::PROTOBUF_NAMESPACE_ID::internal::MigrationSchema schemas[] PROTOBUF_SECTION_VARIABLE(protodesc_cold) = {
   { 0, 8, sizeof(::request::Operation)},
   { 11, -1, sizeof(::request::Transaction)},
-  { 17, 24, sizeof(::request::Request)},
+  { 17, 26, sizeof(::request::Request)},
 };
 
 static ::PROTOBUF_NAMESPACE_ID::Message const * const file_default_instances[] = {
@@ -124,8 +128,12 @@ const char descriptor_table_protodef_request_2eproto[] PROTOBUF_SECTION_VARIABLE
   "nType\022\013\n\003key\030\002 \002(\t\022\r\n\005value\030\003 \001(\t\"$\n\rOpe"
   "rationType\022\010\n\004READ\020\000\022\t\n\005WRITE\020\001\"5\n\013Trans"
   "action\022&\n\noperations\030\001 \003(\0132\022.request.Ope"
-  "ration\"G\n\007Request\022\021\n\tclient_id\030\001 \001(\005\022)\n\013"
-  "transaction\030\002 \002(\0132\024.request.Transaction"
+  "ration\"\324\001\n\007Request\022\021\n\tclient_id\030\001 \001(\005\022\021\n"
+  "\tserver_id\030\002 \001(\005\022)\n\013transaction\030\003 \002(\0132\024."
+  "request.Transaction\0224\n\trecipient\030\004 \002(\0162!"
+  ".request.Request.RequestRecipient\"B\n\020Req"
+  "uestRecipient\022\013\n\007BATCHER\020\000\022\013\n\007PARTIAL\020\001\022"
+  "\n\n\006MERGER\020\003\022\010\n\004PING\020\004"
   ;
 static const ::PROTOBUF_NAMESPACE_ID::internal::DescriptorTable*const descriptor_table_request_2eproto_deps[1] = {
 };
@@ -136,7 +144,7 @@ static ::PROTOBUF_NAMESPACE_ID::internal::SCCInfoBase*const descriptor_table_req
 };
 static ::PROTOBUF_NAMESPACE_ID::internal::once_flag descriptor_table_request_2eproto_once;
 const ::PROTOBUF_NAMESPACE_ID::internal::DescriptorTable descriptor_table_request_2eproto = {
-  false, false, descriptor_table_protodef_request_2eproto, "request.proto", 279,
+  false, false, descriptor_table_protodef_request_2eproto, "request.proto", 421,
   &descriptor_table_request_2eproto_once, descriptor_table_request_2eproto_sccs, descriptor_table_request_2eproto_deps, 3, 0,
   schemas, file_default_instances, TableStruct_request_2eproto::offsets,
   file_level_metadata_request_2eproto, 3, file_level_enum_descriptors_request_2eproto, file_level_service_descriptors_request_2eproto,
@@ -165,6 +173,31 @@ constexpr Operation_OperationType Operation::WRITE;
 constexpr Operation_OperationType Operation::OperationType_MIN;
 constexpr Operation_OperationType Operation::OperationType_MAX;
 constexpr int Operation::OperationType_ARRAYSIZE;
+#endif  // (__cplusplus < 201703) && (!defined(_MSC_VER) || _MSC_VER >= 1900)
+const ::PROTOBUF_NAMESPACE_ID::EnumDescriptor* Request_RequestRecipient_descriptor() {
+  ::PROTOBUF_NAMESPACE_ID::internal::AssignDescriptors(&descriptor_table_request_2eproto);
+  return file_level_enum_descriptors_request_2eproto[1];
+}
+bool Request_RequestRecipient_IsValid(int value) {
+  switch (value) {
+    case 0:
+    case 1:
+    case 3:
+    case 4:
+      return true;
+    default:
+      return false;
+  }
+}
+
+#if (__cplusplus < 201703) && (!defined(_MSC_VER) || _MSC_VER >= 1900)
+constexpr Request_RequestRecipient Request::BATCHER;
+constexpr Request_RequestRecipient Request::PARTIAL;
+constexpr Request_RequestRecipient Request::MERGER;
+constexpr Request_RequestRecipient Request::PING;
+constexpr Request_RequestRecipient Request::RequestRecipient_MIN;
+constexpr Request_RequestRecipient Request::RequestRecipient_MAX;
+constexpr int Request::RequestRecipient_ARRAYSIZE;
 #endif  // (__cplusplus < 201703) && (!defined(_MSC_VER) || _MSC_VER >= 1900)
 
 // ===================================================================
@@ -717,12 +750,18 @@ class Request::_Internal {
   static void set_has_client_id(HasBits* has_bits) {
     (*has_bits)[0] |= 2u;
   }
+  static void set_has_server_id(HasBits* has_bits) {
+    (*has_bits)[0] |= 4u;
+  }
   static const ::request::Transaction& transaction(const Request* msg);
   static void set_has_transaction(HasBits* has_bits) {
     (*has_bits)[0] |= 1u;
   }
+  static void set_has_recipient(HasBits* has_bits) {
+    (*has_bits)[0] |= 8u;
+  }
   static bool MissingRequiredFields(const HasBits& has_bits) {
-    return ((has_bits[0] & 0x00000001) ^ 0x00000001) != 0;
+    return ((has_bits[0] & 0x00000009) ^ 0x00000009) != 0;
   }
 };
 
@@ -745,15 +784,17 @@ Request::Request(const Request& from)
   } else {
     transaction_ = nullptr;
   }
-  client_id_ = from.client_id_;
+  ::memcpy(&client_id_, &from.client_id_,
+    static_cast<size_t>(reinterpret_cast<char*>(&recipient_) -
+    reinterpret_cast<char*>(&client_id_)) + sizeof(recipient_));
   // @@protoc_insertion_point(copy_constructor:request.Request)
 }
 
 void Request::SharedCtor() {
   ::PROTOBUF_NAMESPACE_ID::internal::InitSCC(&scc_info_Request_request_2eproto.base);
   ::memset(&transaction_, 0, static_cast<size_t>(
-      reinterpret_cast<char*>(&client_id_) -
-      reinterpret_cast<char*>(&transaction_)) + sizeof(client_id_));
+      reinterpret_cast<char*>(&recipient_) -
+      reinterpret_cast<char*>(&transaction_)) + sizeof(recipient_));
 }
 
 Request::~Request() {
@@ -793,7 +834,11 @@ void Request::Clear() {
     GOOGLE_DCHECK(transaction_ != nullptr);
     transaction_->Clear();
   }
-  client_id_ = 0;
+  if (cached_has_bits & 0x0000000eu) {
+    ::memset(&client_id_, 0, static_cast<size_t>(
+        reinterpret_cast<char*>(&recipient_) -
+        reinterpret_cast<char*>(&client_id_)) + sizeof(recipient_));
+  }
   _has_bits_.Clear();
   _internal_metadata_.Clear<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>();
 }
@@ -815,11 +860,31 @@ const char* Request::_InternalParse(const char* ptr, ::PROTOBUF_NAMESPACE_ID::in
           CHK_(ptr);
         } else goto handle_unusual;
         continue;
-      // required .request.Transaction transaction = 2;
+      // optional int32 server_id = 2;
       case 2:
-        if (PROTOBUF_PREDICT_TRUE(static_cast<::PROTOBUF_NAMESPACE_ID::uint8>(tag) == 18)) {
+        if (PROTOBUF_PREDICT_TRUE(static_cast<::PROTOBUF_NAMESPACE_ID::uint8>(tag) == 16)) {
+          _Internal::set_has_server_id(&has_bits);
+          server_id_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint64(&ptr);
+          CHK_(ptr);
+        } else goto handle_unusual;
+        continue;
+      // required .request.Transaction transaction = 3;
+      case 3:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<::PROTOBUF_NAMESPACE_ID::uint8>(tag) == 26)) {
           ptr = ctx->ParseMessage(_internal_mutable_transaction(), ptr);
           CHK_(ptr);
+        } else goto handle_unusual;
+        continue;
+      // required .request.Request.RequestRecipient recipient = 4;
+      case 4:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<::PROTOBUF_NAMESPACE_ID::uint8>(tag) == 32)) {
+          ::PROTOBUF_NAMESPACE_ID::uint64 val = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint64(&ptr);
+          CHK_(ptr);
+          if (PROTOBUF_PREDICT_TRUE(::request::Request_RequestRecipient_IsValid(val))) {
+            _internal_set_recipient(static_cast<::request::Request_RequestRecipient>(val));
+          } else {
+            ::PROTOBUF_NAMESPACE_ID::internal::WriteVarint(4, val, mutable_unknown_fields());
+          }
         } else goto handle_unusual;
         continue;
       default: {
@@ -858,12 +923,25 @@ failure:
     target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::WriteInt32ToArray(1, this->_internal_client_id(), target);
   }
 
-  // required .request.Transaction transaction = 2;
+  // optional int32 server_id = 2;
+  if (cached_has_bits & 0x00000004u) {
+    target = stream->EnsureSpace(target);
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::WriteInt32ToArray(2, this->_internal_server_id(), target);
+  }
+
+  // required .request.Transaction transaction = 3;
   if (cached_has_bits & 0x00000001u) {
     target = stream->EnsureSpace(target);
     target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
       InternalWriteMessage(
-        2, _Internal::transaction(this), target, stream);
+        3, _Internal::transaction(this), target, stream);
+  }
+
+  // required .request.Request.RequestRecipient recipient = 4;
+  if (cached_has_bits & 0x00000008u) {
+    target = stream->EnsureSpace(target);
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::WriteEnumToArray(
+      4, this->_internal_recipient(), target);
   }
 
   if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
@@ -874,28 +952,63 @@ failure:
   return target;
 }
 
+size_t Request::RequiredFieldsByteSizeFallback() const {
+// @@protoc_insertion_point(required_fields_byte_size_fallback_start:request.Request)
+  size_t total_size = 0;
+
+  if (_internal_has_transaction()) {
+    // required .request.Transaction transaction = 3;
+    total_size += 1 +
+      ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
+        *transaction_);
+  }
+
+  if (_internal_has_recipient()) {
+    // required .request.Request.RequestRecipient recipient = 4;
+    total_size += 1 +
+      ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::EnumSize(this->_internal_recipient());
+  }
+
+  return total_size;
+}
 size_t Request::ByteSizeLong() const {
 // @@protoc_insertion_point(message_byte_size_start:request.Request)
   size_t total_size = 0;
 
-  // required .request.Transaction transaction = 2;
-  if (_internal_has_transaction()) {
+  if (((_has_bits_[0] & 0x00000009) ^ 0x00000009) == 0) {  // All required fields are present.
+    // required .request.Transaction transaction = 3;
     total_size += 1 +
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
         *transaction_);
+
+    // required .request.Request.RequestRecipient recipient = 4;
+    total_size += 1 +
+      ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::EnumSize(this->_internal_recipient());
+
+  } else {
+    total_size += RequiredFieldsByteSizeFallback();
   }
   ::PROTOBUF_NAMESPACE_ID::uint32 cached_has_bits = 0;
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
 
-  // optional int32 client_id = 1;
   cached_has_bits = _has_bits_[0];
-  if (cached_has_bits & 0x00000002u) {
-    total_size += 1 +
-      ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::Int32Size(
-        this->_internal_client_id());
-  }
+  if (cached_has_bits & 0x00000006u) {
+    // optional int32 client_id = 1;
+    if (cached_has_bits & 0x00000002u) {
+      total_size += 1 +
+        ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::Int32Size(
+          this->_internal_client_id());
+    }
 
+    // optional int32 server_id = 2;
+    if (cached_has_bits & 0x00000004u) {
+      total_size += 1 +
+        ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::Int32Size(
+          this->_internal_server_id());
+    }
+
+  }
   if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
     return ::PROTOBUF_NAMESPACE_ID::internal::ComputeUnknownFieldsSize(
         _internal_metadata_, total_size, &_cached_size_);
@@ -928,12 +1041,18 @@ void Request::MergeFrom(const Request& from) {
   (void) cached_has_bits;
 
   cached_has_bits = from._has_bits_[0];
-  if (cached_has_bits & 0x00000003u) {
+  if (cached_has_bits & 0x0000000fu) {
     if (cached_has_bits & 0x00000001u) {
       _internal_mutable_transaction()->::request::Transaction::MergeFrom(from._internal_transaction());
     }
     if (cached_has_bits & 0x00000002u) {
       client_id_ = from.client_id_;
+    }
+    if (cached_has_bits & 0x00000004u) {
+      server_id_ = from.server_id_;
+    }
+    if (cached_has_bits & 0x00000008u) {
+      recipient_ = from.recipient_;
     }
     _has_bits_[0] |= cached_has_bits;
   }
@@ -966,8 +1085,8 @@ void Request::InternalSwap(Request* other) {
   _internal_metadata_.Swap<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(&other->_internal_metadata_);
   swap(_has_bits_[0], other->_has_bits_[0]);
   ::PROTOBUF_NAMESPACE_ID::internal::memswap<
-      PROTOBUF_FIELD_OFFSET(Request, client_id_)
-      + sizeof(Request::client_id_)
+      PROTOBUF_FIELD_OFFSET(Request, recipient_)
+      + sizeof(Request::recipient_)
       - PROTOBUF_FIELD_OFFSET(Request, transaction_)>(
           reinterpret_cast<char*>(&transaction_),
           reinterpret_cast<char*>(&other->transaction_));

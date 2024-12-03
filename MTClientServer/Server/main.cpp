@@ -9,7 +9,7 @@
 int main(int argc, char *argv[])
 {
 
-    if (argc != 3)
+    if (argc != 4)
     {
         std::cerr << "Usage: " << argv[0] << " <port for servers> <port for clients>\n";
         return 1;
@@ -17,12 +17,13 @@ int main(int argc, char *argv[])
 
     my_port = std::stoi(argv[1]);
     int client_port = std::stoi(argv[2]);
-
+    my_id = argv[3];
+    
     // setup mockdb
     setupMockDB();
 
     // get list of servers
-    servers = getServers();
+    getServers();
     int num_servers = servers.size();
 
     // set up listening sockets

@@ -58,6 +58,9 @@ void *clientThread(void *args)
         request::Request request;
         request.set_client_id(sockfd);
 
+        // Set the recipient
+        request.set_recipient(request::Request::BATCHER);
+
         // Create the Transaction and add Operations
         request::Transaction *transaction = request.mutable_transaction();
 
@@ -72,6 +75,12 @@ void *clientThread(void *args)
         op2->set_type(request::Operation::WRITE);
         op2->set_key("2");
         op2->set_value("3");
+
+        // Add write operation W(3, 4)
+        request::Operation *op3 = transaction->add_operations();
+        op3->set_type(request::Operation::WRITE);
+        op3->set_key("3");
+        op3->set_value("4");
 
         // Serialize the Request message
         std::string serialized_request;

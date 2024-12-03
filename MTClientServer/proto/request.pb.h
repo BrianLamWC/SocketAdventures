@@ -96,6 +96,31 @@ inline bool Operation_OperationType_Parse(
   return ::PROTOBUF_NAMESPACE_ID::internal::ParseNamedEnum<Operation_OperationType>(
     Operation_OperationType_descriptor(), name, value);
 }
+enum Request_RequestRecipient : int {
+  Request_RequestRecipient_BATCHER = 0,
+  Request_RequestRecipient_PARTIAL = 1,
+  Request_RequestRecipient_MERGER = 3,
+  Request_RequestRecipient_PING = 4
+};
+bool Request_RequestRecipient_IsValid(int value);
+constexpr Request_RequestRecipient Request_RequestRecipient_RequestRecipient_MIN = Request_RequestRecipient_BATCHER;
+constexpr Request_RequestRecipient Request_RequestRecipient_RequestRecipient_MAX = Request_RequestRecipient_PING;
+constexpr int Request_RequestRecipient_RequestRecipient_ARRAYSIZE = Request_RequestRecipient_RequestRecipient_MAX + 1;
+
+const ::PROTOBUF_NAMESPACE_ID::EnumDescriptor* Request_RequestRecipient_descriptor();
+template<typename T>
+inline const std::string& Request_RequestRecipient_Name(T enum_t_value) {
+  static_assert(::std::is_same<T, Request_RequestRecipient>::value ||
+    ::std::is_integral<T>::value,
+    "Incorrect type passed to function Request_RequestRecipient_Name.");
+  return ::PROTOBUF_NAMESPACE_ID::internal::NameOfEnum(
+    Request_RequestRecipient_descriptor(), enum_t_value);
+}
+inline bool Request_RequestRecipient_Parse(
+    const std::string& name, Request_RequestRecipient* value) {
+  return ::PROTOBUF_NAMESPACE_ID::internal::ParseNamedEnum<Request_RequestRecipient>(
+    Request_RequestRecipient_descriptor(), name, value);
+}
 // ===================================================================
 
 class Operation PROTOBUF_FINAL :
@@ -612,13 +637,49 @@ class Request PROTOBUF_FINAL :
 
   // nested types ----------------------------------------------------
 
+  typedef Request_RequestRecipient RequestRecipient;
+  static constexpr RequestRecipient BATCHER =
+    Request_RequestRecipient_BATCHER;
+  static constexpr RequestRecipient PARTIAL =
+    Request_RequestRecipient_PARTIAL;
+  static constexpr RequestRecipient MERGER =
+    Request_RequestRecipient_MERGER;
+  static constexpr RequestRecipient PING =
+    Request_RequestRecipient_PING;
+  static inline bool RequestRecipient_IsValid(int value) {
+    return Request_RequestRecipient_IsValid(value);
+  }
+  static constexpr RequestRecipient RequestRecipient_MIN =
+    Request_RequestRecipient_RequestRecipient_MIN;
+  static constexpr RequestRecipient RequestRecipient_MAX =
+    Request_RequestRecipient_RequestRecipient_MAX;
+  static constexpr int RequestRecipient_ARRAYSIZE =
+    Request_RequestRecipient_RequestRecipient_ARRAYSIZE;
+  static inline const ::PROTOBUF_NAMESPACE_ID::EnumDescriptor*
+  RequestRecipient_descriptor() {
+    return Request_RequestRecipient_descriptor();
+  }
+  template<typename T>
+  static inline const std::string& RequestRecipient_Name(T enum_t_value) {
+    static_assert(::std::is_same<T, RequestRecipient>::value ||
+      ::std::is_integral<T>::value,
+      "Incorrect type passed to function RequestRecipient_Name.");
+    return Request_RequestRecipient_Name(enum_t_value);
+  }
+  static inline bool RequestRecipient_Parse(const std::string& name,
+      RequestRecipient* value) {
+    return Request_RequestRecipient_Parse(name, value);
+  }
+
   // accessors -------------------------------------------------------
 
   enum : int {
-    kTransactionFieldNumber = 2,
+    kTransactionFieldNumber = 3,
     kClientIdFieldNumber = 1,
+    kServerIdFieldNumber = 2,
+    kRecipientFieldNumber = 4,
   };
-  // required .request.Transaction transaction = 2;
+  // required .request.Transaction transaction = 3;
   bool has_transaction() const;
   private:
   bool _internal_has_transaction() const;
@@ -649,9 +710,38 @@ class Request PROTOBUF_FINAL :
   void _internal_set_client_id(::PROTOBUF_NAMESPACE_ID::int32 value);
   public:
 
+  // optional int32 server_id = 2;
+  bool has_server_id() const;
+  private:
+  bool _internal_has_server_id() const;
+  public:
+  void clear_server_id();
+  ::PROTOBUF_NAMESPACE_ID::int32 server_id() const;
+  void set_server_id(::PROTOBUF_NAMESPACE_ID::int32 value);
+  private:
+  ::PROTOBUF_NAMESPACE_ID::int32 _internal_server_id() const;
+  void _internal_set_server_id(::PROTOBUF_NAMESPACE_ID::int32 value);
+  public:
+
+  // required .request.Request.RequestRecipient recipient = 4;
+  bool has_recipient() const;
+  private:
+  bool _internal_has_recipient() const;
+  public:
+  void clear_recipient();
+  ::request::Request_RequestRecipient recipient() const;
+  void set_recipient(::request::Request_RequestRecipient value);
+  private:
+  ::request::Request_RequestRecipient _internal_recipient() const;
+  void _internal_set_recipient(::request::Request_RequestRecipient value);
+  public:
+
   // @@protoc_insertion_point(class_scope:request.Request)
  private:
   class _Internal;
+
+  // helper for ByteSizeLong()
+  size_t RequiredFieldsByteSizeFallback() const;
 
   template <typename T> friend class ::PROTOBUF_NAMESPACE_ID::Arena::InternalHelper;
   typedef void InternalArenaConstructable_;
@@ -660,6 +750,8 @@ class Request PROTOBUF_FINAL :
   mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
   ::request::Transaction* transaction_;
   ::PROTOBUF_NAMESPACE_ID::int32 client_id_;
+  ::PROTOBUF_NAMESPACE_ID::int32 server_id_;
+  int recipient_;
   friend struct ::TableStruct_request_2eproto;
 };
 // ===================================================================
@@ -963,7 +1055,35 @@ inline void Request::set_client_id(::PROTOBUF_NAMESPACE_ID::int32 value) {
   // @@protoc_insertion_point(field_set:request.Request.client_id)
 }
 
-// required .request.Transaction transaction = 2;
+// optional int32 server_id = 2;
+inline bool Request::_internal_has_server_id() const {
+  bool value = (_has_bits_[0] & 0x00000004u) != 0;
+  return value;
+}
+inline bool Request::has_server_id() const {
+  return _internal_has_server_id();
+}
+inline void Request::clear_server_id() {
+  server_id_ = 0;
+  _has_bits_[0] &= ~0x00000004u;
+}
+inline ::PROTOBUF_NAMESPACE_ID::int32 Request::_internal_server_id() const {
+  return server_id_;
+}
+inline ::PROTOBUF_NAMESPACE_ID::int32 Request::server_id() const {
+  // @@protoc_insertion_point(field_get:request.Request.server_id)
+  return _internal_server_id();
+}
+inline void Request::_internal_set_server_id(::PROTOBUF_NAMESPACE_ID::int32 value) {
+  _has_bits_[0] |= 0x00000004u;
+  server_id_ = value;
+}
+inline void Request::set_server_id(::PROTOBUF_NAMESPACE_ID::int32 value) {
+  _internal_set_server_id(value);
+  // @@protoc_insertion_point(field_set:request.Request.server_id)
+}
+
+// required .request.Transaction transaction = 3;
 inline bool Request::_internal_has_transaction() const {
   bool value = (_has_bits_[0] & 0x00000001u) != 0;
   PROTOBUF_ASSUME(!value || transaction_ != nullptr);
@@ -1044,6 +1164,35 @@ inline void Request::set_allocated_transaction(::request::Transaction* transacti
   // @@protoc_insertion_point(field_set_allocated:request.Request.transaction)
 }
 
+// required .request.Request.RequestRecipient recipient = 4;
+inline bool Request::_internal_has_recipient() const {
+  bool value = (_has_bits_[0] & 0x00000008u) != 0;
+  return value;
+}
+inline bool Request::has_recipient() const {
+  return _internal_has_recipient();
+}
+inline void Request::clear_recipient() {
+  recipient_ = 0;
+  _has_bits_[0] &= ~0x00000008u;
+}
+inline ::request::Request_RequestRecipient Request::_internal_recipient() const {
+  return static_cast< ::request::Request_RequestRecipient >(recipient_);
+}
+inline ::request::Request_RequestRecipient Request::recipient() const {
+  // @@protoc_insertion_point(field_get:request.Request.recipient)
+  return _internal_recipient();
+}
+inline void Request::_internal_set_recipient(::request::Request_RequestRecipient value) {
+  assert(::request::Request_RequestRecipient_IsValid(value));
+  _has_bits_[0] |= 0x00000008u;
+  recipient_ = value;
+}
+inline void Request::set_recipient(::request::Request_RequestRecipient value) {
+  _internal_set_recipient(value);
+  // @@protoc_insertion_point(field_set:request.Request.recipient)
+}
+
 #ifdef __GNUC__
   #pragma GCC diagnostic pop
 #endif  // __GNUC__
@@ -1062,6 +1211,11 @@ template <> struct is_proto_enum< ::request::Operation_OperationType> : ::std::t
 template <>
 inline const EnumDescriptor* GetEnumDescriptor< ::request::Operation_OperationType>() {
   return ::request::Operation_OperationType_descriptor();
+}
+template <> struct is_proto_enum< ::request::Request_RequestRecipient> : ::std::true_type {};
+template <>
+inline const EnumDescriptor* GetEnumDescriptor< ::request::Request_RequestRecipient>() {
+  return ::request::Request_RequestRecipient_descriptor();
 }
 
 PROTOBUF_NAMESPACE_CLOSE

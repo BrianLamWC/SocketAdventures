@@ -21,6 +21,38 @@ void threadError(const char *msg)
     pthread_exit(NULL);  // Terminate only the calling thread
 }
 
+int setupConnection(const std::string &ip, int port)
+{
+
+    int connfd = socket(AF_INET, SOCK_STREAM, 0);
+    struct sockaddr_in server_addr = {};
+    struct hostent* server;
+
+    if (connfd < 0) {
+        perror("setupConnection: error opening socket");
+        return -1;
+    }
+
+    server = gethostbyname(ip.c_str());
+    if (server == NULL) {
+        perror("setupConnection: server does not exist");
+        close(connfd);
+        return -1;
+    }
+
+    server_addr.sin_family = AF_INET;
+    memcpy((void*)&server_addr.sin_addr.s_addr, server->h_addr, server->h_length);
+    server_addr.sin_port = htons(port);
+
+    if (connect(connfd, (struct sockaddr*)&server_addr, sizeof(server_addr)) < 0) {
+        // perror("setupConnection: error connecting");
+        close(connfd);
+        return -1;
+    }
+
+    return connfd;  // Return the connected socket descriptor
+}
+
 int setupListenfd(int my_port)
 {
 
@@ -87,35 +119,6 @@ bool setNonBlocking(int listenfd)
     return true;
 }
 
-int setupConnection(const std::string& ip, int port) {
-    int connfd = socket(AF_INET, SOCK_STREAM, 0);
-    struct sockaddr_in server_addr = {};
-    struct hostent* server;
-
-    if (connfd < 0) {
-        perror("setupConnection: error opening socket");
-        return -1;
-    }
-
-    server = gethostbyname(ip.c_str());
-    if (server == NULL) {
-        perror("setupConnection: server does not exist");
-        close(connfd);
-        return -1;
-    }
-
-    server_addr.sin_family = AF_INET;
-    memcpy((void*)&server_addr.sin_addr.s_addr, server->h_addr, server->h_length);
-    server_addr.sin_port = htons(port);
-
-    if (connect(connfd, (struct sockaddr*)&server_addr, sizeof(server_addr)) < 0) {
-        // perror("setupConnection: error connecting");
-        close(connfd);
-        return -1;
-    }
-
-    return connfd;  // Return the connected socket descriptor
-}
 
 void setupMockDB(){
     
@@ -140,7 +143,7 @@ void setupMockDB(){
 
 };
 
-std::vector<server> getServers()
+void getServers()
 {
 
     std::ifstream file(SERVERLIST);
@@ -153,16 +156,13 @@ std::vector<server> getServers()
 
     json data = json::parse(file);
 
-    std::vector<server> result;
+    auto servers_list = data["servers"];
 
-    auto servers = data["servers"];
-
-    for (auto& server : servers)
+    for (auto& server : servers_list)
     {
-        result.push_back({server["ip"], server["port"], server["id"], false});
+        servers.push_back({server["ip"], server["port"], server["id"], false});
     }
 
     file.close();
 
-    return result;
 }

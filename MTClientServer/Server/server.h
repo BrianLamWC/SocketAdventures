@@ -83,10 +83,11 @@ struct DataItem // for mock database
 };
 
 extern int my_port;
-extern std::vector<server> servers;
+extern std::string my_id;
+extern std::vector<server> servers; 
 extern Queue_TS requestQueue;
+extern Queue_TS partialSequence;
 extern std::unordered_map<std::string, DataItem> mockDB;
-
 void* serverListener(void *args);
 void* pingServers(void *args);
 bool pingAServer(const std::string &ip, int port);

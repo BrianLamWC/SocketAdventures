@@ -101,6 +101,16 @@ void* handleClient(void *client_args)
         pthread_exit(NULL);
     }
 
+    // Check if request is for batcher (not done)
+
+    if (req_proto.recipient() != request::Request::BATCHER)
+    {
+        printf("Invalid request %s:%d \n", client_ip, client_port);
+        close(connfd);
+        pthread_exit(NULL);
+    }
+    
+
     std::vector<Operation> operations;
 
     for (const auto& op_proto : req_proto.transaction().operations())

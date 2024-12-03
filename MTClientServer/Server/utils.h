@@ -15,6 +15,6 @@ void threadError(const char *msg);
 int setupConnection(const std::string& ip, int port);
 void setupMockDB();
 
-std::vector<server> getServers();
+void getServers(); 
 
 #endif // UTILS_H
