@@ -3,6 +3,7 @@
 
 #include <vector>
 #include "server.h"
+#include "utils.h"
 
 class Batcher
 {

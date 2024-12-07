@@ -1,7 +1,5 @@
 #include "batcher.h"
-#include "server.h"
 #include <unistd.h>
-#include "utils.h"
 #include <cstring>
 #include <unordered_map>
 #include "../proto/request.pb.h"
@@ -160,7 +158,7 @@ void Batcher::sendTransaction(const Transaction& txn, const std::string& id)
 Batcher::Batcher()
 {
 
-    if (pthread_create(&batcher_thread, nullptr, [](void* arg) -> void* {
+    if (pthread_create(&batcher_thread, NULL, [](void* arg) -> void* {
             static_cast<Batcher*>(arg)->batchRequests();
             return nullptr;
         }, this) != 0) 

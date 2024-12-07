@@ -66,6 +66,7 @@
         "bitset": "cpp",
         "set": "cpp",
         "unordered_set": "cpp",
-        "regex": "cpp"
+        "regex": "cpp",
+        "queue": "cpp"
     }
 }

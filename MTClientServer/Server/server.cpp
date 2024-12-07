@@ -6,14 +6,7 @@
 #include <cstring>
 #include "../proto/request.pb.h"
 
-Queue_TS requestQueue;
-Queue_TS partialSequence;
-std::vector<server> servers;
-int my_port;
-std::unordered_map<std::string, DataItem> mockDB;
-std::string my_id;
-
-void* handleServer(void *server_args)
+void* handlePeer(void *server_args)
 {
     ServerArgs* my_args = (ServerArgs*) server_args;
     int connfd = my_args->connfd;
@@ -77,13 +70,12 @@ void* handleServer(void *server_args)
 
     }
     
-    
     close(connfd);
     pthread_exit(NULL);
 
 }
 
-void* serverListener(void *args)
+void* peerListener(void *args)
 {
     ListenerThreadsArgs *my_args = (ListenerThreadsArgs*) args;
     struct sockaddr_in server_addr;
@@ -101,7 +93,7 @@ void* serverListener(void *args)
                 continue;
             } else
             {
-                error("serverListener: error accepting connection");
+                threadError("serverListener: error accepting connection");
             }
             
         }
@@ -112,7 +104,7 @@ void* serverListener(void *args)
         if (!server_args)
         {
             close(connfd);
-            error("serverListener: memory allocation failed");
+            threadError("serverListener: memory allocation failed");
         }
 
         server_args->connfd = connfd;
@@ -120,11 +112,11 @@ void* serverListener(void *args)
 
         pthread_t server_thread;
 
-        if (pthread_create(&server_thread, NULL, handleServer, (void*)server_args) != 0)
+        if (pthread_create(&server_thread, NULL, handlePeer, (void*)server_args) != 0)
         {
             free(server_args);
             close(connfd);
-            error("serverListener: error creating thread");
+            threadError("serverListener: error creating thread");
         }
 
         pthread_detach(server_thread);
@@ -134,89 +126,4 @@ void* serverListener(void *args)
     pthread_exit(NULL);
 }
 
-void* pingServers(void *args)
-{
-    PingerThreadArgs* my_args = (PingerThreadArgs*) args;
-    std::vector<server>* servers = my_args->servers;
 
-    while (1)
-    {
-
-        // system("clear");
-
-        for (auto& server : *servers)
-        {
-            if (server.port == my_args->my_port)
-            {
-                continue;
-            }
-
-            server.isOnline = pingAServer(server.ip, server.port);
-            // printf("server %s:%d status: %d\n", server.ip.c_str(), server.port, server.isOnline);
-        }
-
-        sleep(5);
-    }
-    
-    pthread_exit(NULL);
-
-}
-
-bool pingAServer(const std::string &ip, int port)   
-{
-
-    int connfd = setupConnection(ip, port);
-
-    if (connfd < 0)
-    {
-        return false;
-    }
-
-    // create a Request message
-    request::Request request;
-    request.set_server_id(atoi(my_id.c_str()));
-
-    // Set the recipient
-    request.set_recipient(request::Request::PING);
-
-    // Create the empty Transaction 
-    request::Transaction *transaction = request.mutable_transaction();
-
-    // Serialize the Request message
-    std::string serialized_request;
-    if (!request.SerializeToString(&serialized_request))
-    {
-        error("error serializing request");
-    }
-
-    // Send serialized request
-    int sent_bytes = write(connfd, serialized_request.c_str(), serialized_request.size());
-    if (sent_bytes < 0)
-    {
-        error("error writing to socket");
-    }
-
-    close(connfd);
-
-    return true;
-}
-
-void Queue_TS::push(const Transaction& val){
-
-    std::lock_guard<std::mutex> lock(mtx);
-    q.push(val);
-
-}
-
-std::vector<Transaction> Queue_TS::popAll() {
-
-    std::lock_guard<std::mutex> lock(mtx);
-    std::vector<Transaction> result;
-
-    while (!q.empty()) {
-        result.push_back(q.front());
-        q.pop();
-    }
-
-    return result; 
-}
