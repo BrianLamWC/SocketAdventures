@@ -176,6 +176,27 @@ void getServers()
 
 }
 
+std::vector<Operation> getOperationsFromProto(const request::Request& req_proto){
+
+    std::vector<Operation> operations;
+
+    for (const auto &op_proto : req_proto.transaction().operations())
+    {
+        Operation operation;
+        operation.type = (op_proto.type() == request::Operation::WRITE) ? OperationType::WRITE : OperationType::READ;
+        operation.key = op_proto.key();
+
+        if (op_proto.has_value() && operation.type == OperationType::WRITE)
+        {
+            operation.value = op_proto.value();
+        }
+
+        operations.push_back(operation);
+    }
+
+    return operations;
+}
+
 Listener::Listener(connectionType connection_type, int listen_fd){
 
     args =  {listen_fd};

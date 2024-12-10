@@ -107,25 +107,11 @@ void* handleClient(void *client_args)
     {
         printf("Invalid request %s:%d \n", client_ip, client_port);
         close(connfd);
-        pthread_exit(NULL);
+        threadError();
     }
     
 
-    std::vector<Operation> operations;
-
-    for (const auto& op_proto : req_proto.transaction().operations())
-    {
-        Operation operation;
-        operation.type = (op_proto.type() == request::Operation::WRITE) ? OperationType::WRITE : OperationType::READ;
-        operation.key = op_proto.key();
-        
-        if (op_proto.has_value() && operation.type == OperationType::WRITE)
-        {
-            operation.value = op_proto.value();
-        }
-
-        operations.push_back(operation);
-    }
+    std::vector<Operation> operations = getOperationsFromProto(req_proto);
 
     Transaction transaction(connfd, operations);
     

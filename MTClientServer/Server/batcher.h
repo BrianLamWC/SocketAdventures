@@ -9,7 +9,7 @@ class Batcher
 {
 private:
 
-    std::vector<Transaction> batch;
+    std::vector<Transaction> batch; 
     pthread_t batcher_thread;
     static const int BATCH_SIZE = 10;
 

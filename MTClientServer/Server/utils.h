@@ -16,7 +16,8 @@ bool setNonBlocking(int listenfd);
 void threadError(const char *msg);
 int setupConnection(const std::string& ip, int port);
 void setupMockDB();
-void getServers(); 
+void getServers();
+std::vector<Operation> getOperationsFromProto(const request::Request& req_proto);
 
 struct server
 {

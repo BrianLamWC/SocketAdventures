@@ -11,7 +11,7 @@ private:
     std::vector<Transaction> partial_sequences;
 
 public:
-
+    PartialSequencer();
 };
 
 
