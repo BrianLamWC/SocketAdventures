@@ -8,6 +8,7 @@
 #include <netdb.h>
 #include <iostream>
 #include <pthread.h>
+#include <string>
 #include "../proto/request.pb.h"
 
 #define SERVER_ADDRESS "localhost"
@@ -56,13 +57,16 @@ void *clientThread(void *args)
 
         // Create a Request message
         request::Request request;
-        request.set_client_id(sockfd);
 
         // Set the recipient
         request.set_recipient(request::Request::BATCHER);
 
+        // Set client_id
+        request.set_client_id(name);
+
         // Create the Transaction and add Operations
-        request::Transaction *transaction = request.mutable_transaction();
+        request::Transaction *transaction = request.add_transaction();
+        transaction->set_client_id(name);
 
         // Add write operation W(1, 2)
         request::Operation *op1 = transaction->add_operations();

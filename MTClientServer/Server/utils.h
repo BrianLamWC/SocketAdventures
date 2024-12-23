@@ -6,18 +6,14 @@
 #include <unordered_map>
 #include <queue>
 #include <mutex>
+#include "partialSequencer.h"
+#include "merger.h"
+#include "transaction.h"
+#include "../proto/request.pb.h"
+
 
 #define SERVERLIST "servers.json"
 #define MOCKDB "data.json"
-
-void error(const char *msg);
-int setupListenfd(int my_port);
-bool setNonBlocking(int listenfd);
-void threadError(const char *msg);
-int setupConnection(const std::string& ip, int port);
-void setupMockDB();
-void getServers();
-std::vector<Operation> getOperationsFromProto(const request::Request& req_proto);
 
 struct server
 {
@@ -32,6 +28,8 @@ struct server
 struct ListenerThreadsArgs
 {
     int listenfd;
+    PartialSequencer* partial_sequencer;
+    Merger* merger;
 };
 
 enum class connectionType{
@@ -45,7 +43,7 @@ private:
     ListenerThreadsArgs args;
 public:
 
-    Listener(connectionType connection_type, int listenfd);
+    Listener(connectionType connection_type, int listenfd, PartialSequencer* partial_sequencer);
 
 };
 
@@ -68,34 +66,6 @@ public:
     bool pingAPeer(const std::string &ip, int port);
 };
 
-
-// TRANSACTION
-
-enum class OperationType {
-    READ,
-    WRITE
-};
-
-struct Operation {
-    OperationType type;
-    std::string key;
-    std::string value;  // Only used for write operations
-};
-
-class Transaction
-{
-private:
-    int client_id;
-    std::vector<Operation> operations;
-public:
-    // Constructor to initialize a Transaction
-    Transaction(int client_id, const std::vector<Operation>& ops)
-        : client_id(client_id), operations(ops) {}
-
-    // Getters to access client ID and operations
-    int getClientId() const { return client_id; }
-    const std::vector<Operation>& getOperations() const { return operations; }
-};
 
 // MOCK DATABASE
 
@@ -132,5 +102,14 @@ public:
 
 extern Queue_TS requestQueue;
 extern Queue_TS partialSequence;
+
+void error(const char *msg);
+int setupListenfd(int my_port);
+bool setNonBlocking(int listenfd);
+void threadError(const char *msg);
+int setupConnection(const std::string& ip, int port);
+void setupMockDB();
+void getServers();
+std::vector<Operation> getOperationsFromProtoTransaction(const request::Transaction& txn_proto);
 
 #endif

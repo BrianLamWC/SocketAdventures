@@ -2,6 +2,7 @@
 #include "client.h"
 #include "utils.h"
 #include "batcher.h"
+#include "partialSequencer.h"
 #include <unistd.h>
 #include <pthread.h>
 #include <iostream>
@@ -26,6 +27,12 @@ int main(int argc, char *argv[])
     getServers();
     int num_servers = servers.size();
 
+    // run batcher
+    Batcher batcher;
+
+    // run partial sequencer
+    PartialSequencer partial_sequencer;
+
     // set up listening sockets
     int peer_listenfd = setupListenfd(peer_port);
     int client_listenfd = setupListenfd(client_port);
@@ -38,14 +45,11 @@ int main(int argc, char *argv[])
     printf("Listening for clients on port %d\n", client_port);
 
     // start listeners
-    Listener peer_listener(connectionType::PEER, peer_listenfd);
-    Listener client_listener(connectionType::CLIENT, client_listenfd);
+    Listener peer_listener(connectionType::PEER, peer_listenfd, &partial_sequencer);
+    Listener client_listener(connectionType::CLIENT, client_listenfd, &partial_sequencer);
 
     // arguments for pinger thread
     Pinger pinger(&servers, num_servers, peer_port);
-
-    // run batcher
-    Batcher batcher;
 
     while (true) {
         pause(); // Blocks until a signal is received (e.g., SIGINT)

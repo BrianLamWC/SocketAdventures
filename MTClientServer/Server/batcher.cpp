@@ -1,8 +1,9 @@
-#include "batcher.h"
 #include <unistd.h>
 #include <cstring>
 #include <unordered_map>
+#include "batcher.h"
 #include "../proto/request.pb.h"
+#include <stdlib.h>
 
 void Batcher::batchRequests()
 {
@@ -12,7 +13,7 @@ void Batcher::batchRequests()
         batch = requestQueue.popAll();
 
         if (!batch.empty()) {
-            processBatch(batch);
+            processBatch();
         }
 
         batch.clear();
@@ -24,14 +25,14 @@ void Batcher::batchRequests()
 
 }
 
-void Batcher::processBatch(const std::vector<Transaction>& batch)
+void Batcher::processBatch()
 {
 
     for (const Transaction &txn : batch)
     {
         std::vector<Operation> operations = txn.getOperations();
 
-        printf("(BATCHER) Transaction for client %d:\n", txn.getClientId());
+        printf("(BATCHER) Transaction for client %s:\n", txn.getClientId().c_str());
 
         for (const auto& op : operations) {
 
@@ -95,8 +96,9 @@ void Batcher::sendTransaction(const Transaction& txn, const std::string& id)
         
     }
     
-    if (ip.length() == 0 && port == 0)
+    if (ip.length() == 0 || port == 0)
     {
+        perror("Batcher::sendTransaction: ip length or port = 0");
         return;
     }
 
@@ -104,22 +106,28 @@ void Batcher::sendTransaction(const Transaction& txn, const std::string& id)
 
     if (connfd < 0)
     {
+        perror("Batcher::sendTransaction: connfd < 0");
         return;
     }
     
     // create a Request message
     request::Request request;
-    request.set_server_id(atoi(my_id.c_str()));
 
     // Set the recipient
     request.set_recipient(request::Request::PARTIAL);
 
+    // Set server_id
+    request.set_server_id(my_id);
+
+    // Set client_id
+    request.set_client_id(txn.getClientId());
+
     // Create transaction
-    request::Transaction *transaction = request.mutable_transaction();
+    request::Transaction *transaction = request.add_transaction();
 
     std::vector<Operation> operations = txn.getOperations();
 
-    for (const auto& operation: operations)
+    for (const auto& operation:operations)
     {
         request::Operation *op = transaction->add_operations();
         
@@ -139,14 +147,16 @@ void Batcher::sendTransaction(const Transaction& txn, const std::string& id)
     std::string serialized_request;
     if (!request.SerializeToString(&serialized_request))
     {
-        error("error serializing request");
+        perror("error serializing request");
+        return;
     }
 
     // Send serialized request
     int sent_bytes = write(connfd, serialized_request.c_str(), serialized_request.size());
     if (sent_bytes < 0)
     {
-        error("error writing to socket");
+        perror("error writing to socket");
+        return;
     }
 
     // Close the connection
@@ -159,7 +169,7 @@ Batcher::Batcher()
 {
 
     if (pthread_create(&batcher_thread, NULL, [](void* arg) -> void* {
-            static_cast<Batcher*>(arg)->batchRequests();
+            static_cast<Batcher*>(arg)->Batcher::batchRequests();
             return nullptr;
         }, this) != 0) 
     {

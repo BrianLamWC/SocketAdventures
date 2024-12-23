@@ -8,7 +8,6 @@
 #include "json.hpp"
 #include "client.h"
 #include "server.h"
-#include "../proto/request.pb.h"
 
 using json = nlohmann::json;
 
@@ -176,11 +175,11 @@ void getServers()
 
 }
 
-std::vector<Operation> getOperationsFromProto(const request::Request& req_proto){
+std::vector<Operation> getOperationsFromProtoTransaction(const request::Transaction& txn_proto){
 
     std::vector<Operation> operations;
 
-    for (const auto &op_proto : req_proto.transaction().operations())
+    for (const auto &op_proto : txn_proto.operations())
     {
         Operation operation;
         operation.type = (op_proto.type() == request::Operation::WRITE) ? OperationType::WRITE : OperationType::READ;
@@ -197,9 +196,10 @@ std::vector<Operation> getOperationsFromProto(const request::Request& req_proto)
     return operations;
 }
 
-Listener::Listener(connectionType connection_type, int listen_fd){
+Listener::Listener(connectionType connection_type, int listenfd, PartialSequencer* partial_sequencer)
+{
 
-    args =  {listen_fd};
+    args =  {listenfd, partial_sequencer};
     pthread_t listener_thread;
 
     if (connection_type == connectionType::CLIENT)
@@ -218,6 +218,7 @@ Listener::Listener(connectionType connection_type, int listen_fd){
     }
     
     pthread_detach(listener_thread);
+
 }
 
 Pinger::Pinger(std::vector<server>* servers, int num_servers, int my_port){
@@ -275,13 +276,13 @@ bool Pinger::pingAPeer(const std::string &ip, int port)
 
     // create a Request message
     request::Request request;
-    request.set_server_id(atoi(my_id.c_str()));
+    request.set_server_id(my_id.c_str());
 
     // Set the recipient
     request.set_recipient(request::Request::PING);
 
     // Create the empty Transaction 
-    request::Transaction *transaction = request.mutable_transaction();
+    request::Transaction *transaction = request.add_transaction();
 
     // Serialize the Request message
     std::string serialized_request;
@@ -321,3 +322,4 @@ std::vector<Transaction> Queue_TS::popAll() {
 
     return result; 
 }
+

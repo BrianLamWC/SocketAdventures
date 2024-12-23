@@ -4,6 +4,7 @@
 #include <vector>
 #include "server.h"
 #include "utils.h"
+#include "transaction.h"
 
 class Batcher
 {
@@ -17,7 +18,7 @@ public:
 
     Batcher();
     void batchRequests();
-    void processBatch(const std::vector<Transaction>& batch);
+    void processBatch();
     void sendTransaction(const Transaction& txn, const std::string& id);
 
 };

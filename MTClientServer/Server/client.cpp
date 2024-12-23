@@ -107,13 +107,13 @@ void* handleClient(void *client_args)
     {
         printf("Invalid request %s:%d \n", client_ip, client_port);
         close(connfd);
-        threadError();
+        pthread_exit(NULL);
     }
     
+    // expecting one transaction per client
+    std::vector<Operation> operations = getOperationsFromProtoTransaction(req_proto.transaction(0));
 
-    std::vector<Operation> operations = getOperationsFromProto(req_proto);
-
-    Transaction transaction(connfd, operations);
+    Transaction transaction(req_proto.client_id(), operations);
     
     requestQueue.push(transaction);
 
