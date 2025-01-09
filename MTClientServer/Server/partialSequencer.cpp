@@ -6,7 +6,7 @@ void PartialSequencer::processPartialSequence(){
     while (true)
     {
 
-        my_partial_sequence = partialSequence.popAll();
+        my_partial_sequence = partialSequence.popAll(); // cleared own partial sequence for now need to fix to keep it 
 
         if (!my_partial_sequence.empty())
         {
