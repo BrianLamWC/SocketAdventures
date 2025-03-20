@@ -97,11 +97,12 @@ public:
 
     void push(const Transaction& val);
     std::vector<Transaction> popAll();
+    std::vector<Transaction> peekAll();
 
 };
 
-extern Queue_TS requestQueue;
-extern Queue_TS partialSequence;
+extern Queue_TS request_queue;
+extern Queue_TS partial_sequence;
 
 void error(const char *msg);
 int setupListenfd(int my_port);

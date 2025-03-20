@@ -115,7 +115,7 @@ void* handleClient(void *client_args)
 
     Transaction transaction(req_proto.client_id(), operations);
     
-    requestQueue.push(transaction);
+    request_queue.push(transaction);
 
     close(connfd);
     pthread_exit(NULL);

@@ -10,7 +10,7 @@ void Batcher::batchRequests()
 
     while (true)
     {
-        batch = requestQueue.popAll();
+        batch = request_queue.popAll();
 
         if (!batch.empty()) {
             processBatch();
@@ -40,12 +40,12 @@ void Batcher::processBatch()
             std::string operationTypeStr = (op.type == OperationType::WRITE) ? "WRITE" : "READ";
             
             // For write operations, print the value as well
-            if (op.type == OperationType::WRITE) {
-                printf("  Operation: %s, Key: %s, Value: %s\n", operationTypeStr.c_str(), op.key.c_str(), op.value.c_str());
-            } else {
-                // For read operations, value is not printed
-                printf("  Operation: %s, Key: %s\n", operationTypeStr.c_str(), op.key.c_str());
-            }
+            // if (op.type == OperationType::WRITE) {
+            //     printf("  Operation: %s, Key: %s, Value: %s\n", operationTypeStr.c_str(), op.key.c_str(), op.value.c_str());
+            // } else {
+            //     // For read operations, value is not printed
+            //     printf("  Operation: %s, Key: %s\n", operationTypeStr.c_str(), op.key.c_str());
+            // }
 
             // Search for the key in the mockDB
             auto it = mockDB.find(op.key);
@@ -64,7 +64,7 @@ void Batcher::processBatch()
             if (data_item.primaryCopyID == my_id)
             {
                 // push into own partial sequence
-                partialSequence.push(txn);
+                partial_sequence.push(txn);
             }else{
 
                 sendTransaction(txn, data_item.primaryCopyID); 

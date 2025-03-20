@@ -2,20 +2,14 @@
 
 #include "utils.h"
 
-void Merger::protoToPartialSequence(const request::Request& req_proto){
+void Merger::protoToPartialSequence(const request::Request& req_proto){ //might need to
 
-    std::vector<Transaction> partial_sequence;
+    std::vector<Transaction>& server_transactions = partial_sequences[req_proto.server_id()]; //modify partial_sequences in place
     
-    for (const auto &txn : req_proto.transaction())
-    {
-        std::vector<Operation> operations = getOperationsFromProtoTransaction(txn);
-
-        Transaction transaction(req_proto.client_id(), operations);
-
-        partial_sequence.push_back(transaction);
-
+    for (const auto &txn : req_proto.transaction()) {
+        std::vector<Operation> transaction = getOperationsFromProtoTransaction(txn);
+        server_transactions.emplace_back(req_proto.client_id(), transaction); //apparently more efficient? creates vector in place instead of having to declare on in the first place
     }
-    
 
 }
 

@@ -6,7 +6,7 @@ void PartialSequencer::processPartialSequence(){
     while (true)
     {
 
-        my_partial_sequence = partialSequence.popAll(); // cleared own partial sequence for now need to fix to keep it 
+        my_partial_sequence = partial_sequence.peekAll(); // 
 
         if (!my_partial_sequence.empty())
         {
@@ -104,7 +104,7 @@ void PartialSequencer::pushReceivedTransactionIntoPartialSequence(const request:
 
     Transaction transaction(req_proto.client_id(), operations);
 
-    partialSequence.push(transaction);
+    partial_sequence.push(transaction);
 
 }
 

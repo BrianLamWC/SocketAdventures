@@ -15,8 +15,8 @@ std::unordered_map<std::string, DataItem> mockDB;
 int peer_port;
 std::string my_id;
 std::vector<server> servers;
-Queue_TS requestQueue;
-Queue_TS partialSequence;
+Queue_TS request_queue;
+Queue_TS partial_sequence;
 
 void error(const char *msg)
 {
@@ -313,13 +313,25 @@ void Queue_TS::push(const Transaction& val){
 std::vector<Transaction> Queue_TS::popAll() {
 
     std::lock_guard<std::mutex> lock(mtx);
-    std::vector<Transaction> result;
+    std::vector<Transaction> transactions;
 
     while (!q.empty()) {
-        result.push_back(q.front());
+        transactions.push_back(q.front());
         q.pop();
     }
 
-    return result; 
+    return transactions; 
+}
+
+std::vector<Transaction> Queue_TS::peekAll() {
+    std::lock_guard<std::mutex> lock(mtx);
+    std::vector<Transaction> transactions;
+    std::queue<Transaction> temp_q = q;
+
+    while (!temp_q.empty()) {
+        transactions.push_back(temp_q.front());
+        temp_q.pop();
+    }
+    return transactions;
 }
 
