@@ -9,6 +9,7 @@
 #include <iostream>
 #include <pthread.h>
 #include <string>
+#include <uuid/uuid.h>
 #include "../proto/request.pb.h"
 
 #define SERVER_ADDRESS "localhost"
@@ -19,11 +20,19 @@ void error(const char *msg)
     pthread_exit(NULL);
 }
 
+// Function to generate a unique ID as a string
+std::string generateUUID() {
+    uuid_t uuid;
+    char uuid_str[37];
+    uuid_generate(uuid);
+    uuid_unparse(uuid, uuid_str);
+    return std::string(uuid_str);
+}
+
 void *clientThread(void *args)
 {
     int server_port = *((int *)args);
-    char name[50];
-    snprintf(name, sizeof(name), "Client-%ld", pthread_self());
+    int client_id = static_cast<int>(pthread_self()); // Convert pthread_self() to an integer
 
     while (true)
     {
@@ -62,11 +71,12 @@ void *clientThread(void *args)
         request.set_recipient(request::Request::BATCHER);
 
         // Set client_id
-        request.set_client_id(name);
+        request.set_client_id(client_id);
 
         // Create the Transaction and add Operations
         request::Transaction *transaction = request.add_transaction();
-        transaction->set_client_id(name);
+        transaction->set_id(generateUUID());
+        transaction->set_client_id(client_id);
 
         // Add write operation W(1, 2)
         request::Operation *op1 = transaction->add_operations();
@@ -100,7 +110,7 @@ void *clientThread(void *args)
             error("error writing to socket");
         }
 
-        printf("%s sent a request with %d bytes.\n", name, sent_bytes);
+        printf("%d sent a request with %d bytes.\n", client_id, sent_bytes);
 
         // Close the connection
         close(sockfd);

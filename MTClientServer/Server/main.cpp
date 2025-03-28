@@ -1,24 +1,25 @@
+#include <unistd.h>
+#include <pthread.h>
+#include <iostream>
+
 #include "server.h"
 #include "client.h"
 #include "utils.h"
 #include "batcher.h"
 #include "partialSequencer.h"
-#include <unistd.h>
-#include <pthread.h>
-#include <iostream>
 
 int main(int argc, char *argv[])
 {
 
     if (argc != 4)
     {
-        std::cerr << "Usage: " << argv[0] << " <port for servers> <port for clients>\n";
+        std::cerr << "Usage: " << argv[0] << " <port for peers> <port for clients>\n";
         return 1;
     }
 
     peer_port = std::stoi(argv[1]);
     int client_port = std::stoi(argv[2]);
-    my_id = argv[3];
+    my_id = std::stoi(argv[3]);
     
     // setup mockdb
     setupMockDB();

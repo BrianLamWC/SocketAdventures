@@ -6,6 +6,8 @@
 #include <unordered_map>
 #include <queue>
 #include <mutex>
+#include <cstdint>
+
 #include "partialSequencer.h"
 #include "merger.h"
 #include "transaction.h"
@@ -19,7 +21,7 @@ struct server
 {
     std::string ip;
     int port;
-    std::string id;
+    int32_t id;
     bool isOnline;
 };
 
@@ -72,37 +74,38 @@ public:
 struct DataItem 
 {
     std::string val;
-    std::string primaryCopyID;
+    int32_t primaryCopyID;
 };
 
 extern std::unordered_map<std::string, DataItem> mockDB;
 
-// SERVER IDENTIFICATION
+// SERVER ID
 
 extern int peer_port;
-extern std::string my_id;
+extern int32_t my_id;
 
 extern std::vector<server> servers;
 
 // QUEUES
-
+template<typename T>
 class Queue_TS
 {
 private:
 
-    std::queue<Transaction> q;
+    std::queue<T> q;
     std::mutex mtx;
 
 public:
 
-    void push(const Transaction& val);
-    std::vector<Transaction> popAll();
-    std::vector<Transaction> peekAll();
+    void push(const T& val);
+    std::vector<T> popAll(); // for batcher and partial sequencer to pop all txns
+    T pop(); // for merger to pop a batch
 
 };
 
-extern Queue_TS request_queue;
-extern Queue_TS partial_sequence;
+extern Queue_TS<Transaction> request_queue;
+extern Queue_TS<Transaction> batcher_to_partial_sequencer_queue;
+extern Queue_TS<std::vector<Transaction>> partial_sequencer_to_merger_queue;
 
 void error(const char *msg);
 int setupListenfd(int my_port);

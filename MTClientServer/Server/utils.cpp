@@ -1,11 +1,12 @@
-#include "utils.h"
 #include <iostream>
 #include <fstream>
 #include <fcntl.h>
 #include <pthread.h>
 #include <netdb.h>
 #include <unistd.h>
+
 #include "json.hpp"
+#include "utils.h"
 #include "client.h"
 #include "server.h"
 
@@ -13,10 +14,11 @@ using json = nlohmann::json;
 
 std::unordered_map<std::string, DataItem> mockDB;
 int peer_port;
-std::string my_id;
+int32_t my_id;
 std::vector<server> servers;
-Queue_TS request_queue;
-Queue_TS partial_sequence;
+Queue_TS<Transaction> request_queue;
+Queue_TS<Transaction> batcher_to_partial_sequencer_queue;
+Queue_TS<std::vector<Transaction>> partial_sequencer_to_merger_queue;
 
 void error(const char *msg)
 {
@@ -144,12 +146,12 @@ void setupMockDB(){
 
     for (auto data_item : data_items)
     {
-        mockDB.insert({data_item["key"], {data_item["value"], data_item["primaryCopy"]} });
+        mockDB.insert({data_item["key"], {data_item["value"], (int32_t) data_item["primary_server_id"]} });
     }
     
     file.close();
 
-};
+}
 
 void getServers()
 {
@@ -168,7 +170,7 @@ void getServers()
 
     for (auto& server : servers_list)
     {
-        servers.push_back({server["ip"], server["port"], server["id"], false});
+        servers.push_back({server["ip"], server["port"], (int32_t) server["id"], false});
     }
 
     file.close();
@@ -276,13 +278,13 @@ bool Pinger::pingAPeer(const std::string &ip, int port)
 
     // create a Request message
     request::Request request;
-    request.set_server_id(my_id.c_str());
+    request.set_server_id(my_id);
 
     // Set the recipient
     request.set_recipient(request::Request::PING);
 
-    // Create the empty Transaction 
-    request::Transaction *transaction = request.add_transaction();
+    // // Create the empty Transaction 
+    // request::Transaction *transaction = request.add_transaction();
 
     // Serialize the Request message
     std::string serialized_request;
@@ -303,35 +305,35 @@ bool Pinger::pingAPeer(const std::string &ip, int port)
     return true;
 }
 
-void Queue_TS::push(const Transaction& val){
-
+template<typename T>
+void Queue_TS<T>::push(const T& val) {
     std::lock_guard<std::mutex> lock(mtx);
     q.push(val);
-
 }
 
-std::vector<Transaction> Queue_TS::popAll() {
-
+template<typename T>
+std::vector<T> Queue_TS<T>::popAll() {
     std::lock_guard<std::mutex> lock(mtx);
-    std::vector<Transaction> transactions;
-
+    std::vector<T> items;
     while (!q.empty()) {
-        transactions.push_back(q.front());
+        items.push_back(q.front());
         q.pop();
     }
-
-    return transactions; 
+    return items;
 }
 
-std::vector<Transaction> Queue_TS::peekAll() {
+template <typename T>
+T Queue_TS<T>::pop()
+{
     std::lock_guard<std::mutex> lock(mtx);
-    std::vector<Transaction> transactions;
-    std::queue<Transaction> temp_q = q;
-
-    while (!temp_q.empty()) {
-        transactions.push_back(temp_q.front());
-        temp_q.pop();
+    if (q.empty()) {
+        throw std::runtime_error("pop() called on empty queue");
     }
-    return transactions;
+    T item = std::move(q.front());
+    q.pop();
+    return item;
 }
+
+template class Queue_TS<Transaction>;
+template class Queue_TS<std::vector<Transaction>>;
 

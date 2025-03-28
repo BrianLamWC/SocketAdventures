@@ -1,9 +1,12 @@
 #include <unistd.h>
 #include <cstring>
 #include <unordered_map>
+#include <unordered_set>
+#include <stdlib.h>
+
 #include "batcher.h"
 #include "../proto/request.pb.h"
-#include <stdlib.h>
+
 
 void Batcher::batchRequests()
 {
@@ -27,58 +30,62 @@ void Batcher::batchRequests()
 
 void Batcher::processBatch()
 {
+    std::vector<Transaction> batch_for_partial_sequencer;
 
     for (const Transaction &txn : batch)
     {
         std::vector<Operation> operations = txn.getOperations();
+        std::unordered_set<int32_t> target_peers;
 
-        printf("(BATCHER) Transaction for client %s:\n", txn.getClientId().c_str());
+        printf("BATCHER: Transaction %s for client %d:\n", txn.getId(), txn.getClientId());
 
-        for (const auto& op : operations) {
-
-            // Convert the enum type to string
-            std::string operationTypeStr = (op.type == OperationType::WRITE) ? "WRITE" : "READ";
-            
-            // For write operations, print the value as well
-            // if (op.type == OperationType::WRITE) {
-            //     printf("  Operation: %s, Key: %s, Value: %s\n", operationTypeStr.c_str(), op.key.c_str(), op.value.c_str());
-            // } else {
-            //     // For read operations, value is not printed
-            //     printf("  Operation: %s, Key: %s\n", operationTypeStr.c_str(), op.key.c_str());
-            // }
-
-            // Search for the key in the mockDB
+        bool validTransaction = true;
+        for (const auto& op : operations)
+        {
             auto it = mockDB.find(op.key);
-            DataItem data_item;
-
-            if (it != mockDB.end()) {
-                // Key was found, get the DataItem
-                data_item = it->second;
-
-            } else {
-                // Key was not found in the mockDB 
+            if (it == mockDB.end()) {
                 printf("  Key %s not found in the mock database\n", op.key.c_str());
-                break; //move to next transaction and ignore this one for now
+                validTransaction = false;
+                break;
             }
             
-            if (data_item.primaryCopyID == my_id)
-            {
-                // push into own partial sequence
-                partial_sequence.push(txn);
-            }else{
-
-                sendTransaction(txn, data_item.primaryCopyID); 
-
-            }
-
-
+            const DataItem& data_item = it->second;
+            // Add the primary copy ID to the set.
+            target_peers.insert(data_item.primaryCopyID);
         }
         
+        if (!validTransaction){
+            continue;
+        }
+
+        // Now send the transaction once per unique target
+        for (auto serverID : target_peers)
+        {
+            if (serverID == my_id)
+            {
+                batch_for_partial_sequencer.push_back(txn);
+            }
+            else
+            {
+                // Send to a remote server.
+                sendTransaction(txn, serverID);
+            }
+        }
+
+    }
+
+    if (!batch_for_partial_sequencer.empty())
+    {
+        for (const auto& txn : batch_for_partial_sequencer){
+
+            batcher_to_partial_sequencer_queue.push(txn);
+
+        }
     }
     
 }
 
-void Batcher::sendTransaction(const Transaction& txn, const std::string& id)
+void Batcher::sendTransaction(const Transaction& txn, const int32_t& id)
 {
     // note: maybe use map?
    
@@ -124,6 +131,7 @@ void Batcher::sendTransaction(const Transaction& txn, const std::string& id)
 
     // Create transaction
     request::Transaction *transaction = request.add_transaction();
+    transaction->set_id(txn.getId());
 
     std::vector<Operation> operations = txn.getOperations();
 

@@ -15,8 +15,9 @@ message Operation {
 }
 
 message Transaction {
-  repeated Operation operations = 1;  // A list of operations that are part of the transaction
-  optional string client_id = 2; // Client ID requesting the transaction
+  required string id = 1;
+  repeated Operation operations = 2;  // A list of operations that are part of the transaction
+  optional int32 client_id = 3; // Client ID requesting the transaction
 }
 
 message Request {
@@ -28,8 +29,8 @@ message Request {
     PING = 4;
   }
 
-  optional string client_id = 1;     // Client ID making the request
-  optional string server_id = 2;     // Server ID making the request
+  optional int32 client_id = 1;     // Client ID making the request
+  optional int32 server_id = 2;     // Server ID making the request
   repeated Transaction transaction = 3;  // The transactions being requested
   required RequestRecipient recipient = 4; // The recipient of the request
 

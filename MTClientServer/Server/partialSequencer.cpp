@@ -6,11 +6,10 @@ void PartialSequencer::processPartialSequence(){
     while (true)
     {
 
-        my_partial_sequence = partial_sequence.peekAll(); // 
+        partial_sequence = batcher_to_partial_sequencer_queue.popAll();
 
-        if (!my_partial_sequence.empty())
+        if (!partial_sequence.empty())
         {
-            
             for (const auto& server : servers) 
             {
 
@@ -22,6 +21,8 @@ void PartialSequencer::processPartialSequence(){
             }
                     
         }
+            
+        partial_sequence.clear();
         
         sleep(5);
     }
@@ -41,7 +42,7 @@ void PartialSequencer::sendPartialSequence(const std::string& ip, const int& por
 
     if (connfd < 0)
     {
-        perror("Batcher::sendTransaction: connfd < 0");
+        perror("PartialSequencer::sendTransaction: connfd < 0");
         return;
     }
     
@@ -49,18 +50,22 @@ void PartialSequencer::sendPartialSequence(const std::string& ip, const int& por
     request::Request request;
     request.set_server_id(my_id);
 
-    // Set the recipient
+    // set the recipient
     request.set_recipient(request::Request::MERGER);    
 
-    for (const auto& transaction : my_partial_sequence)
+    // add transactions 
+    for (const auto& txn : partial_sequence)
     {
         // Create transaction
-        request::Transaction *txn = request.add_transaction();
-        std::vector<Operation> operations = transaction.getOperations();
+        request::Transaction *transaction = request.add_transaction();
+        transaction->set_id(txn.getId());
+        transaction->set_client_id(txn.getClientId());
+
+        std::vector<Operation> operations = txn.getOperations();
 
         for (const auto& operation:operations)
         {
-            request::Operation *op = txn->add_operations();
+            request::Operation *op = transaction->add_operations();
         
             if ( operation.type == OperationType::WRITE )
             {
@@ -102,9 +107,9 @@ void PartialSequencer::pushReceivedTransactionIntoPartialSequence(const request:
     // expect one transaction only
     std::vector<Operation> operations = getOperationsFromProtoTransaction(req_proto.transaction(0));
 
-    Transaction transaction(req_proto.client_id(), operations);
+    Transaction transaction(req_proto.transaction(0).id().c_str(), req_proto.client_id(), operations);
 
-    partial_sequence.push(transaction);
+    batcher_to_partial_sequencer_queue.push(transaction);
 
 }
 

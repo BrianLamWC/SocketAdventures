@@ -2,6 +2,8 @@
 #define BATCHER_H
 
 #include <vector>
+#include <cstdint>
+
 #include "server.h"
 #include "utils.h"
 #include "transaction.h"
@@ -19,7 +21,7 @@ public:
     Batcher();
     void batchRequests();
     void processBatch();
-    void sendTransaction(const Transaction& txn, const std::string& id);
+    void sendTransaction(const Transaction& txn, const int32_t& id);
 
 };
 

@@ -2,6 +2,7 @@
 #define PARTIALSEQUENCER_H
 
 #include <vector>
+
 #include "transaction.h"
 #include "../proto/request.pb.h"
 
@@ -10,7 +11,7 @@ class PartialSequencer
 {
 private:
     
-    std::vector<Transaction> my_partial_sequence;
+    std::vector<Transaction> partial_sequence;
     pthread_t partial_sequencer_thread;
 
 public:

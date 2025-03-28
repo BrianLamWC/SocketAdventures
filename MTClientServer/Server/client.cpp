@@ -1,8 +1,9 @@
-#include "client.h"
-#include "utils.h"
 #include <unistd.h>
 #include <arpa/inet.h>
 #include <string.h>
+
+#include "client.h"
+#include "utils.h"
 #include "../proto/request.pb.h"
 
 void* clientListener(void *args)
@@ -113,7 +114,7 @@ void* handleClient(void *client_args)
     // expecting one transaction per client
     std::vector<Operation> operations = getOperationsFromProtoTransaction(req_proto.transaction(0));
 
-    Transaction transaction(req_proto.client_id(), operations);
+    Transaction transaction(req_proto.transaction(0).id().c_str() ,req_proto.client_id(), operations);
     
     request_queue.push(transaction);
 

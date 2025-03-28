@@ -1,10 +1,11 @@
-#include "server.h"
-#include "utils.h"
-#include "partialSequencer.h"
 #include <arpa/inet.h>
 #include <netdb.h>
 #include <unistd.h>
 #include <cstring>
+
+#include "server.h"
+#include "utils.h"
+#include "partialSequencer.h"
 #include "../proto/request.pb.h"
 
 void* handlePeer(void *server_args)
@@ -60,15 +61,15 @@ void* handlePeer(void *server_args)
 
     }else if (req_proto.recipient() == request::Request::PARTIAL)
     {
-        printf("PARTIAL: received transaction from: %s\n", req_proto.server_id().c_str());
+        printf("PARTIAL: received transaction %s from: %d\n", req_proto.transaction(0).id().c_str(), req_proto.server_id());
         my_args->partial_sequencer->pushReceivedTransactionIntoPartialSequence(req_proto);
         close(connfd);
         pthread_exit(NULL);
 
     }else if (req_proto.recipient() == request::Request::MERGER)
     {
-        printf("MERGER: received partial sequence from: %s\n", req_proto.server_id().c_str());
-        my_args->merger->protoToPartialSequence(req_proto);
+        printf("MERGER: received partial sequence from: %d\n", req_proto.server_id());
+        //my_args->merger->protoToPartialSequence(req_proto);
         close(connfd);
         pthread_exit(NULL);
     }else{
