@@ -8,9 +8,9 @@
 #include "partialSequencer.h"
 #include "../proto/request.pb.h"
 
-void* handlePeer(void *server_args)
+void *handlePeer(void *server_args)
 {
-    ServerArgs* my_args = (ServerArgs*) server_args;
+    ServerArgs *my_args = (ServerArgs *)server_args;
     int connfd = my_args->connfd;
     sockaddr_in server_addr = my_args->server_addr;
 
@@ -24,8 +24,8 @@ void* handlePeer(void *server_args)
     char buffer[256];
     int buffer_size = sizeof(buffer);
     int received_bytes;
-    
-    // clear buffer 
+
+    // clear buffer
     memset(buffer, 0, buffer_size);
 
     // read the message from the server
@@ -33,7 +33,7 @@ void* handlePeer(void *server_args)
 
     if (received_bytes < 0)
     {
-        threadError("error reading from socket"); 
+        threadError("error reading from socket");
     }
 
     if (received_bytes == 0)
@@ -55,41 +55,41 @@ void* handlePeer(void *server_args)
     // Check the recipient
     if (req_proto.recipient() == request::Request::PING)
     {
-        //printf("pinged by: %d\n", req_proto.server_id());
+        // printf("pinged by: %d\n", req_proto.server_id());
         close(connfd);
         pthread_exit(NULL);
-
-    }else if (req_proto.recipient() == request::Request::PARTIAL)
+    }
+    else if (req_proto.recipient() == request::Request::PARTIAL)
     {
         printf("PARTIAL: received transaction %s from: %d\n", req_proto.transaction(0).id().c_str(), req_proto.server_id());
-        my_args->partial_sequencer->pushReceivedTransactionIntoPartialSequence(req_proto);
+        my_args->partial_sequencer->pushReceivedTransactionIntoPartialSequence_(req_proto);
         close(connfd);
         pthread_exit(NULL);
-
-    }else if (req_proto.recipient() == request::Request::MERGER)
+    }
+    else if (req_proto.recipient() == request::Request::MERGER)
     {
         printf("MERGER: received partial sequence from: %d\n", req_proto.server_id());
-        //my_args->merger->protoToPartialSequence(req_proto);
+        my_args->merger->processProtoRequest(req_proto);
         close(connfd);
         pthread_exit(NULL);
-    }else{
-
     }
-    
+    else
+    {
+    }
+
     close(connfd);
     pthread_exit(NULL);
-
 }
 
-void* peerListener(void *args)
+void *peerListener(void *args)
 {
-    ListenerThreadsArgs *my_args = (ListenerThreadsArgs*) args;
+    ListenerThreadsArgs *my_args = (ListenerThreadsArgs *)args;
     struct sockaddr_in server_addr;
     socklen_t server_addrlen = sizeof(server_addr);
 
     while (true)
     {
-        int connfd = accept(my_args->listenfd, (struct sockaddr*)&server_addr, &server_addrlen);
+        int connfd = accept(my_args->listenfd, (struct sockaddr *)&server_addr, &server_addrlen);
 
         if (connfd < 0)
         {
@@ -97,15 +97,15 @@ void* peerListener(void *args)
             {
                 usleep(10000);
                 continue;
-            } else
+            }
+            else
             {
                 threadError("serverListener: error accepting connection");
             }
-            
         }
-        
+
         // server args
-        ServerArgs* server_args = (ServerArgs*)malloc(sizeof(ServerArgs));
+        ServerArgs *server_args = (ServerArgs *)malloc(sizeof(ServerArgs));
 
         if (!server_args)
         {
@@ -116,10 +116,11 @@ void* peerListener(void *args)
         server_args->connfd = connfd;
         server_args->server_addr = server_addr;
         server_args->partial_sequencer = my_args->partial_sequencer;
+        server_args->merger = my_args->merger;
 
         pthread_t server_thread;
 
-        if (pthread_create(&server_thread, NULL, handlePeer, (void*)server_args) != 0)
+        if (pthread_create(&server_thread, NULL, handlePeer, (void *)server_args) != 0)
         {
             free(server_args);
             close(connfd);
@@ -127,10 +128,7 @@ void* peerListener(void *args)
         }
 
         pthread_detach(server_thread);
-        
     }
-    
+
     pthread_exit(NULL);
 }
-
-

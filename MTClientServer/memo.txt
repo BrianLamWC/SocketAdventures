@@ -1,0 +1,7 @@
+currently changing the whole thing to use request::Transaction instead of Transaction struct
+
+batcher should be finished, move to partial sequencer next
+
+partial sequencer should be working now? need to fix merger next!
+
+MANAGED TO USE CONF+DITIONAL VARIABLES TO SYNC PARTIAL SEQUENCER AND MERGER! work on merger round request next!

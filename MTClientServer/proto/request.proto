@@ -15,9 +15,10 @@ message Operation {
 }
 
 message Transaction {
-  required string id = 1;
-  repeated Operation operations = 2;  // A list of operations that are part of the transaction
-  optional int32 client_id = 3; // Client ID requesting the transaction
+  required int32 order = 1;
+  required string id = 2;
+  repeated Operation operations = 3;  // A list of operations that are part of the transaction
+  optional int32 client_id = 4; // Client ID requesting the transaction
 }
 
 message Request {

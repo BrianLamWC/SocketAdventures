@@ -20,19 +20,16 @@ struct Operation {
 class Transaction
 {
 private:
-    char uuid_str[37];
+    int32_t order;
+    std::string uuid;
     int32_t client_id;
     std::vector<Operation> operations;
 public:
-    // Constructor to initialize a Transaction
-    Transaction(const char* id, int32_t client_id, const std::vector<Operation>& ops) : client_id(client_id), operations(ops)
-    {
-        std::strncpy(uuid_str, id, 36);
-        uuid_str[36] = '\0';
-    }
+    Transaction(int32_t order_, int32_t client_id_, const std::vector<Operation>& ops, const std::string& uuid_ = "")
+        : order(order_), uuid(uuid_), client_id(client_id_), operations(ops) {}
 
-    // Getters to access client ID and operations
-    const char* getId() const{ return uuid_str; }
+    int32_t getOrder() const { return order; }
+    const std::string& getUUID() const { return uuid; }
     int32_t getClientId() const { return client_id; }
     const std::vector<Operation>& getOperations() const { return operations; }
 };

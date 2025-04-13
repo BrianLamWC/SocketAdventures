@@ -487,11 +487,12 @@ class Transaction PROTOBUF_FINAL :
   // accessors -------------------------------------------------------
 
   enum : int {
-    kOperationsFieldNumber = 2,
-    kIdFieldNumber = 1,
-    kClientIdFieldNumber = 3,
+    kOperationsFieldNumber = 3,
+    kIdFieldNumber = 2,
+    kOrderFieldNumber = 1,
+    kClientIdFieldNumber = 4,
   };
-  // repeated .request.Operation operations = 2;
+  // repeated .request.Operation operations = 3;
   int operations_size() const;
   private:
   int _internal_operations_size() const;
@@ -509,7 +510,7 @@ class Transaction PROTOBUF_FINAL :
   const ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::request::Operation >&
       operations() const;
 
-  // required string id = 1;
+  // required string id = 2;
   bool has_id() const;
   private:
   bool _internal_has_id() const;
@@ -538,7 +539,20 @@ class Transaction PROTOBUF_FINAL :
   std::string* _internal_mutable_id();
   public:
 
-  // optional int32 client_id = 3;
+  // required int32 order = 1;
+  bool has_order() const;
+  private:
+  bool _internal_has_order() const;
+  public:
+  void clear_order();
+  ::PROTOBUF_NAMESPACE_ID::int32 order() const;
+  void set_order(::PROTOBUF_NAMESPACE_ID::int32 value);
+  private:
+  ::PROTOBUF_NAMESPACE_ID::int32 _internal_order() const;
+  void _internal_set_order(::PROTOBUF_NAMESPACE_ID::int32 value);
+  public:
+
+  // optional int32 client_id = 4;
   bool has_client_id() const;
   private:
   bool _internal_has_client_id() const;
@@ -555,6 +569,9 @@ class Transaction PROTOBUF_FINAL :
  private:
   class _Internal;
 
+  // helper for ByteSizeLong()
+  size_t RequiredFieldsByteSizeFallback() const;
+
   template <typename T> friend class ::PROTOBUF_NAMESPACE_ID::Arena::InternalHelper;
   typedef void InternalArenaConstructable_;
   typedef void DestructorSkippable_;
@@ -562,6 +579,7 @@ class Transaction PROTOBUF_FINAL :
   mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
   ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::request::Operation > operations_;
   ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr id_;
+  ::PROTOBUF_NAMESPACE_ID::int32 order_;
   ::PROTOBUF_NAMESPACE_ID::int32 client_id_;
   friend struct ::TableStruct_request_2eproto;
 };
@@ -1028,7 +1046,35 @@ inline void Operation::unsafe_arena_set_allocated_value(
 
 // Transaction
 
-// required string id = 1;
+// required int32 order = 1;
+inline bool Transaction::_internal_has_order() const {
+  bool value = (_has_bits_[0] & 0x00000002u) != 0;
+  return value;
+}
+inline bool Transaction::has_order() const {
+  return _internal_has_order();
+}
+inline void Transaction::clear_order() {
+  order_ = 0;
+  _has_bits_[0] &= ~0x00000002u;
+}
+inline ::PROTOBUF_NAMESPACE_ID::int32 Transaction::_internal_order() const {
+  return order_;
+}
+inline ::PROTOBUF_NAMESPACE_ID::int32 Transaction::order() const {
+  // @@protoc_insertion_point(field_get:request.Transaction.order)
+  return _internal_order();
+}
+inline void Transaction::_internal_set_order(::PROTOBUF_NAMESPACE_ID::int32 value) {
+  _has_bits_[0] |= 0x00000002u;
+  order_ = value;
+}
+inline void Transaction::set_order(::PROTOBUF_NAMESPACE_ID::int32 value) {
+  _internal_set_order(value);
+  // @@protoc_insertion_point(field_set:request.Transaction.order)
+}
+
+// required string id = 2;
 inline bool Transaction::_internal_has_id() const {
   bool value = (_has_bits_[0] & 0x00000001u) != 0;
   return value;
@@ -1121,7 +1167,7 @@ inline void Transaction::unsafe_arena_set_allocated_id(
   // @@protoc_insertion_point(field_unsafe_arena_set_allocated:request.Transaction.id)
 }
 
-// repeated .request.Operation operations = 2;
+// repeated .request.Operation operations = 3;
 inline int Transaction::_internal_operations_size() const {
   return operations_.size();
 }
@@ -1160,9 +1206,9 @@ Transaction::operations() const {
   return operations_;
 }
 
-// optional int32 client_id = 3;
+// optional int32 client_id = 4;
 inline bool Transaction::_internal_has_client_id() const {
-  bool value = (_has_bits_[0] & 0x00000002u) != 0;
+  bool value = (_has_bits_[0] & 0x00000004u) != 0;
   return value;
 }
 inline bool Transaction::has_client_id() const {
@@ -1170,7 +1216,7 @@ inline bool Transaction::has_client_id() const {
 }
 inline void Transaction::clear_client_id() {
   client_id_ = 0;
-  _has_bits_[0] &= ~0x00000002u;
+  _has_bits_[0] &= ~0x00000004u;
 }
 inline ::PROTOBUF_NAMESPACE_ID::int32 Transaction::_internal_client_id() const {
   return client_id_;
@@ -1180,7 +1226,7 @@ inline ::PROTOBUF_NAMESPACE_ID::int32 Transaction::client_id() const {
   return _internal_client_id();
 }
 inline void Transaction::_internal_set_client_id(::PROTOBUF_NAMESPACE_ID::int32 value) {
-  _has_bits_[0] |= 0x00000002u;
+  _has_bits_[0] |= 0x00000004u;
   client_id_ = value;
 }
 inline void Transaction::set_client_id(::PROTOBUF_NAMESPACE_ID::int32 value) {

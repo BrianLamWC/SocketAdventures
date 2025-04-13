@@ -9,10 +9,14 @@
 #include <iostream>
 #include <pthread.h>
 #include <string>
-#include <uuid/uuid.h>
+#include <atomic>
+#include <uuid/uuid.h>   // Include libuuid for generating UUIDs
 #include "../proto/request.pb.h"
 
 #define SERVER_ADDRESS "localhost"
+
+// Global atomic counter for transaction orders
+std::atomic<int32_t> globalTransactionCounter{0};
 
 void error(const char *msg)
 {
@@ -20,10 +24,10 @@ void error(const char *msg)
     pthread_exit(NULL);
 }
 
-// Function to generate a unique ID as a string
+// Function to generate a UUID as a string
 std::string generateUUID() {
     uuid_t uuid;
-    char uuid_str[37];
+    char uuid_str[37];  // 36 characters plus null terminator
     uuid_generate(uuid);
     uuid_unparse(uuid, uuid_str);
     return std::string(uuid_str);
@@ -67,15 +71,21 @@ void *clientThread(void *args)
         // Create a Request message
         request::Request request;
 
-        // Set the recipient
+        // Set the recipient and client_id
         request.set_recipient(request::Request::BATCHER);
-
-        // Set client_id
         request.set_client_id(client_id);
 
         // Create the Transaction and add Operations
         request::Transaction *transaction = request.add_transaction();
-        transaction->set_id(generateUUID());
+
+        // Generate a unique, ordered transaction order
+        int32_t order = globalTransactionCounter.fetch_add(1);
+        transaction->set_order(order);
+
+        // Generate a UUID for the transaction id as a string.
+        // (Assumes your proto Transaction message has a required string id field.)
+        std::string uuid = generateUUID();
+        transaction->set_id(uuid);
         transaction->set_client_id(client_id);
 
         // Add write operation W(1, 2)
@@ -110,7 +120,9 @@ void *clientThread(void *args)
             error("error writing to socket");
         }
 
-        printf("%d sent a request with %d bytes.\n", client_id, sent_bytes);
+        // Print client info and the generated UUID
+        printf("%d sent a request with %d bytes. Transaction UUID: %s\n",
+               client_id, sent_bytes, uuid.c_str());
 
         // Close the connection
         close(sockfd);
@@ -133,10 +145,10 @@ int main(int argc, char *argv[])
     GOOGLE_PROTOBUF_VERIFY_VERSION;
 
     int server_port = std::stoi(argv[1]);
-    pthread_t threads[3];
+    pthread_t threads[1];
 
     // Create 3 client threads
-    for (int i = 0; i < 3; ++i)
+    for (int i = 0; i < 1; ++i)
     {
         if (pthread_create(&threads[i], NULL, clientThread, (void *)&server_port) != 0)
         {
@@ -146,7 +158,7 @@ int main(int argc, char *argv[])
     }
 
     // Wait for all threads to finish (they won't, as they run indefinitely)
-    for (int i = 0; i < 3; ++i)
+    for (int i = 0; i < 1; ++i)
     {
         pthread_join(threads[i], NULL);
     }

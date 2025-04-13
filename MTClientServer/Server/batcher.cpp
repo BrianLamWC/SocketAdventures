@@ -5,21 +5,19 @@
 #include <stdlib.h>
 
 #include "batcher.h"
-#include "../proto/request.pb.h"
-
 
 void Batcher::batchRequests()
 {
 
     while (true)
     {
-        batch = request_queue.popAll();
+        batch_ = request_queue_.popAll();
 
-        if (!batch.empty()) {
-            processBatch();
+        if (!batch_.empty()) {
+            processBatch_();
         }
 
-        batch.clear();
+        batch_.clear();
 
         sleep(5);
     }
@@ -28,23 +26,23 @@ void Batcher::batchRequests()
 
 }
 
-void Batcher::processBatch()
+void Batcher::processBatch_()
 {
-    std::vector<Transaction> batch_for_partial_sequencer;
+    std::vector<request::Request> batch_for_partial_sequencer;
 
-    for (const Transaction &txn : batch)
+    for (const request::Request&req_proto : batch_)
     {
-        std::vector<Operation> operations = txn.getOperations();
-        std::unordered_set<int32_t> target_peers;
+        const request::Transaction& txn = req_proto.transaction(0);
 
-        printf("BATCHER: Transaction %s for client %d:\n", txn.getId(), txn.getClientId());
+        std::unordered_set<int32_t> target_peers;
+        printf("BATCHER: Transaction %s for client %d:\n", txn.id().c_str(), txn.client_id());
 
         bool validTransaction = true;
-        for (const auto& op : operations)
+        for (const auto& op : txn.operations())
         {
-            auto it = mockDB.find(op.key);
+            auto it = mockDB.find(op.key());
             if (it == mockDB.end()) {
-                printf("  Key %s not found in the mock database\n", op.key.c_str());
+                printf("  Key %s not found in the mock database\n", op.key().c_str());
                 validTransaction = false;
                 break;
             }
@@ -58,17 +56,16 @@ void Batcher::processBatch()
             continue;
         }
 
-        // Now send the transaction once per unique target
         for (auto serverID : target_peers)
         {
             if (serverID == my_id)
             {
-                batch_for_partial_sequencer.push_back(txn);
+                batch_for_partial_sequencer.push_back(req_proto);
             }
             else
             {
                 // Send to a remote server.
-                sendTransaction(txn, serverID);
+                sendTransaction_(txn, serverID);
             }
         }
 
@@ -76,22 +73,20 @@ void Batcher::processBatch()
 
     if (!batch_for_partial_sequencer.empty())
     {
-        for (const auto& txn : batch_for_partial_sequencer){
+        for (const auto& req_proto : batch_for_partial_sequencer){
 
-            batcher_to_partial_sequencer_queue.push(txn);
+            batcher_to_partial_sequencer_queue_.push(req_proto);
 
         }
     }
-    
 }
 
-void Batcher::sendTransaction(const Transaction& txn, const int32_t& id)
+void Batcher::sendTransaction_(const request::Transaction& txn, const int32_t& id)
 {
-    // note: maybe use map?
-   
     std::string ip; 
     int port;
 
+    // Find server details by id
     for (const auto& server : servers)
     {
         if (server.id == id)
@@ -100,56 +95,35 @@ void Batcher::sendTransaction(const Transaction& txn, const int32_t& id)
             port = server.port;
             break;
         }
-        
     }
     
-    if (ip.length() == 0 || port == 0)
+    if (ip.empty() || port == 0)
     {
-        perror("Batcher::sendTransaction: ip length or port = 0");
+        perror("Batcher::sendTransaction: ip empty or port = 0");
         return;
     }
 
     int connfd = setupConnection(ip, port);
-
     if (connfd < 0)
     {
         perror("Batcher::sendTransaction: connfd < 0");
         return;
     }
     
-    // create a Request message
+    // Create a Request message
     request::Request request;
 
-    // Set the recipient
+    // Set the recipient, server_id, and optionally the client_id
     request.set_recipient(request::Request::PARTIAL);
-
-    // Set server_id
     request.set_server_id(my_id);
-
-    // Set client_id
-    request.set_client_id(txn.getClientId());
-
-    // Create transaction
-    request::Transaction *transaction = request.add_transaction();
-    transaction->set_id(txn.getId());
-
-    std::vector<Operation> operations = txn.getOperations();
-
-    for (const auto& operation:operations)
+    if (txn.has_client_id())
     {
-        request::Operation *op = transaction->add_operations();
-        
-        if ( operation.type == OperationType::WRITE )
-        {
-            op->set_type(request::Operation::WRITE);
-            op->set_value(operation.value);
-        }else{
-            op->set_type(request::Operation::READ);
-        }
-
-        op->set_key(operation.key);
-
+        request.set_client_id(txn.client_id());
     }
+    
+    // Instead of manually setting each field,
+    // we simply copy the provided proto Transaction into the Request message.
+    request.add_transaction()->CopyFrom(txn);
     
     // Serialize the Request message
     std::string serialized_request;
@@ -169,7 +143,6 @@ void Batcher::sendTransaction(const Transaction& txn, const int32_t& id)
 
     // Close the connection
     close(connfd);
-
 }
 
 // Constructor

@@ -112,11 +112,7 @@ void* handleClient(void *client_args)
     }
     
     // expecting one transaction per client
-    std::vector<Operation> operations = getOperationsFromProtoTransaction(req_proto.transaction(0));
-
-    Transaction transaction(req_proto.transaction(0).id().c_str() ,req_proto.client_id(), operations);
-    
-    request_queue.push(transaction);
+    request_queue_.push(req_proto);
 
     close(connfd);
     pthread_exit(NULL);

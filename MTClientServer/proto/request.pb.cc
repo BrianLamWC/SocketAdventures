@@ -95,12 +95,14 @@ const ::PROTOBUF_NAMESPACE_ID::uint32 TableStruct_request_2eproto::offsets[] PRO
   ~0u,  // no _extensions_
   ~0u,  // no _oneof_case_
   ~0u,  // no _weak_field_map_
+  PROTOBUF_FIELD_OFFSET(::request::Transaction, order_),
   PROTOBUF_FIELD_OFFSET(::request::Transaction, id_),
   PROTOBUF_FIELD_OFFSET(::request::Transaction, operations_),
   PROTOBUF_FIELD_OFFSET(::request::Transaction, client_id_),
+  1,
   0,
   ~0u,
-  1,
+  2,
   PROTOBUF_FIELD_OFFSET(::request::Request, _has_bits_),
   PROTOBUF_FIELD_OFFSET(::request::Request, _internal_metadata_),
   ~0u,  // no _extensions_
@@ -117,8 +119,8 @@ const ::PROTOBUF_NAMESPACE_ID::uint32 TableStruct_request_2eproto::offsets[] PRO
 };
 static const ::PROTOBUF_NAMESPACE_ID::internal::MigrationSchema schemas[] PROTOBUF_SECTION_VARIABLE(protodesc_cold) = {
   { 0, 8, sizeof(::request::Operation)},
-  { 11, 19, sizeof(::request::Transaction)},
-  { 22, 31, sizeof(::request::Request)},
+  { 11, 20, sizeof(::request::Transaction)},
+  { 24, 33, sizeof(::request::Request)},
 };
 
 static ::PROTOBUF_NAMESPACE_ID::Message const * const file_default_instances[] = {
@@ -131,15 +133,15 @@ const char descriptor_table_protodef_request_2eproto[] PROTOBUF_SECTION_VARIABLE
   "\n\rrequest.proto\022\007request\"}\n\tOperation\022.\n"
   "\004type\030\001 \002(\0162 .request.Operation.Operatio"
   "nType\022\013\n\003key\030\002 \002(\t\022\r\n\005value\030\003 \001(\t\"$\n\rOpe"
-  "rationType\022\010\n\004READ\020\000\022\t\n\005WRITE\020\001\"T\n\013Trans"
-  "action\022\n\n\002id\030\001 \002(\t\022&\n\noperations\030\002 \003(\0132\022"
-  ".request.Operation\022\021\n\tclient_id\030\003 \001(\005\"\324\001"
-  "\n\007Request\022\021\n\tclient_id\030\001 \001(\005\022\021\n\tserver_i"
-  "d\030\002 \001(\005\022)\n\013transaction\030\003 \003(\0132\024.request.T"
-  "ransaction\0224\n\trecipient\030\004 \002(\0162!.request."
-  "Request.RequestRecipient\"B\n\020RequestRecip"
-  "ient\022\013\n\007BATCHER\020\000\022\013\n\007PARTIAL\020\001\022\n\n\006MERGER"
-  "\020\003\022\010\n\004PING\020\004"
+  "rationType\022\010\n\004READ\020\000\022\t\n\005WRITE\020\001\"c\n\013Trans"
+  "action\022\r\n\005order\030\001 \002(\005\022\n\n\002id\030\002 \002(\t\022&\n\nope"
+  "rations\030\003 \003(\0132\022.request.Operation\022\021\n\tcli"
+  "ent_id\030\004 \001(\005\"\324\001\n\007Request\022\021\n\tclient_id\030\001 "
+  "\001(\005\022\021\n\tserver_id\030\002 \001(\005\022)\n\013transaction\030\003 "
+  "\003(\0132\024.request.Transaction\0224\n\trecipient\030\004"
+  " \002(\0162!.request.Request.RequestRecipient\""
+  "B\n\020RequestRecipient\022\013\n\007BATCHER\020\000\022\013\n\007PART"
+  "IAL\020\001\022\n\n\006MERGER\020\003\022\010\n\004PING\020\004"
   ;
 static const ::PROTOBUF_NAMESPACE_ID::internal::DescriptorTable*const descriptor_table_request_2eproto_deps[1] = {
 };
@@ -150,7 +152,7 @@ static ::PROTOBUF_NAMESPACE_ID::internal::SCCInfoBase*const descriptor_table_req
 };
 static ::PROTOBUF_NAMESPACE_ID::internal::once_flag descriptor_table_request_2eproto_once;
 const ::PROTOBUF_NAMESPACE_ID::internal::DescriptorTable descriptor_table_request_2eproto = {
-  false, false, descriptor_table_protodef_request_2eproto, "request.proto", 452,
+  false, false, descriptor_table_protodef_request_2eproto, "request.proto", 467,
   &descriptor_table_request_2eproto_once, descriptor_table_request_2eproto_sccs, descriptor_table_request_2eproto_deps, 3, 0,
   schemas, file_default_instances, TableStruct_request_2eproto::offsets,
   file_level_metadata_request_2eproto, 3, file_level_enum_descriptors_request_2eproto, file_level_service_descriptors_request_2eproto,
@@ -547,14 +549,17 @@ void Transaction::InitAsDefaultInstance() {
 class Transaction::_Internal {
  public:
   using HasBits = decltype(std::declval<Transaction>()._has_bits_);
+  static void set_has_order(HasBits* has_bits) {
+    (*has_bits)[0] |= 2u;
+  }
   static void set_has_id(HasBits* has_bits) {
     (*has_bits)[0] |= 1u;
   }
   static void set_has_client_id(HasBits* has_bits) {
-    (*has_bits)[0] |= 2u;
+    (*has_bits)[0] |= 4u;
   }
   static bool MissingRequiredFields(const HasBits& has_bits) {
-    return ((has_bits[0] & 0x00000001) ^ 0x00000001) != 0;
+    return ((has_bits[0] & 0x00000003) ^ 0x00000003) != 0;
   }
 };
 
@@ -575,14 +580,18 @@ Transaction::Transaction(const Transaction& from)
     id_.Set(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), from._internal_id(),
       GetArena());
   }
-  client_id_ = from.client_id_;
+  ::memcpy(&order_, &from.order_,
+    static_cast<size_t>(reinterpret_cast<char*>(&client_id_) -
+    reinterpret_cast<char*>(&order_)) + sizeof(client_id_));
   // @@protoc_insertion_point(copy_constructor:request.Transaction)
 }
 
 void Transaction::SharedCtor() {
   ::PROTOBUF_NAMESPACE_ID::internal::InitSCC(&scc_info_Transaction_request_2eproto.base);
   id_.UnsafeSetDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
-  client_id_ = 0;
+  ::memset(&order_, 0, static_cast<size_t>(
+      reinterpret_cast<char*>(&client_id_) -
+      reinterpret_cast<char*>(&order_)) + sizeof(client_id_));
 }
 
 Transaction::~Transaction() {
@@ -622,7 +631,11 @@ void Transaction::Clear() {
   if (cached_has_bits & 0x00000001u) {
     id_.ClearNonDefaultToEmpty();
   }
-  client_id_ = 0;
+  if (cached_has_bits & 0x00000006u) {
+    ::memset(&order_, 0, static_cast<size_t>(
+        reinterpret_cast<char*>(&client_id_) -
+        reinterpret_cast<char*>(&order_)) + sizeof(client_id_));
+  }
   _has_bits_.Clear();
   _internal_metadata_.Clear<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>();
 }
@@ -636,9 +649,17 @@ const char* Transaction::_InternalParse(const char* ptr, ::PROTOBUF_NAMESPACE_ID
     ptr = ::PROTOBUF_NAMESPACE_ID::internal::ReadTag(ptr, &tag);
     CHK_(ptr);
     switch (tag >> 3) {
-      // required string id = 1;
+      // required int32 order = 1;
       case 1:
-        if (PROTOBUF_PREDICT_TRUE(static_cast<::PROTOBUF_NAMESPACE_ID::uint8>(tag) == 10)) {
+        if (PROTOBUF_PREDICT_TRUE(static_cast<::PROTOBUF_NAMESPACE_ID::uint8>(tag) == 8)) {
+          _Internal::set_has_order(&has_bits);
+          order_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint64(&ptr);
+          CHK_(ptr);
+        } else goto handle_unusual;
+        continue;
+      // required string id = 2;
+      case 2:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<::PROTOBUF_NAMESPACE_ID::uint8>(tag) == 18)) {
           auto str = _internal_mutable_id();
           ptr = ::PROTOBUF_NAMESPACE_ID::internal::InlineGreedyStringParser(str, ptr, ctx);
           #ifndef NDEBUG
@@ -647,21 +668,21 @@ const char* Transaction::_InternalParse(const char* ptr, ::PROTOBUF_NAMESPACE_ID
           CHK_(ptr);
         } else goto handle_unusual;
         continue;
-      // repeated .request.Operation operations = 2;
-      case 2:
-        if (PROTOBUF_PREDICT_TRUE(static_cast<::PROTOBUF_NAMESPACE_ID::uint8>(tag) == 18)) {
+      // repeated .request.Operation operations = 3;
+      case 3:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<::PROTOBUF_NAMESPACE_ID::uint8>(tag) == 26)) {
           ptr -= 1;
           do {
             ptr += 1;
             ptr = ctx->ParseMessage(_internal_add_operations(), ptr);
             CHK_(ptr);
             if (!ctx->DataAvailable(ptr)) break;
-          } while (::PROTOBUF_NAMESPACE_ID::internal::ExpectTag<18>(ptr));
+          } while (::PROTOBUF_NAMESPACE_ID::internal::ExpectTag<26>(ptr));
         } else goto handle_unusual;
         continue;
-      // optional int32 client_id = 3;
-      case 3:
-        if (PROTOBUF_PREDICT_TRUE(static_cast<::PROTOBUF_NAMESPACE_ID::uint8>(tag) == 24)) {
+      // optional int32 client_id = 4;
+      case 4:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<::PROTOBUF_NAMESPACE_ID::uint8>(tag) == 32)) {
           _Internal::set_has_client_id(&has_bits);
           client_id_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint64(&ptr);
           CHK_(ptr);
@@ -697,28 +718,34 @@ failure:
   (void) cached_has_bits;
 
   cached_has_bits = _has_bits_[0];
-  // required string id = 1;
+  // required int32 order = 1;
+  if (cached_has_bits & 0x00000002u) {
+    target = stream->EnsureSpace(target);
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::WriteInt32ToArray(1, this->_internal_order(), target);
+  }
+
+  // required string id = 2;
   if (cached_has_bits & 0x00000001u) {
     ::PROTOBUF_NAMESPACE_ID::internal::WireFormat::VerifyUTF8StringNamedField(
       this->_internal_id().data(), static_cast<int>(this->_internal_id().length()),
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormat::SERIALIZE,
       "request.Transaction.id");
     target = stream->WriteStringMaybeAliased(
-        1, this->_internal_id(), target);
+        2, this->_internal_id(), target);
   }
 
-  // repeated .request.Operation operations = 2;
+  // repeated .request.Operation operations = 3;
   for (unsigned int i = 0,
       n = static_cast<unsigned int>(this->_internal_operations_size()); i < n; i++) {
     target = stream->EnsureSpace(target);
     target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
-      InternalWriteMessage(2, this->_internal_operations(i), target, stream);
+      InternalWriteMessage(3, this->_internal_operations(i), target, stream);
   }
 
-  // optional int32 client_id = 3;
-  if (cached_has_bits & 0x00000002u) {
+  // optional int32 client_id = 4;
+  if (cached_has_bits & 0x00000004u) {
     target = stream->EnsureSpace(target);
-    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::WriteInt32ToArray(3, this->_internal_client_id(), target);
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::WriteInt32ToArray(4, this->_internal_client_id(), target);
   }
 
   if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
@@ -729,30 +756,58 @@ failure:
   return target;
 }
 
+size_t Transaction::RequiredFieldsByteSizeFallback() const {
+// @@protoc_insertion_point(required_fields_byte_size_fallback_start:request.Transaction)
+  size_t total_size = 0;
+
+  if (_internal_has_id()) {
+    // required string id = 2;
+    total_size += 1 +
+      ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::StringSize(
+        this->_internal_id());
+  }
+
+  if (_internal_has_order()) {
+    // required int32 order = 1;
+    total_size += 1 +
+      ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::Int32Size(
+        this->_internal_order());
+  }
+
+  return total_size;
+}
 size_t Transaction::ByteSizeLong() const {
 // @@protoc_insertion_point(message_byte_size_start:request.Transaction)
   size_t total_size = 0;
 
-  // required string id = 1;
-  if (_internal_has_id()) {
+  if (((_has_bits_[0] & 0x00000003) ^ 0x00000003) == 0) {  // All required fields are present.
+    // required string id = 2;
     total_size += 1 +
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::StringSize(
         this->_internal_id());
+
+    // required int32 order = 1;
+    total_size += 1 +
+      ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::Int32Size(
+        this->_internal_order());
+
+  } else {
+    total_size += RequiredFieldsByteSizeFallback();
   }
   ::PROTOBUF_NAMESPACE_ID::uint32 cached_has_bits = 0;
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
 
-  // repeated .request.Operation operations = 2;
+  // repeated .request.Operation operations = 3;
   total_size += 1UL * this->_internal_operations_size();
   for (const auto& msg : this->operations_) {
     total_size +=
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(msg);
   }
 
-  // optional int32 client_id = 3;
+  // optional int32 client_id = 4;
   cached_has_bits = _has_bits_[0];
-  if (cached_has_bits & 0x00000002u) {
+  if (cached_has_bits & 0x00000004u) {
     total_size += 1 +
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::Int32Size(
         this->_internal_client_id());
@@ -791,11 +846,14 @@ void Transaction::MergeFrom(const Transaction& from) {
 
   operations_.MergeFrom(from.operations_);
   cached_has_bits = from._has_bits_[0];
-  if (cached_has_bits & 0x00000003u) {
+  if (cached_has_bits & 0x00000007u) {
     if (cached_has_bits & 0x00000001u) {
       _internal_set_id(from._internal_id());
     }
     if (cached_has_bits & 0x00000002u) {
+      order_ = from.order_;
+    }
+    if (cached_has_bits & 0x00000004u) {
       client_id_ = from.client_id_;
     }
     _has_bits_[0] |= cached_has_bits;
@@ -828,7 +886,12 @@ void Transaction::InternalSwap(Transaction* other) {
   swap(_has_bits_[0], other->_has_bits_[0]);
   operations_.InternalSwap(&other->operations_);
   id_.Swap(&other->id_, &::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArena());
-  swap(client_id_, other->client_id_);
+  ::PROTOBUF_NAMESPACE_ID::internal::memswap<
+      PROTOBUF_FIELD_OFFSET(Transaction, client_id_)
+      + sizeof(Transaction::client_id_)
+      - PROTOBUF_FIELD_OFFSET(Transaction, order_)>(
+          reinterpret_cast<char*>(&order_),
+          reinterpret_cast<char*>(&other->order_));
 }
 
 ::PROTOBUF_NAMESPACE_ID::Metadata Transaction::GetMetadata() const {

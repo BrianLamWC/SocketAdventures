@@ -6,23 +6,37 @@ void PartialSequencer::processPartialSequence(){
     while (true)
     {
 
-        partial_sequence = batcher_to_partial_sequencer_queue.popAll();
+        transactions_received = batcher_to_partial_sequencer_queue_.popAll();
+        partial_sequence_.set_server_id(my_id);
+        partial_sequence_.set_recipient(request::Request::MERGER);
 
-        if (!partial_sequence.empty())
+        for (const auto& txn : transactions_received)
         {
+            partial_sequence_.add_transaction()->CopyFrom(txn.transaction(0));
+        }
+        
+
+        if (!transactions_received.empty())
+        {
+
+            partial_sequencer_to_merger_queue_.push(partial_sequence_);
+
+            partial_sequencer_to_merger_queue_cv.notify_one();
+
             for (const auto& server : servers) 
             {
 
                 if (server.id != my_id)
                 {
-                    PartialSequencer::sendPartialSequence(server.ip, server.port);
+                    PartialSequencer::sendPartialSequence_(server.ip, server.port);
                 }
                 
             }
-                    
+
         }
             
-        partial_sequence.clear();
+        transactions_received.clear();
+        partial_sequence_.Clear();
         
         sleep(5);
     }
@@ -30,7 +44,7 @@ void PartialSequencer::processPartialSequence(){
 
 }
 
-void PartialSequencer::sendPartialSequence(const std::string& ip, const int& port){
+void PartialSequencer::sendPartialSequence_(const std::string& ip, const int& port){
 
     if (ip.length() == 0 || port == 0)
     {
@@ -54,30 +68,10 @@ void PartialSequencer::sendPartialSequence(const std::string& ip, const int& por
     request.set_recipient(request::Request::MERGER);    
 
     // add transactions 
-    for (const auto& txn : partial_sequence)
+    for (const auto& txn : transactions_received)
     {
-        // Create transaction
-        request::Transaction *transaction = request.add_transaction();
-        transaction->set_id(txn.getId());
-        transaction->set_client_id(txn.getClientId());
-
-        std::vector<Operation> operations = txn.getOperations();
-
-        for (const auto& operation:operations)
-        {
-            request::Operation *op = transaction->add_operations();
-        
-            if ( operation.type == OperationType::WRITE )
-            {
-                op->set_type(request::Operation::WRITE);
-                op->set_value(operation.value);
-            }else{
-                op->set_type(request::Operation::READ);
-            }
-
-            op->set_key(operation.key);  
-
-        }
+        // copy transactions into request
+        request.add_transaction()->CopyFrom(txn.transaction(0));
     
     }
     
@@ -102,14 +96,10 @@ void PartialSequencer::sendPartialSequence(const std::string& ip, const int& por
     
 }
 
-void PartialSequencer::pushReceivedTransactionIntoPartialSequence(const request::Request& req_proto){
+void PartialSequencer::pushReceivedTransactionIntoPartialSequence_(const request::Request& req_proto){
 
     // expect one transaction only
-    std::vector<Operation> operations = getOperationsFromProtoTransaction(req_proto.transaction(0));
-
-    Transaction transaction(req_proto.transaction(0).id().c_str(), req_proto.client_id(), operations);
-
-    batcher_to_partial_sequencer_queue.push(transaction);
+    batcher_to_partial_sequencer_queue_.push(req_proto);
 
 }
 

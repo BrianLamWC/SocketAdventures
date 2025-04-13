@@ -16,9 +16,7 @@ std::unordered_map<std::string, DataItem> mockDB;
 int peer_port;
 int32_t my_id;
 std::vector<server> servers;
-Queue_TS<Transaction> request_queue;
-Queue_TS<Transaction> batcher_to_partial_sequencer_queue;
-Queue_TS<std::vector<Transaction>> partial_sequencer_to_merger_queue;
+
 
 void error(const char *msg)
 {
@@ -198,10 +196,10 @@ std::vector<Operation> getOperationsFromProtoTransaction(const request::Transact
     return operations;
 }
 
-Listener::Listener(connectionType connection_type, int listenfd, PartialSequencer* partial_sequencer)
+Listener::Listener(connectionType connection_type, int listenfd, PartialSequencer* partial_sequencer, Merger* merger)
 {
 
-    args =  {listenfd, partial_sequencer};
+    args =  {listenfd, partial_sequencer, merger};
     pthread_t listener_thread;
 
     if (connection_type == connectionType::CLIENT)
@@ -305,35 +303,4 @@ bool Pinger::pingAPeer(const std::string &ip, int port)
     return true;
 }
 
-template<typename T>
-void Queue_TS<T>::push(const T& val) {
-    std::lock_guard<std::mutex> lock(mtx);
-    q.push(val);
-}
-
-template<typename T>
-std::vector<T> Queue_TS<T>::popAll() {
-    std::lock_guard<std::mutex> lock(mtx);
-    std::vector<T> items;
-    while (!q.empty()) {
-        items.push_back(q.front());
-        q.pop();
-    }
-    return items;
-}
-
-template <typename T>
-T Queue_TS<T>::pop()
-{
-    std::lock_guard<std::mutex> lock(mtx);
-    if (q.empty()) {
-        throw std::runtime_error("pop() called on empty queue");
-    }
-    T item = std::move(q.front());
-    q.pop();
-    return item;
-}
-
-template class Queue_TS<Transaction>;
-template class Queue_TS<std::vector<Transaction>>;
 
