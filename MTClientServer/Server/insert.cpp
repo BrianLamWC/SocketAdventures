@@ -28,8 +28,6 @@ void factory(){
     Transaction r1_t2(2, 101, t2_ops, "uuid_t2");
     Transaction r1_t3(3, 102, t3_ops, "uuid_t3");
 
-    mock_partial_sequences[1]-
-
 
 }
 

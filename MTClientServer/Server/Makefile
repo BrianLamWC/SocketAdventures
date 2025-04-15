@@ -8,28 +8,32 @@ CXXFLAGS = -Wall -g
 PROTO_SRC = ../proto/request.pb.cc
 PROTO_LIBS = -lprotobuf
 
+# Build directory
+BUILDDIR = build
+
 # All .cpp files in the current directory
 SRC = $(wildcard *.cpp)
 
-# Corresponding .o files
-OBJ = $(SRC:.cpp=.o)
+# Corresponding .o files in the build directory
+OBJ = $(patsubst %.cpp,$(BUILDDIR)/%.o,$(SRC))
 
-# Output executable
-TARGET = main
+# Output executable in the build directory
+TARGET = $(BUILDDIR)/main
 
-# Rule to build the target
+# Rule to build the target executable
 all: $(TARGET)
 
 $(TARGET): $(OBJ)
 	$(CXX) $(CXXFLAGS) -o $@ $^ $(PROTO_SRC) $(PROTO_LIBS)
 
-# Rule to build .o files from .cpp files
-%.o: %.cpp
+# Pattern rule to build .o files in the build directory from .cpp files
+$(BUILDDIR)/%.o: %.cpp
+	@mkdir -p $(BUILDDIR)
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 
-# Clean up object files and executable
+# Clean up the build directory
 clean:
-	rm -f $(OBJ) $(TARGET)
+	rm -rf $(BUILDDIR)
 
-# PHONY to prevent conflicts with files named "clean"
-.PHONY: clean
+# PHONY targets to avoid name conflicts with files
+.PHONY: all clean

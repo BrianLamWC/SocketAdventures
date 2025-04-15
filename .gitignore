@@ -4,3 +4,6 @@
 # Ignore binary files
 *.out
 *.exe
+
+# Ignore build directory
+build/
