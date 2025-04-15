@@ -121,8 +121,6 @@ void Batcher::sendTransaction_(const request::Transaction& txn, const int32_t& i
         request.set_client_id(txn.client_id());
     }
     
-    // Instead of manually setting each field,
-    // we simply copy the provided proto Transaction into the Request message.
     request.add_transaction()->CopyFrom(txn);
     
     // Serialize the Request message

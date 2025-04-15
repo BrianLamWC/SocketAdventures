@@ -128,7 +128,7 @@ void *clientThread(void *args)
         close(sockfd);
 
         // Sleep for 10 seconds before reconnecting
-        sleep(10);
+        sleep(1);
     }
 
     pthread_exit(NULL);
