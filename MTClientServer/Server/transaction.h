@@ -24,6 +24,9 @@ private:
     std::string uuid;
     int32_t client_id;
     std::vector<Operation> operations;
+
+    // intrusive adjacency list
+    std::vector<Transaction*> neighbors;
 public:
     Transaction(int32_t order_, int32_t client_id_, const std::vector<Operation>& ops, const std::string& uuid_ = "")
         : order(order_), uuid(uuid_), client_id(client_id_), operations(ops) {}
@@ -32,6 +35,14 @@ public:
     const std::string& getUUID() const { return uuid; }
     int32_t getClientId() const { return client_id; }
     const std::vector<Operation>& getOperations() const { return operations; }
+
+    void addNeighbor(Transaction* ptr) {
+        neighbors.push_back(ptr);
+    }
+
+    const std::vector<Transaction*>& getNeighbors() const {
+        return neighbors;
+    }
 };
 
 #endif

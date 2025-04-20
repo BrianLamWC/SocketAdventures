@@ -8,6 +8,7 @@
 #include "batcher.h"
 #include "partialSequencer.h"
 #include "merger.h"
+#include "insert.h"
 
 int main(int argc, char *argv[])
 {
@@ -28,6 +29,9 @@ int main(int argc, char *argv[])
     // get list of servers
     getServers();
     int num_servers = servers.size();
+
+    factory();
+    insertAlgorithm();
 
     // run batcher
     Batcher batcher;

@@ -5,6 +5,8 @@
 #include <string>
 #include <unordered_map>
 #include <cstdint>
+#include <functional>
+#include <cstddef>
 
 #include "partialSequencer.h"
 #include "merger.h"
@@ -73,6 +75,7 @@ struct DataItem
 {
     std::string val;
     int32_t primaryCopyID;
+    std::string MRW; //only use for the insert algorithm
 };
 
 extern std::unordered_map<std::string, DataItem> mockDB;
@@ -83,6 +86,19 @@ extern int peer_port;
 extern int32_t my_id;
 
 extern std::vector<server> servers;
+
+
+// HASH FUNCTION
+
+template <class T>
+inline void hash_combine(std::size_t& seed, const T& v)
+{
+    std::hash<T> hasher;
+    seed ^= hasher(v)
+          + 0x9e3779b9
+          + (seed << 6)
+          + (seed >> 2);
+}
 
 
 void error(const char *msg);
