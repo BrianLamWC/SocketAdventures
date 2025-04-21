@@ -1,11 +1,29 @@
-// insert.h
+#include "utils.h"
+
 #ifndef INSERT_H
 #define INSERT_H
 
-/// Build up the mock partial sequences for each server.
 void factory();
 
-/// Run your “insertion” algorithm over the mock partial sequences.
+
 void insertAlgorithm();
 
-#endif // INSERT_H
+// specialize std::hash for DataItem struct
+namespace std
+{
+    template <>
+    struct hash<DataItem>
+    {
+        size_t operator()(DataItem const &d) const noexcept
+        {
+            printf("HERER\n");
+            size_t h = 0;
+            hash_combine(h, d.val);
+            hash_combine(h, d.primaryCopyID);
+            hash_combine(h, d.MRW);
+            return h;
+        }
+    };
+}
+
+#endif

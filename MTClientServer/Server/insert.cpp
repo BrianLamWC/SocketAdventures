@@ -65,9 +65,9 @@ void insertAlgorithm(){
             {
                 auto it = mockDB.find(op.key);
 
-                if (it == mockDB.end())
+                if (it == mockDB.end()) 
                 {
-                    std::cout << "INSERT:data item not found" << std::endl;
+                    std::cout << "INSERT::PrimarySet: key " << op.key <<" not found" << std::endl;
                     continue;
                 }
 
@@ -87,16 +87,27 @@ void insertAlgorithm(){
                 graph.addNode(std::make_unique<Transaction>(txn));
             }
 
-            std::unordered_map<size_t, std::string> write_map;
-            std::unordered_map<size_t, std::string> read_map;
+            std::unordered_map<DataItem, std::string> write_set;
+            std::unordered_map<DataItem, std::string> read_set;
 
             for (const auto &op : txn.getOperations())
             {
+
+                auto it = mockDB.find(op.key);
+
+                if (it == mockDB.end())
+                {
+                    std::cout << "INSERT::ReadWriteSet: key " << op.key << " not found" << std::endl;
+                    continue;
+                }
+
+                auto data_item = it->second;
+
                 if (op.type == OperationType::WRITE)
                 {
-                    write_set.push_back(DataItem{op.value, server.id});
+                    write_set[data_item] = nullptr;
                 }else if (op.type == OperationType::READ){
-                    read_set.push_back(DataItem{op.value, server.id});
+                    write_set[data_item] = nullptr;
                 }
 
             
