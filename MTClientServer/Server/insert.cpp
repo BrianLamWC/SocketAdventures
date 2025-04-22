@@ -87,9 +87,10 @@ void insertAlgorithm(){
                 graph.addNode(std::make_unique<Transaction>(txn));
             }
 
-            std::unordered_map<DataItem, std::string> write_set;
+            std::unordered_map<DataItem, std::string> write_set; 
             std::unordered_map<DataItem, std::string> read_set;
 
+            // setup the read and write set of the current transaction
             for (const auto &op : txn.getOperations())
             {
 
@@ -101,14 +102,32 @@ void insertAlgorithm(){
                     continue;
                 }
 
-                auto data_item = it->second;
+                DataItem data_item = it->second;
 
                 if (op.type == OperationType::WRITE)
                 {
-                    write_set[data_item] = nullptr;
+                    write_set[data_item] = ""; // dont use nullptr, need to be valid pointer or just ""
                 }else if (op.type == OperationType::READ){
-                    write_set[data_item] = nullptr;
+                    read_set[data_item] = "";
                 }
+
+
+                for (const auto& data_item : primary_set)
+                {
+
+                    auto it = write_set.find(data_item);
+
+                    if (it != write_set.end())
+                    {
+                        Transaction* MRW = it->second();
+                    }
+                    
+
+
+
+
+                }
+                
 
             
             }
@@ -120,7 +139,6 @@ void insertAlgorithm(){
 
 
     }
-    
-    graph.printAll();
+
 
 }

@@ -75,16 +75,15 @@ struct DataItem
 {
     std::string val;
     int32_t primaryCopyID;
-    std::string MRW;
 
     // (optional) convenience constructor
     DataItem(std::string v, int32_t p, std::string m = "")
-        : val(std::move(v)), primaryCopyID(p), MRW(std::move(m)) {} //use move beccause it just steals the buffer instead of allocating a new buffer
+        : val(std::move(v)), primaryCopyID(p) {} //use move beccause it just steals the buffer instead of allocating a new buffer
 
     // equality: all fields must match
     bool operator==(DataItem const &o) const noexcept
     {
-        return val == o.val && primaryCopyID == o.primaryCopyID && MRW == o.MRW;
+        return val == o.val && primaryCopyID == o.primaryCopyID;
     }
 };
 

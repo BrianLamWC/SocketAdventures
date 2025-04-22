@@ -16,12 +16,12 @@ namespace std
     {
         size_t operator()(DataItem const &d) const noexcept
         {
-            printf("HERER\n");
+            
             size_t h = 0;
             hash_combine(h, d.val);
             hash_combine(h, d.primaryCopyID);
-            hash_combine(h, d.MRW);
             return h;
+
         }
     };
 }
