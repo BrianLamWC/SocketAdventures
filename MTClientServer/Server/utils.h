@@ -97,7 +97,7 @@ extern int32_t my_id;
 extern std::vector<server> servers;
 
 
-// HASH FUNCTION
+// HASH COMBINE FUNCTION
 
 template <class T>
 inline void hash_combine(std::size_t& seed, const T& v)

@@ -5,3 +5,5 @@ batcher should be finished, move to partial sequencer next
 partial sequencer should be working now? need to fix merger next!
 
 MANAGED TO USE CONF+DITIONAL VARIABLES TO SYNC PARTIAL SEQUENCER AND MERGER! work on merger round request next!
+
+double check the insert logic with examples from the paper!

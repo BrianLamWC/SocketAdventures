@@ -43,6 +43,7 @@ void factory(){
     mock_partial_sequences[2]->push(t2);
     mock_partial_sequences[2]->push(t1); 
 
+    mock_partial_sequences[3]->push(t2);
     mock_partial_sequences[3]->push(t3);
     
 
@@ -52,31 +53,38 @@ void insertAlgorithm(){
 
     for (const auto &server : servers)
     {
+        printf("INSERT::Server %d\n", server.id);
+
         auto it = mock_partial_sequences.find(server.id);
         auto &inner_map = it->second;
         auto transactions = inner_map->popAll();
 
-        std::vector<DataItem> primary_set;
+        std::unordered_set<DataItem> primary_set;
+        std::unordered_map<DataItem, Transaction*> most_recent_writers; 
 
         // setup the primary set for current server
         for (const auto &txn : transactions)
         {
             for (const auto &op : txn.getOperations())
             {
-                auto it = mockDB.find(op.key);
+                auto db_it = mockDB.find(op.key);
 
-                if (it == mockDB.end()) 
+                if (db_it == mockDB.end()) 
                 {
                     std::cout << "INSERT::PrimarySet: key " << op.key <<" not found" << std::endl;
                     continue;
                 }
 
-                auto data_item = it->second;
+                auto data_item = db_it->second;
 
                 if ( data_item.primaryCopyID == server.id) // what happens if i do W(A)W(A)
                 {
-                    primary_set.push_back(data_item);
+                    primary_set.insert(data_item);
                 }
+
+                // ensure the key exists in the MRW map (value initialized to nullptr)
+                most_recent_writers.emplace(data_item, nullptr);
+
             }
         }
 
@@ -87,10 +95,10 @@ void insertAlgorithm(){
                 graph.addNode(std::make_unique<Transaction>(txn));
             }
 
-            std::unordered_map<DataItem, std::string> write_set; 
-            std::unordered_map<DataItem, std::string> read_set;
+            std::unordered_set<DataItem> write_set; 
+            std::unordered_set<DataItem> read_set;
 
-            // setup the read and write set of the current transaction
+            // setup the read and write set for the current transaction
             for (const auto &op : txn.getOperations())
             {
 
@@ -106,32 +114,41 @@ void insertAlgorithm(){
 
                 if (op.type == OperationType::WRITE)
                 {
-                    write_set[data_item] = ""; // dont use nullptr, need to be valid pointer or just ""
+                    write_set.insert(data_item); // dont use nullptr, need to be valid pointer or just ""
                 }else if (op.type == OperationType::READ){
-                    read_set[data_item] = "";
+                    read_set.insert(data_item);
                 }
 
-
-                for (const auto& data_item : primary_set)
-                {
-
-                    auto it = write_set.find(data_item);
-
-                    if (it != write_set.end())
-                    {
-                        Transaction* MRW = it->second();
-                    }
-                    
-
-
-
-
-                }
-                
-
+                //pritn read and write set
+                std::cout << "INSERT::ReadWriteSet: key " << op.key << " type " << (op.type == OperationType::READ ? "READ" : "WRITE") << std::endl;
             
             }
             
+            for (const auto &data_item : primary_set) {
+                if (write_set.find(data_item) != write_set.end()) {
+                    
+                    std::cout << data_item.val << " is in both sets" << std::endl;
+
+                    auto mrw_it = most_recent_writers.find(data_item); //get mrw for data item
+
+                    if (mrw_it == most_recent_writers.end()) { // data item not found 
+                        std::cout << "INSERT::MRW: key " << data_item.val << " not found" << std::endl;
+                        continue;
+                    }
+
+                    if (mrw_it->second != nullptr) { // data item has mrw
+                        // print transaction id
+                        std::cout << "INSERT::MRW: key " << data_item.val << " has mrw " << mrw_it->second->getUUID() << std::endl;
+                        auto current_txn = graph.getNode(txn.getUUID());
+                        current_txn->addNeighbor(mrw_it->second); // add mrw to current transaction
+                    }else {
+                        std::cout << "INSERT::MRW: key " << data_item.val << " has no mrw" << std::endl;
+                    }
+
+                    mrw_it->second = graph.getNode(txn.getUUID()); // set mrw to current transaction
+
+                }
+            }
 
 
         }
@@ -140,5 +157,5 @@ void insertAlgorithm(){
 
     }
 
-
+    graph.printAll();
 }
