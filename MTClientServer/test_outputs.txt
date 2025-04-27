@@ -1,0 +1,54 @@
+Running Example:
+
+Graph contains 3 node(s):
+- UUID: uuid_t2, order: 2, client: 101
+    Operations (1):
+      [0] WRITE key=3, value=value_for_3_t2
+    Neighbors (0):
+- UUID: uuid_t3, order: 3, client: 102
+    Operations (3):
+      [0] WRITE key=1, value=value_for_1_t3
+      [1] WRITE key=2, value=value_for_2_t3
+      [2] WRITE key=3, value=value_for_3_t3
+    Neighbors (2): uuid_t2 uuid_t1
+- UUID: uuid_t1, order: 1, client: 100
+    Operations (2):
+      [0] WRITE key=1, value=value_for_1_t1
+      [1] WRITE key=2, value=value_for_2_t1
+    Neighbors (0):
+
+Cyclic conflict
+Graph contains 3 node(s):
+- UUID: uuid_t2, order: 2, client: 101
+    Operations (2):
+      [0] WRITE key=1, value=value_for_1_t2
+      [1] WRITE key=2, value=value_for_2_t2
+    Neighbors (1): uuid_t1
+- UUID: uuid_t3, order: 3, client: 102
+    Operations (1):
+      [0] WRITE key=1, value=value_for_1_t3
+    Neighbors (1): uuid_t2
+- UUID: uuid_t1, order: 1, client: 100
+    Operations (2):
+      [0] WRITE key=1, value=value_for_1_t1
+      [1] WRITE key=2, value=value_for_2_t1
+    Neighbors (1): uuid_t2
+
+Read interleaved with writes
+Graph contains 4 node(s):
+- UUID: uuid_t2, order: 2, client: 101
+    Operations (1):
+      [0] WRITE key=1, value=value_for_1_t2
+    Neighbors (1): uuid_t1
+- UUID: uuid_t4, order: 4, client: 103
+    Operations (1):
+      [0] WRITE key=1, value=value_for_1_t4
+    Neighbors (1): uuid_t3
+- UUID: uuid_t3, order: 3, client: 102
+    Operations (1):
+      [0] WRITE key=1, value=value_for_1_t3
+    Neighbors (1): uuid_t2
+- UUID: uuid_t1, order: 1, client: 100
+    Operations (1):
+      [0] WRITE key=1, value=value_for_1_t1
+    Neighbors (0):

@@ -5,6 +5,7 @@
 #include <vector>
 #include <cstdint>
 #include <cstring>
+#include <unordered_set>
 
 enum class OperationType {
     READ,
@@ -26,7 +27,7 @@ private:
     std::vector<Operation> operations;
 
     // intrusive adjacency list
-    std::vector<Transaction*> neighbors;
+    std::unordered_set<Transaction*> neighbors;
 public:
     Transaction(int32_t order_, int32_t client_id_, const std::vector<Operation>& ops, const std::string& uuid_ = "")
         : order(order_), uuid(uuid_), client_id(client_id_), operations(ops) {}
@@ -37,10 +38,10 @@ public:
     const std::vector<Operation>& getOperations() const { return operations; }
 
     void addNeighbor(Transaction* ptr) {
-        neighbors.push_back(ptr);
+        neighbors.insert(ptr);
     }
 
-    const std::vector<Transaction*>& getNeighbors() const {
+    const std::unordered_set<Transaction*>& getNeighbors() const {
         return neighbors;
     }
 };
