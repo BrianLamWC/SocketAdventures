@@ -24,6 +24,19 @@ void error(const char *msg)
     pthread_exit(NULL);
 }
 
+// Write exactly n bytes or return false on error
+bool writeNBytes(int fd, const void *buf, size_t n) {
+    const char *p = static_cast<const char*>(buf);
+    size_t left = n;
+    while (left) {
+        ssize_t w = ::write(fd, p, left);
+        if (w <= 0) return false;
+        left -= w;
+        p    += w;
+    }
+    return true;
+}
+
 // Function to generate a UUID as a string
 std::string generateUUID() {
     uuid_t uuid;
@@ -36,7 +49,7 @@ std::string generateUUID() {
 void *clientThread(void *args)
 {
     int server_port = *((int *)args);
-    int client_id = static_cast<int>(pthread_self()); // Convert pthread_self() to an integer
+    int client_id   = static_cast<int>(pthread_self());
 
     while (true)
     {
@@ -46,89 +59,71 @@ void *clientThread(void *args)
 
         // Create socket
         sockfd = socket(AF_INET, SOCK_STREAM, 0);
-        if (sockfd < 0)
-        {
-            error("error opening socket");
-        }
+        if (sockfd < 0) error("error opening socket");
 
         // Resolve server address
         server = gethostbyname(SERVER_ADDRESS);
-        if (server == NULL)
-        {
-            error("error resolving server address");
-        }
+        if (server == NULL) error("error resolving server address");
 
         serv_addr.sin_family = AF_INET;
-        bcopy((char *)server->h_addr, (char *)&serv_addr.sin_addr.s_addr, server->h_length);
+        bcopy((char *)server->h_addr,
+              (char *)&serv_addr.sin_addr.s_addr,
+              server->h_length);
         serv_addr.sin_port = htons(server_port);
 
         // Connect to server
-        if (connect(sockfd, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0)
+        if (connect(sockfd, (struct sockaddr *)&serv_addr,
+                    sizeof(serv_addr)) < 0)
         {
             error("error connecting");
         }
 
-        // Create a Request message
+        // Build the Request
         request::Request request;
-
-        // Set the recipient and client_id
         request.set_recipient(request::Request::BATCHER);
         request.set_client_id(client_id);
 
-        // Create the Transaction and add Operations
-        request::Transaction *transaction = request.add_transaction();
-
-        // Generate a unique, ordered transaction order
-        int32_t order = globalTransactionCounter.fetch_add(1);
-        transaction->set_order(order);
-
-        // Generate a UUID for the transaction id as a string.
-        // (Assumes your proto Transaction message has a required string id field.)
+        auto *txn = request.add_transaction();
+        txn->set_order(globalTransactionCounter.fetch_add(1));
         std::string uuid = generateUUID();
-        transaction->set_id(uuid);
-        transaction->set_client_id(client_id);
+        txn->set_id(uuid);
+        txn->set_client_id(client_id);
 
-        // Add write operation W(1, 2)
-        request::Operation *op1 = transaction->add_operations();
-        op1->set_type(request::Operation::WRITE);
-        op1->set_key("1");
-        op1->set_value("2");
+        // Add some write operations
+        for (int i = 1; i <= 3; ++i) {
+            auto *op = txn->add_operations();
+            op->set_type(request::Operation::WRITE);
+            op->set_key(std::to_string(i));
+            op->set_value(std::to_string(i+1));
+        }
 
-        // Add write operation W(2, 3)
-        request::Operation *op2 = transaction->add_operations();
-        op2->set_type(request::Operation::WRITE);
-        op2->set_key("2");
-        op2->set_value("3");
-
-        // Add write operation W(3, 4)
-        request::Operation *op3 = transaction->add_operations();
-        op3->set_type(request::Operation::WRITE);
-        op3->set_key("3");
-        op3->set_value("4");
-
-        // Serialize the Request message
-        std::string serialized_request;
-        if (!request.SerializeToString(&serialized_request))
-        {
+        // Serialize
+        std::string serialized;
+        if (!request.SerializeToString(&serialized)) {
             error("error serializing request");
         }
 
-        // Send serialized request
-        int sent_bytes = write(sockfd, serialized_request.c_str(), serialized_request.size());
-        if (sent_bytes < 0)
-        {
-            error("error writing to socket");
+        uint32_t payload_size = serialized.size();
+        uint32_t netlen = htonl(payload_size);
+        
+        // 1) send the 4-byte length prefix
+        if (!writeNBytes(sockfd, &netlen, sizeof(netlen))) {
+            error("error writing length prefix");
         }
+        
+        // 2) send the actual payload
+        if (!writeNBytes(sockfd,
+                         serialized.data(),
+                         payload_size)) {
+            error("error writing payload");
+        }
+        
+        // now the receiver will read exactly netlen first, then payload_size bytes.
+        printf("%d sent framed request: %u bytes payload (+4B header). UUID %s\n",
+               client_id, payload_size, uuid.c_str());
 
-        // Print client info and the generated UUID
-        printf("%d sent a request with %d bytes. Transaction UUID: %s\n",
-               client_id, sent_bytes, uuid.c_str());
-
-        // Close the connection
         close(sockfd);
-
-        // Sleep for 10 seconds before reconnecting
-        sleep(1);
+        sleep(2);
     }
 
     pthread_exit(NULL);
@@ -136,8 +131,7 @@ void *clientThread(void *args)
 
 int main(int argc, char *argv[])
 {
-    if (argc != 2)
-    {
+    if (argc != 2) {
         std::cerr << "Usage: " << argv[0] << " <server port>\n";
         return 1;
     }
@@ -145,25 +139,14 @@ int main(int argc, char *argv[])
     GOOGLE_PROTOBUF_VERIFY_VERSION;
 
     int server_port = std::stoi(argv[1]);
-    pthread_t threads[1];
+    pthread_t thread;
 
-    // Create 3 client threads
-    for (int i = 0; i < 1; ++i)
-    {
-        if (pthread_create(&threads[i], NULL, clientThread, (void *)&server_port) != 0)
-        {
-            perror("error creating thread");
-            exit(1);
-        }
+    if (pthread_create(&thread, NULL, clientThread, &server_port) != 0) {
+        perror("error creating thread");
+        return 1;
     }
-
-    // Wait for all threads to finish (they won't, as they run indefinitely)
-    for (int i = 0; i < 1; ++i)
-    {
-        pthread_join(threads[i], NULL);
-    }
+    pthread_join(thread, NULL);
 
     google::protobuf::ShutdownProtobufLibrary();
-
     return 0;
 }

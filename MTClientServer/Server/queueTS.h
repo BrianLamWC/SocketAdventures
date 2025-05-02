@@ -23,7 +23,11 @@ public:
     bool empty();
     std::vector<T> popAll(); // for batcher and partial sequencer to pop all txns
     T pop(); // for merger to pop a batch
-
+    // Add this method to get the size of the queue
+    size_t size() {
+        std::lock_guard<std::mutex> lock(mtx);
+        return q.size();
+    }
 };
 
 extern Queue_TS<request::Request> request_queue_;

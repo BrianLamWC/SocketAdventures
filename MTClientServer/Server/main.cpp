@@ -30,9 +30,6 @@ int main(int argc, char *argv[])
     getServers();
     int num_servers = servers.size();
 
-    factory();
-    insertAlgorithm();
-
     // run batcher
     Batcher batcher;
 
@@ -58,7 +55,7 @@ int main(int argc, char *argv[])
     Listener client_listener(connectionType::CLIENT, client_listenfd, &partial_sequencer, &merger);
 
     // arguments for pinger thread
-    Pinger pinger(&servers, num_servers, peer_port);
+    //Pinger pinger(&servers, num_servers, peer_port);
 
     while (true) {
         pause(); // Blocks until a signal is received (e.g., SIGINT)

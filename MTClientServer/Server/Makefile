@@ -2,7 +2,7 @@
 CXX = g++
 
 # Compiler flags
-CXXFLAGS = -Wall -g
+CXXFLAGS = -Wall -g -O0
 
 # Additional protobuf flags and files
 PROTO_SRC = ../proto/request.pb.cc

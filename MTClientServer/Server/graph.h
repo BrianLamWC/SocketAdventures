@@ -17,6 +17,9 @@ public:
 
     /// Print every transaction in the graph:
     void printAll() const;
+
+    /// Clear all nodes and reset the graph:
+    void clear();
 };
 
 #endif // GRAPH_H

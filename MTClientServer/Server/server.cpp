@@ -10,46 +10,49 @@
 
 void *handlePeer(void *server_args)
 {
-    ServerArgs *my_args = (ServerArgs *)server_args;
-    int connfd = my_args->connfd;
-    sockaddr_in server_addr = my_args->server_addr;
+    // 1) Cast and copy the entire struct
+    auto* ptr = static_cast<ServerArgs*>(server_args);
+    ServerArgs local = *ptr;     // copies connfd, server_addr, partial_sequencer, merger…
+    free(ptr);
 
-    free(server_args);
+    // 2) Now use 'local' safely
+    int connfd               = local.connfd;
+    sockaddr_in server_addr  = local.server_addr;
+    auto* partial_sequencer   = local.partial_sequencer;
+    auto* merger             = local.merger;
 
     // get server's IP address and port
     char *server_ip = inet_ntoa(server_addr.sin_addr);
     int server_port = ntohs(server_addr.sin_port);
 
-    // set up buffer
-    char buffer[256];
-    int buffer_size = sizeof(buffer);
-    int received_bytes;
-
-    // clear buffer
-    memset(buffer, 0, buffer_size);
-
-    // read the message from the server
-    received_bytes = read(connfd, buffer, 255); // leave one byte for null terminator
-
-    if (received_bytes < 0)
-    {
-        threadError("error reading from socket");
-    }
-
-    if (received_bytes == 0)
-    {
-        printf("Server %s:%d closed their connection\n", server_ip, server_port);
-        pthread_exit(NULL);
-    }
-
-    // Deserialize the protobuf message from the buffer
-    request::Request req_proto;
-
-    if (!req_proto.ParseFromArray(buffer, received_bytes))
-    {
-        printf("Failed to parse request from server %s:%d\n", server_ip, server_port);
+    // 1) Read 4-byte length
+    uint32_t netlen;
+    if (readNBytes(connfd, &netlen, sizeof(netlen)) != sizeof(netlen)) {
+        fprintf(stderr, "Failed to read length from %s:%d\n",
+                server_ip, server_port);
         close(connfd);
-        pthread_exit(NULL);
+        return nullptr;
+    }
+    uint32_t msglen = ntohl(netlen);
+
+    // 2) Read exactly msglen bytes
+    std::vector<char> buf(msglen);
+    if (readNBytes(connfd, buf.data(), msglen) != (ssize_t)msglen) {
+        fprintf(stderr, "Truncated read (%u bytes) from %s:%d\n",
+                msglen,
+                server_ip, server_port);
+        close(connfd);
+        return nullptr;
+    }
+
+    // 3) Parse
+    request::Request req_proto;
+    if (!req_proto.ParseFromArray(buf.data(), msglen)) {
+        fprintf(stderr, "ParseFromArray failed (%u bytes) from %s:%d\n",
+                msglen,
+                server_ip, server_port);
+        close(connfd);
+        return nullptr;
     }
 
     // Check the recipient
@@ -62,14 +65,14 @@ void *handlePeer(void *server_args)
     else if (req_proto.recipient() == request::Request::PARTIAL)
     {
         printf("PARTIAL: received transaction %s from: %d\n", req_proto.transaction(0).id().c_str(), req_proto.server_id());
-        my_args->partial_sequencer->pushReceivedTransactionIntoPartialSequence_(req_proto);
+        partial_sequencer->pushReceivedTransactionIntoPartialSequence(req_proto);
         close(connfd);
         pthread_exit(NULL);
     }
     else if (req_proto.recipient() == request::Request::MERGER)
     {
         printf("MERGER: received partial sequence from: %d\n", req_proto.server_id());
-        my_args->merger->processProtoRequest(req_proto);
+        merger->processProtoRequest(req_proto);
         close(connfd);
         pthread_exit(NULL);
     }

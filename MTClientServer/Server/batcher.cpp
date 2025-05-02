@@ -123,20 +123,32 @@ void Batcher::sendTransaction_(const request::Transaction& txn, const int32_t& i
     
     request.add_transaction()->CopyFrom(txn);
     
-    // Serialize the Request message
+    // 1) serialize to string
     std::string serialized_request;
-    if (!request.SerializeToString(&serialized_request))
-    {
-        perror("error serializing request");
+    if (!request.SerializeToString(&serialized_request)) {
+        perror("SerializeToString failed");
+        close(connfd);
         return;
     }
 
-    // Send serialized request
-    int sent_bytes = write(connfd, serialized_request.c_str(), serialized_request.size());
-    if (sent_bytes < 0)
-    {
-        perror("error writing to socket");
+    // Print the request size
+    size_t request_size = serialized_request.size();
+    printf("BATCHER: Serialized request size: %zu bytes\n", request_size);
+
+    // 2) send 4-byte length prefix (network order)
+    uint32_t len = htonl(static_cast<uint32_t>(request_size));
+    if (!writeNBytes(connfd, &len, sizeof(len))) {
+        perror("writeNBytes (length prefix) failed");
+        close(connfd);
         return;
+    }
+
+    // Optionally, print that you’re now sending the framed message
+    printf("BATCHER: Sending %zu-byte request (plus 4-byte header) to %s:%d\n",
+           request_size, ip.c_str(), port);
+
+    if (!writeNBytes(connfd, serialized_request.data(), request_size)) {
+        perror("writeNBytes (request) failed");
     }
 
     // Close the connection

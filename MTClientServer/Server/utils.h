@@ -8,7 +8,7 @@
 #include <functional>
 #include <cstddef>
 
-#include "partialSequencer.h"
+#include "partialSequencer.h" // dont include util.h in the components header file
 #include "merger.h"
 #include "transaction.h"
 #include "../proto/request.pb.h"
@@ -96,7 +96,6 @@ extern int32_t my_id;
 
 extern std::vector<server> servers;
 
-
 // HASH COMBINE FUNCTION
 
 template <class T>
@@ -109,6 +108,24 @@ inline void hash_combine(std::size_t& seed, const T& v)
           + (seed >> 2);
 }
 
+// specialize std::hash for DataItem struct
+namespace std
+{
+    template <>
+    struct hash<DataItem>
+    {
+        size_t operator()(DataItem const &d) const noexcept
+        {
+            
+            size_t h = 0;
+            hash_combine(h, d.val);
+            hash_combine(h, d.primaryCopyID);
+            return h;
+
+        }
+    };
+}
+
 
 void error(const char *msg);
 int setupListenfd(int my_port);
@@ -118,4 +135,6 @@ int setupConnection(const std::string& ip, int port);
 void setupMockDB();
 void getServers();
 std::vector<Operation> getOperationsFromProtoTransaction(const request::Transaction& txn_proto);
+ssize_t readNBytes(int fd, void *buf, size_t n);
+bool writeNBytes(int fd, const void *buf, size_t n);
 #endif

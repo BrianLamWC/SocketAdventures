@@ -38,6 +38,7 @@ public:
     const std::vector<Operation>& getOperations() const { return operations; }
 
     void addNeighbor(Transaction* ptr) {
+        // inserts only if neighbor is not already present
         neighbors.insert(ptr);
     }
 

@@ -20,9 +20,7 @@ public:
     PartialSequencer();
     void processPartialSequence();
     void pushReceivedTransactionIntoPartialSequence(const request::Request& req_proto);
-    void pushReceivedTransactionIntoPartialSequence_(const request::Request& req_proto);
     void sendPartialSequence(const std::string& ip, const int& port);
-    void sendPartialSequence_(const std::string& ip, const int& port);
 };
 
 

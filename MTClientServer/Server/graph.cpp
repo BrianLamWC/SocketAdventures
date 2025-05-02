@@ -44,3 +44,7 @@ void Graph::printAll() const {
         std::cout << "\n";
     }
 }
+
+void Graph::clear() {
+    nodes.clear();
+}

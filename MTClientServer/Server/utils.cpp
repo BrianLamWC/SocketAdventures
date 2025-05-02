@@ -303,4 +303,27 @@ bool Pinger::pingAPeer(const std::string &ip, int port)
     return true;
 }
 
+// Read exactly n bytes or return –1 on error, 0 on EOF
+ssize_t readNBytes(int fd, void *buf, size_t n) {
+    char *p   = static_cast<char*>(buf);
+    size_t left = n;
+    while (left) {
+        ssize_t r = ::read(fd, p, left);
+        if (r < 0)  return -1;     // real error
+        if (r == 0)  return 0;     // peer closed
+        left -= r; p += r;
+    }
+    return n;
+}
 
+// Write exactly n bytes or return false on error
+bool writeNBytes(int fd, const void *buf, size_t n) {
+    const char *p = static_cast<const char*>(buf);
+    size_t left = n;
+    while (left) {
+        ssize_t w = ::write(fd, p, left);
+        if (w <= 0) return false;
+        left -= w; p += w;
+    }
+    return true;
+}

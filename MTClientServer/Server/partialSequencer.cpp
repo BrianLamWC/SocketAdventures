@@ -1,5 +1,6 @@
 #include "partialSequencer.h"
 #include "utils.h"
+#include <netinet/in.h>
 
 void PartialSequencer::processPartialSequence(){
 
@@ -28,7 +29,7 @@ void PartialSequencer::processPartialSequence(){
 
                 if (server.id != my_id)
                 {
-                    PartialSequencer::sendPartialSequence_(server.ip, server.port);
+                    PartialSequencer::sendPartialSequence(server.ip, server.port);
                 }
                 
             }
@@ -44,59 +45,45 @@ void PartialSequencer::processPartialSequence(){
 
 }
 
-void PartialSequencer::sendPartialSequence_(const std::string& ip, const int& port){
-
-    if (ip.length() == 0 || port == 0)
-    {
-        perror("PartialSequencer::sendPartialSequence: ip length or port = 0");
-        return;
-    }
-
+void PartialSequencer::sendPartialSequence(const std::string& ip, const int& port) {
     int connfd = setupConnection(ip, port);
-
-    if (connfd < 0)
-    {
-        perror("PartialSequencer::sendTransaction: connfd < 0");
-        return;
-    }
-    
-    // create a Request message
-    request::Request request;
-    request.set_server_id(my_id);
-
-    // set the recipient
-    request.set_recipient(request::Request::MERGER);    
-
-    // add transactions 
-    for (const auto& txn : transactions_received)
-    {
-        // copy transactions into request
-        request.add_transaction()->CopyFrom(txn.transaction(0));
-    
-    }
-    
-    // Serialize the Request message
-    std::string serialized_request;
-    if (!request.SerializeToString(&serialized_request))
-    {
-        perror("error serializing request");
+    if (connfd < 0) {
+        perror("connect failed");
         return;
     }
 
-    // Send serialized request
-    int sent_bytes = write(connfd, serialized_request.c_str(), serialized_request.size());
-    if (sent_bytes < 0)
-    {
-        perror("error writing to socket");
+    // 1) serialize to string
+    std::string request;
+    if (!partial_sequence_.SerializeToString(&request)) {
+        perror("SerializeToString failed");
+        close(connfd);
         return;
     }
 
-    // Close the connection
+    // Print the request size
+    size_t request_size = request.size();
+    printf("PARTIAL: Serialized request size: %zu bytes\n", request_size);
+
+    // 2) send 4-byte length prefix (network order)
+    uint32_t len = htonl(static_cast<uint32_t>(request_size));
+    if (!writeNBytes(connfd, &len, sizeof(len))) {
+        perror("writeNBytes (length prefix) failed");
+        close(connfd);
+        return;
+    }
+
+    // Optionally, print that you’re now sending the framed message
+    printf("PARTIAL: Sending %zu-byte request (plus 4-byte header) to %s:%d\n",
+           request_size, ip.c_str(), port);
+
+    if (!writeNBytes(connfd, request.data(), request_size)) {
+        perror("writeNBytes (request) failed");
+    }
+
     close(connfd);
-    
 }
 
-void PartialSequencer::pushReceivedTransactionIntoPartialSequence_(const request::Request& req_proto){
+void PartialSequencer::pushReceivedTransactionIntoPartialSequence(const request::Request& req_proto){
 
     // expect one transaction only
     batcher_to_partial_sequencer_queue_.push(req_proto);

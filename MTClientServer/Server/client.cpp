@@ -58,11 +58,12 @@ void* clientListener(void *args)
 
 void* handleClient(void *client_args)
 {
-    ClientArgs* my_args = (ClientArgs *)client_args; //make a local copy
-    int connfd = my_args->connfd;
-    sockaddr_in client_addr = my_args->client_addr;
+    auto* ptr = static_cast<ClientArgs*>(client_args);
+    ClientArgs local = *ptr;
+    free(ptr);
 
-    free(client_args);
+    int connfd = local.connfd;
+    sockaddr_in client_addr = local.client_addr;
 
     // get client's IP address and port
     char *client_ip = inet_ntoa(client_addr.sin_addr);
@@ -70,36 +71,41 @@ void* handleClient(void *client_args)
 
     printf("Client connected: %s:%d\n", client_ip, client_port);
 
-    // set up buffer
-    char buffer[256];
-    int buffer_size = sizeof(buffer);
-    int received_bytes;
-    
-    // clear buffer 
-    memset(buffer, 0, buffer_size);
-
-    // read the message from the client
-    received_bytes = read(connfd, buffer, 255); // leave one byte for null terminator
-
-    if (received_bytes < 0)
-    {
-        threadError("error reading from socket"); 
-    }
-
-    if (received_bytes == 0)
-    {
-        printf("Client %s:%d closed their connection\n", client_ip, client_port);
-        pthread_exit(NULL);
-    }
-
-    // Deserialize the protobuf message from the buffer
-    request::Request req_proto;
-
-    if (!req_proto.ParseFromArray(buffer, received_bytes))
-    {
-        printf("Failed to parse request from client %s:%d\n", client_ip, client_port);
+    // 1) Read 4-byte length
+    uint32_t netlen;
+    if (readNBytes(connfd, &netlen, sizeof(netlen)) != sizeof(netlen)) {
+        fprintf(stderr, "Failed to read length from %s:%d\n",
+                client_ip, client_port);
         close(connfd);
-        pthread_exit(NULL);
+        return nullptr;
+    }
+    uint32_t msglen = ntohl(netlen);
+
+    // 2) Read exactly msglen bytes
+    std::vector<char> buf(msglen);
+    ssize_t bytes_read = readNBytes(connfd, buf.data(), msglen);
+
+    if (bytes_read != static_cast<ssize_t>(msglen)) {
+        fprintf(stderr,
+                "CLIENT_HANDLER: Truncated read: expected %u bytes, got %zd bytes from %s:%d\n",
+                msglen,             // what we expected
+                bytes_read,         // what we actually got
+                client_ip,          // peer IP
+                client_port         // peer port
+        );
+        close(connfd);
+        return nullptr;
+    }
+
+
+    // 3) Parse
+    request::Request req_proto;
+    if (!req_proto.ParseFromArray(buf.data(), msglen)) {
+        fprintf(stderr, "ParseFromArray failed (%u bytes) from %s:%d\n",
+                msglen,
+                client_ip, client_port);
+        close(connfd);
+        return nullptr;
     }
 
     // Check if request is for batcher (not done)
