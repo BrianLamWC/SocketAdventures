@@ -22,10 +22,17 @@ private:
     pthread_t merger_thread;
     pthread_t popper;
     pthread_t insert_thread;
+    pthread_t remove_thread;
 
     // queues for round requests and partial sequences 
     std::unordered_map<int32_t, std::unique_ptr<Queue_TS<request::Request>>> round_requests;
     std::unordered_map<int32_t, std::unique_ptr<Queue_TS<Transaction>>> partial_sequences;
+
+    // For each round-ID, map server_id → that server’s Request
+    std::map<int32_t, std::unordered_map<int32_t, request::Request>> pending_rounds;
+
+    // Once a full round is ready, we stash the batch here:
+    std::vector<request::Request> current_batch;
 
     // mutexes 
     std::mutex round_mutex;
@@ -44,12 +51,6 @@ public:
     // Constructor receives the list of expected server ids.
     Merger();
 
-    // Called by a peer-handling thread when a new request arrives.
-    void processProtoRequest(const request::Request& req_proto);
-
-    // Waits until one request per server is available, then processes them.
-    void temp();
-
     // Processes one round of requests.
     void processRoundRequests();
 
@@ -58,6 +59,8 @@ public:
 
     // Insert algorithm
     void insertAlgorithm();
+
+    void processIncomingRequest(const request::Request& req_proto);
 };
 
 

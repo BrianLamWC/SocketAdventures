@@ -7,3 +7,9 @@ partial sequencer should be working now? need to fix merger next!
 MANAGED TO USE CONF+DITIONAL VARIABLES TO SYNC PARTIAL SEQUENCER AND MERGER! work on merger round request next!
 
 double check the insert logic with examples from the paper!
+
+can play around with batcher and partial_sequencer's period
+
+go make a map for each txn to its scc?
+
+should be able to remove the complete sccs, need to deal with incomplete sccs (eg: outgoing edges)

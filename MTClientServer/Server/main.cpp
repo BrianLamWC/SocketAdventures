@@ -8,7 +8,6 @@
 #include "batcher.h"
 #include "partialSequencer.h"
 #include "merger.h"
-#include "insert.h"
 
 int main(int argc, char *argv[])
 {

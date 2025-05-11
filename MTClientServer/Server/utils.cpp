@@ -16,7 +16,9 @@ std::unordered_map<std::string, DataItem> mockDB;
 int peer_port;
 int32_t my_id;
 std::vector<server> servers;
-
+std::mutex batch_ready_mtx;
+std::condition_variable batch_ready_cv;
+bool batch_ready = false;
 
 void error(const char *msg)
 {

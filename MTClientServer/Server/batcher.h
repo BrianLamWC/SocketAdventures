@@ -23,9 +23,7 @@ public:
 
     Batcher();
     void batchRequests();
-    void processBatch();
     void processBatch_();
-    void sendTransaction(const Transaction& txn, const int32_t& id);
     void sendTransaction_(const request::Transaction& txn, const int32_t& id);
 
 };

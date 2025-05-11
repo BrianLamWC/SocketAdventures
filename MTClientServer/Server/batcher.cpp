@@ -3,14 +3,37 @@
 #include <unordered_map>
 #include <unordered_set>
 #include <stdlib.h>
+#include <thread>
 
 #include "batcher.h"
+
+namespace {
+    // compile-time constant for a 5s window
+    constexpr std::chrono::seconds ROUND_PERIOD{1};
+
+    // initialized once at program startup
+    const auto ROUND_EPOCH = std::chrono::system_clock::from_time_t(0);
+}
 
 void Batcher::batchRequests()
 {
 
     while (true)
     {
+        // align with the first boundary, can do this outside the loop once but repeating it might be safer?
+        auto now = std::chrono::system_clock::now();
+        auto since_0 = now - ROUND_EPOCH;
+        auto elapsed_seconds = std::chrono::duration_cast<std::chrono::seconds>(since_0).count();
+
+        // which window we’re currently in
+        int64_t current_window = elapsed_seconds / ROUND_PERIOD.count();
+
+        // the timestamp at which the next window begins
+        auto next_timestamp = ROUND_EPOCH + std::chrono::seconds((current_window+1) * ROUND_PERIOD.count());
+
+        // print current round
+        printf("BATCHER: in round %ld\n", current_window);
+
         batch_ = request_queue_.popAll();
 
         if (!batch_.empty()) {
@@ -19,11 +42,9 @@ void Batcher::batchRequests()
 
         batch_.clear();
 
-        sleep(5);
+        std::this_thread::sleep_until(next_timestamp);
     }
     
-    pthread_exit(NULL);
-
 }
 
 void Batcher::processBatch_()
@@ -71,13 +92,8 @@ void Batcher::processBatch_()
 
     }
 
-    if (!batch_for_partial_sequencer.empty())
-    {
-        for (const auto& req_proto : batch_for_partial_sequencer){
-
-            batcher_to_partial_sequencer_queue_.push(req_proto);
-
-        }
+    if (!batch_for_partial_sequencer.empty()) {
+        batcher_to_partial_sequencer_queue_.pushAll(batch_for_partial_sequencer);
     }
 }
 

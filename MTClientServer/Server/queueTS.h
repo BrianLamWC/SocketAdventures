@@ -20,20 +20,24 @@ private:
 public:
 
     void push(const T& val);
+    void pushAll(const std::vector<T>& items);
     bool empty();
-    std::vector<T> popAll(); // for batcher and partial sequencer to pop all txns
-    T pop(); // for merger to pop a batch
-    // Add this method to get the size of the queue
+    std::vector<T> popAll(); 
+    T pop(); 
     size_t size() {
         std::lock_guard<std::mutex> lock(mtx);
         return q.size();
     }
 };
 
+// queue for client requests to batcher
 extern Queue_TS<request::Request> request_queue_;
-extern Queue_TS<request::Request> batcher_to_partial_sequencer_queue_;
-extern Queue_TS<request::Request> partial_sequencer_to_merger_queue_;
 
+// queue for batcher to partial sequencer
+extern Queue_TS<request::Request> batcher_to_partial_sequencer_queue_;
+
+// queue for partial sequencer to merger
+extern Queue_TS<request::Request> partial_sequencer_to_merger_queue_;
 extern std::mutex partial_sequencer_to_merger_queue_mtx;
 extern std::condition_variable partial_sequencer_to_merger_queue_cv;
 

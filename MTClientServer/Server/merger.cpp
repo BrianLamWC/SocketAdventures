@@ -1,30 +1,6 @@
 #include "merger.h"
 #include "utils.h"
 
-void Merger::processProtoRequest(const request::Request& req_proto)
-{
-    if (!req_proto.has_server_id()) {
-        perror("MERGER: request has no server_id");
-        return;
-    }
-    int32_t server_id = req_proto.server_id();
-
-    // lock round_mutex while we push into round_requests
-    {
-      std::lock_guard<std::mutex> lock (round_mutex);
-      auto it = round_requests.find(server_id);
-      if (it == round_requests.end()) {
-          fprintf(stderr,
-                  "MERGER::processProtoRequest: unknown server %d\n",
-                  server_id);
-          return;
-      }
-      it->second->push(req_proto);
-    } // lock goes out of scope and unlocks here
-
-    round_cv.notify_one();
-}
-
 void Merger::processLocalRequests()
 {
     while (true)
@@ -37,81 +13,40 @@ void Merger::processLocalRequests()
               return !partial_sequencer_to_merger_queue_.empty();
           });
           req_proto = partial_sequencer_to_merger_queue_.pop();
+          processIncomingRequest(req_proto);
         } // local_lock unlocked here
 
-        {
-          std::lock_guard<std::mutex> lk(round_mutex);
-          round_requests[my_id]->push(req_proto);
-        }
-
-        round_cv.notify_one();
     }
-}
-
-void Merger::temp()
-{
-
-    while (true)
-    {
-        std::unique_lock<std::mutex> lock(round_mutex);
-        // Wait until each expected server has at least one request.
-        round_cv.wait(lock, [this]() {
-            for (auto id : expected_server_ids) {
-                // If no queue exists for a server or if its queue is empty, wait.
-                if (round_requests.find(id) == round_requests.end() || round_requests[id]->empty())
-                    return false;
-            }
-            return true;
-        });
-        
-        // At this point, we have at least one request from each expected server.
-        processRoundRequests();
-    
-        {
-            std::lock_guard<std::mutex> round_ready_lock(insert_mutex);
-            round_ready = true;
-        }
-
-        insert_cv.notify_one();
-
-    }
-
 }
 
 void Merger::processRoundRequests()
 {
     printf("Processing round of requests:\n");
-    for (const int32_t &server_id : expected_server_ids) {
-        // For each server, get the first (oldest) request.
-        const request::Request& req_proto = round_requests[server_id]->pop();
-
-        auto it = partial_sequences.find(server_id);
+    for (const auto &txn : current_batch)
+    {
+        auto it = partial_sequences.find(txn.server_id());
         auto &inner_map = it->second; // this is a unique_ptr to an unordered_map<string, Transaction>
 
-        // create a Transaction() for each transaction in the proto request
-        for (const auto &txn_proto : req_proto.transaction()){
-
+        for (const auto &txn_proto : txn.transaction())
+        {
             std::vector<Operation> operations = getOperationsFromProtoTransaction(txn_proto);
             
             Transaction transaction(txn_proto.order(), txn_proto.client_id(), operations, txn_proto.id());
 
             inner_map->push(transaction);
-        }
 
-        printf("  Server %d: %ld transactions queued\n", server_id, inner_map->size());
-        // Here, add your merging or processing logic as needed.
+        }
+        printf("  Server %d: %ld transactions queued\n", txn.server_id(), inner_map->size());
     }
+
 }
 
 void Merger::insertAlgorithm(){
 
-    std::unique_lock<std::mutex> lk(insert_mutex);
+    std::unique_lock<std::mutex> lock(insert_mutex);
     while (true)
     {
-        // 1) wait until temp() signals a new round
-        insert_cv.wait(lk, [this](){ return round_ready; });
-
-        // 2) reset the flag before you process
+        insert_cv.wait(lock, [this](){ return round_ready; });
         round_ready = false;
 
         for (const auto &server : servers)
@@ -152,15 +87,13 @@ void Merger::insertAlgorithm(){
                 }
             }
     
-            for (const auto &txn : transactions)
+            for (auto &txn : transactions)
             {
-    
-                if (graph.getNode(txn.getUUID()) == nullptr) {
-                    graph.addNode(std::make_unique<Transaction>(txn));
-                }
+                std::cout << "INSERT::Transaction: " << txn.getUUID() << std::endl;
     
                 std::unordered_set<DataItem> write_set; 
                 std::unordered_set<DataItem> read_set;
+                std::unordered_set<int32_t> expected_regions;
     
                 // setup the read and write set for the current transaction
                 for (const auto &op : txn.getOperations())
@@ -183,11 +116,23 @@ void Merger::insertAlgorithm(){
                         read_set.insert(data_item);
                     }
     
+                    expected_regions.insert(data_item.primaryCopyID); // add primary copy id to expected regions
+
                     //pritn read and write set
                     std::cout << "INSERT::ReadWriteSet: key " << op.key << " type " << (op.type == OperationType::READ ? "READ" : "WRITE") << std::endl;
                 
                 }
                 
+                auto curr_txn = graph.getNode(txn.getUUID());
+
+                if (curr_txn == nullptr) {
+                    txn.setExpectedRegions(expected_regions);
+                    txn.addSeenRegion(server.id);
+                    graph.addNode(std::make_unique<Transaction>(txn));
+                }else{
+                    curr_txn->addSeenRegion(server.id);
+                }
+
                 // Read Set ∩ Primary Set
                 for (const auto &data_item : primary_set) {
                     if (read_set.find(data_item) != read_set.end()) {
@@ -293,11 +238,44 @@ void Merger::insertAlgorithm(){
     
         }
     
-        graph.printAll();
-        graph.clear();
     }
     
 }
+
+void Merger::processIncomingRequest(const request::Request& req_proto) {
+    if (!req_proto.has_server_id() || !req_proto.has_round()) {
+        // malformed or pre‐time‐based message: ignore
+        return;
+    }
+    int32_t sid = req_proto.server_id();
+    int32_t rnd = req_proto.round();
+
+    std::lock_guard<std::mutex> lk(round_mutex);
+    auto &bucket = pending_rounds[rnd];
+    bucket[sid] = req_proto;  // overwrite if we already had one
+
+    // if we now have one from *every* server, we can proceed
+    if (bucket.size() == expected_server_ids.size()) {
+        // collect in server‐order
+        current_batch.clear();
+        current_batch.reserve(expected_server_ids.size());
+        for (auto id : expected_server_ids) {
+            current_batch.push_back(std::move(bucket[id]));
+        }
+        // forget this round
+        pending_rounds.erase(rnd);
+
+        processRoundRequests();
+
+        // signal the insert thread
+        {
+          std::lock_guard<std::mutex> g(insert_mutex);
+          round_ready = true;
+        }
+        insert_cv.notify_one();
+    }
+}
+
 
 Merger::Merger()
 {
@@ -311,17 +289,6 @@ Merger::Merger()
         partial_sequences[server.id] = std::make_unique<Queue_TS<Transaction>>();
         expected_server_ids.push_back(server.id);
     }
-    
-    // Create a merger thread that calls the temp() method.
-    if (pthread_create(&merger_thread, nullptr, [](void* arg) -> void* {
-            static_cast<Merger*>(arg)->temp();
-            return nullptr;
-        }, this) != 0)
-    {
-        threadError("Error creating merger thread");
-    }
-    
-    pthread_detach(merger_thread);
 
     // Create a local popper thread that calls the processLocalRequests() method.
     if (pthread_create(&popper, nullptr, [](void* arg) -> void* {

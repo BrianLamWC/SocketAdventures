@@ -1,49 +1,66 @@
+#include <chrono>
+
 #include "partialSequencer.h"
 #include "utils.h"
 #include <netinet/in.h>
+#include <thread>
+
+namespace {
+    // compile-time constant for a 5s window
+    constexpr std::chrono::seconds ROUND_PERIOD{5};
+
+    // initialized once at program startup
+    const auto ROUND_EPOCH = std::chrono::system_clock::from_time_t(0);
+}
 
 void PartialSequencer::processPartialSequence(){
-
     while (true)
     {
-
+        // pull whatever we got (might be empty)
         transactions_received = batcher_to_partial_sequencer_queue_.popAll();
+
+        // print transction ids
+        for (const auto& req_proto : transactions_received) {
+            const request::Transaction& txn = req_proto.transaction(0);
+            printf("PARTIAL: Transaction %s for client %d:\n", txn.id().c_str(), txn.client_id());
+        }
+
+        auto now = std::chrono::system_clock::now();
+        auto since_0 = now - ROUND_EPOCH;
+        auto elapsed_seconds = std::chrono::duration_cast<std::chrono::seconds>(since_0).count();
+
+        int64_t current_window = elapsed_seconds / ROUND_PERIOD.count();
+        auto next_timestamp = ROUND_EPOCH + std::chrono::seconds((current_window+1) * ROUND_PERIOD.count());
+
+        // build the request
+        partial_sequence_.Clear();
         partial_sequence_.set_server_id(my_id);
         partial_sequence_.set_recipient(request::Request::MERGER);
-
-        for (const auto& txn : transactions_received)
-        {
+        partial_sequence_.set_round(static_cast<int32_t>(current_window));
+        for (const auto& txn : transactions_received) {
             partial_sequence_.add_transaction()->CopyFrom(txn.transaction(0));
         }
-        
 
-        if (!transactions_received.empty())
-        {
+        // print current round
+        printf("PARTIAL: in round %ld\n", current_window);
 
-            partial_sequencer_to_merger_queue_.push(partial_sequence_);
+        // push & notify (even if empty!)
+        partial_sequencer_to_merger_queue_.push(partial_sequence_);
+        partial_sequencer_to_merger_queue_cv.notify_one();
 
-            partial_sequencer_to_merger_queue_cv.notify_one();
-
-            for (const auto& server : servers) 
-            {
-
-                if (server.id != my_id)
-                {
-                    PartialSequencer::sendPartialSequence(server.ip, server.port);
-                }
-                
+        // send to peers (even if empty!)
+        for (const auto& server : servers) {
+            if (server.id != my_id) {
+                sendPartialSequence(server.ip, server.port);
             }
-
         }
-            
-        transactions_received.clear();
-        partial_sequence_.Clear();
-        
-        sleep(5);
-    }
-    
 
+        transactions_received.clear();
+        std::this_thread::sleep_until(next_timestamp);
+
+    }
 }
+
 
 void PartialSequencer::sendPartialSequence(const std::string& ip, const int& port) {
     int connfd = setupConnection(ip, port);
@@ -84,14 +101,13 @@ void PartialSequencer::sendPartialSequence(const std::string& ip, const int& por
 }
 
 void PartialSequencer::pushReceivedTransactionIntoPartialSequence(const request::Request& req_proto){
-
     // expect one transaction only
     batcher_to_partial_sequencer_queue_.push(req_proto);
 
 }
 
 PartialSequencer::PartialSequencer(){
-
+    
     if (pthread_create(&partial_sequencer_thread, NULL, [](void* arg) -> void* {
             static_cast<PartialSequencer*>(arg)->PartialSequencer::processPartialSequence();
             return nullptr;

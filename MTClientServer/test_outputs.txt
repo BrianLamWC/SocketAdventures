@@ -1,54 +1,27 @@
+
 Running Example:
 
-Graph contains 3 node(s):
-- UUID: uuid_t2, order: 2, client: 101
-    Operations (1):
-      [0] WRITE key=3, value=value_for_3_t2
-    Neighbors (0):
-- UUID: uuid_t3, order: 3, client: 102
-    Operations (3):
-      [0] WRITE key=1, value=value_for_1_t3
-      [1] WRITE key=2, value=value_for_2_t3
-      [2] WRITE key=3, value=value_for_3_t3
-    Neighbors (2): uuid_t2 uuid_t1
-- UUID: uuid_t1, order: 1, client: 100
-    Operations (2):
-      [0] WRITE key=1, value=value_for_1_t1
-      [1] WRITE key=2, value=value_for_2_t1
-    Neighbors (0):
+batcher period: 1s
+partial sequencer period: 5s
 
-Cyclic conflict
 Graph contains 3 node(s):
-- UUID: uuid_t2, order: 2, client: 101
+- UUID: 699d8e0d-6190-4bf7-b0a0-ec88c9bc517e, order: 2, client: 19765
+    Operations (1):
+      [0] WRITE key=1, value=val1
+    Neighbors (1): 5d0e1f66-242c-4f7d-96a9-a516aaa33496
+- UUID: 5d0e1f66-242c-4f7d-96a9-a516aaa33496, order: 1, client: 19765
     Operations (2):
-      [0] WRITE key=1, value=value_for_1_t2
-      [1] WRITE key=2, value=value_for_2_t2
-    Neighbors (1): uuid_t1
-- UUID: uuid_t3, order: 3, client: 102
-    Operations (1):
-      [0] WRITE key=1, value=value_for_1_t3
-    Neighbors (1): uuid_t2
-- UUID: uuid_t1, order: 1, client: 100
+      [0] WRITE key=1, value=val1
+      [1] WRITE key=2, value=val2
+    Neighbors (1): 84de291b-5939-47a8-bca7-9f967d619adb
+- UUID: 84de291b-5939-47a8-bca7-9f967d619adb, order: 0, client: 19765
     Operations (2):
-      [0] WRITE key=1, value=value_for_1_t1
-      [1] WRITE key=2, value=value_for_2_t1
-    Neighbors (1): uuid_t2
-
-Read interleaved with writes
-Graph contains 4 node(s):
-- UUID: uuid_t2, order: 2, client: 101
-    Operations (1):
-      [0] WRITE key=1, value=value_for_1_t2
-    Neighbors (1): uuid_t1
-- UUID: uuid_t4, order: 4, client: 103
-    Operations (1):
-      [0] WRITE key=1, value=value_for_1_t4
-    Neighbors (1): uuid_t3
-- UUID: uuid_t3, order: 3, client: 102
-    Operations (1):
-      [0] WRITE key=1, value=value_for_1_t3
-    Neighbors (1): uuid_t2
-- UUID: uuid_t1, order: 1, client: 100
-    Operations (1):
-      [0] WRITE key=1, value=value_for_1_t1
-    Neighbors (0):
+      [0] WRITE key=1, value=val1
+      [1] WRITE key=2, value=val2
+    Neighbors (1): 5d0e1f66-242c-4f7d-96a9-a516aaa33496
+Found 2 strongly connected component(s):
+ Component 1 (size=2):
+   - UUID: 84de291b-5939-47a8-bca7-9f967d619adb, order: 0, client: 19765
+   - UUID: 5d0e1f66-242c-4f7d-96a9-a516aaa33496, order: 1, client: 19765
+ Component 2 (size=1):
+   - UUID: 699d8e0d-6190-4bf7-b0a0-ec88c9bc517e, order: 2, client: 19765

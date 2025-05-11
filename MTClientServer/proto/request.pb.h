@@ -743,6 +743,7 @@ class Request PROTOBUF_FINAL :
     kClientIdFieldNumber = 1,
     kServerIdFieldNumber = 2,
     kRecipientFieldNumber = 4,
+    kRoundFieldNumber = 5,
   };
   // repeated .request.Transaction transaction = 3;
   int transaction_size() const;
@@ -801,6 +802,19 @@ class Request PROTOBUF_FINAL :
   void _internal_set_recipient(::request::Request_RequestRecipient value);
   public:
 
+  // optional int32 round = 5;
+  bool has_round() const;
+  private:
+  bool _internal_has_round() const;
+  public:
+  void clear_round();
+  ::PROTOBUF_NAMESPACE_ID::int32 round() const;
+  void set_round(::PROTOBUF_NAMESPACE_ID::int32 value);
+  private:
+  ::PROTOBUF_NAMESPACE_ID::int32 _internal_round() const;
+  void _internal_set_round(::PROTOBUF_NAMESPACE_ID::int32 value);
+  public:
+
   // @@protoc_insertion_point(class_scope:request.Request)
  private:
   class _Internal;
@@ -814,6 +828,7 @@ class Request PROTOBUF_FINAL :
   ::PROTOBUF_NAMESPACE_ID::int32 client_id_;
   ::PROTOBUF_NAMESPACE_ID::int32 server_id_;
   int recipient_;
+  ::PROTOBUF_NAMESPACE_ID::int32 round_;
   friend struct ::TableStruct_request_2eproto;
 };
 // ===================================================================
@@ -1360,6 +1375,34 @@ inline void Request::_internal_set_recipient(::request::Request_RequestRecipient
 inline void Request::set_recipient(::request::Request_RequestRecipient value) {
   _internal_set_recipient(value);
   // @@protoc_insertion_point(field_set:request.Request.recipient)
+}
+
+// optional int32 round = 5;
+inline bool Request::_internal_has_round() const {
+  bool value = (_has_bits_[0] & 0x00000008u) != 0;
+  return value;
+}
+inline bool Request::has_round() const {
+  return _internal_has_round();
+}
+inline void Request::clear_round() {
+  round_ = 0;
+  _has_bits_[0] &= ~0x00000008u;
+}
+inline ::PROTOBUF_NAMESPACE_ID::int32 Request::_internal_round() const {
+  return round_;
+}
+inline ::PROTOBUF_NAMESPACE_ID::int32 Request::round() const {
+  // @@protoc_insertion_point(field_get:request.Request.round)
+  return _internal_round();
+}
+inline void Request::_internal_set_round(::PROTOBUF_NAMESPACE_ID::int32 value) {
+  _has_bits_[0] |= 0x00000008u;
+  round_ = value;
+}
+inline void Request::set_round(::PROTOBUF_NAMESPACE_ID::int32 value) {
+  _internal_set_round(value);
+  // @@protoc_insertion_point(field_set:request.Request.round)
 }
 
 #ifdef __GNUC__

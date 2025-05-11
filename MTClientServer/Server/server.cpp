@@ -72,7 +72,7 @@ void *handlePeer(void *server_args)
     else if (req_proto.recipient() == request::Request::MERGER)
     {
         printf("MERGER: received partial sequence from: %d\n", req_proto.server_id());
-        merger->processProtoRequest(req_proto);
+        merger->processIncomingRequest(req_proto);
         close(connfd);
         pthread_exit(NULL);
     }

@@ -3,9 +3,10 @@
 
 // Global instantiations:
 Queue_TS<request::Request> request_queue_;
-Queue_TS<request::Request> batcher_to_partial_sequencer_queue_;
-Queue_TS<request::Request> partial_sequencer_to_merger_queue_;
 
+Queue_TS<request::Request> batcher_to_partial_sequencer_queue_;
+
+Queue_TS<request::Request> partial_sequencer_to_merger_queue_;
 std::mutex partial_sequencer_to_merger_queue_mtx;
 std::condition_variable partial_sequencer_to_merger_queue_cv;
 
@@ -13,6 +14,14 @@ template<typename T>
 void Queue_TS<T>::push(const T& val) {
     std::lock_guard<std::mutex> lock(mtx);
     q.push_back(val);  // use push_back for deque
+}
+
+template<typename T>
+void Queue_TS<T>::pushAll(const std::vector<T>& items) {
+    std::lock_guard<std::mutex> lock(mtx);
+    for (const auto &v : items) {
+      q.push_back(v);
+    }
 }
 
 template <typename T>
