@@ -69,7 +69,7 @@ void* handleClient(void *client_args)
     char *client_ip = inet_ntoa(client_addr.sin_addr);
     int client_port = ntohs(client_addr.sin_port);
 
-    printf("Client connected: %s:%d\n", client_ip, client_port);
+    //printf("Client connected: %s:%d\n", client_ip, client_port);
 
     // 1) Read 4-byte length
     uint32_t netlen;

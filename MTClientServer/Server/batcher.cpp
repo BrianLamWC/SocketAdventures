@@ -32,7 +32,7 @@ void Batcher::batchRequests()
         auto next_timestamp = ROUND_EPOCH + std::chrono::seconds((current_window+1) * ROUND_PERIOD.count());
 
         // print current round
-        printf("BATCHER: in round %ld\n", current_window);
+        //printf("BATCHER: in round %ld\n", current_window);
 
         batch_ = request_queue_.popAll();
 
@@ -56,7 +56,7 @@ void Batcher::processBatch_()
         const request::Transaction& txn = req_proto.transaction(0);
 
         std::unordered_set<int32_t> target_peers;
-        printf("BATCHER: Transaction %s for client %d:\n", txn.id().c_str(), txn.client_id());
+        //printf("BATCHER: Transaction %s for client %d:\n", txn.id().c_str(), txn.client_id());
 
         bool validTransaction = true;
         for (const auto& op : txn.operations())
@@ -149,7 +149,7 @@ void Batcher::sendTransaction_(const request::Transaction& txn, const int32_t& i
 
     // Print the request size
     size_t request_size = serialized_request.size();
-    printf("BATCHER: Serialized request size: %zu bytes\n", request_size);
+    //printf("BATCHER: Serialized request size: %zu bytes\n", request_size);
 
     // 2) send 4-byte length prefix (network order)
     uint32_t len = htonl(static_cast<uint32_t>(request_size));
@@ -160,8 +160,8 @@ void Batcher::sendTransaction_(const request::Transaction& txn, const int32_t& i
     }
 
     // Optionally, print that you’re now sending the framed message
-    printf("BATCHER: Sending %zu-byte request (plus 4-byte header) to %s:%d\n",
-           request_size, ip.c_str(), port);
+    // printf("BATCHER: Sending %zu-byte request (plus 4-byte header) to %s:%d\n",
+    //        request_size, ip.c_str(), port);
 
     if (!writeNBytes(connfd, serialized_request.data(), request_size)) {
         perror("writeNBytes (request) failed");

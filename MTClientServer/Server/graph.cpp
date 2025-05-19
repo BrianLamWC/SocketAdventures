@@ -1,6 +1,8 @@
 // graph.cpp
 #include "graph.h"
 #include <iostream>
+#include <queue>
+#include <algorithm>
 
 Transaction* Graph::addNode(std::unique_ptr<Transaction> uptr) {
     const std::string& key = uptr->getUUID();
@@ -64,20 +66,41 @@ void Graph::printAll() const {
 
 void Graph::clear() {
     nodes.clear();
-    // reset Tarjan state too, if you plan to reuse the same Graph
     index_map.clear();
     low_link_map.clear();
-    stack = std::stack<Transaction*>{};
+    tarjan_stack = std::stack<Transaction*>{};
     on_stack.clear();
     sccs.clear();
-    currentIndex = 0;
+    current_index = 0;
+}
+
+std::unique_ptr<Transaction> Graph::removeTransaction(Transaction* rem) {
+    // 1) Find the map entry
+    auto it = nodes.find(rem->getUUID());
+    if (it == nodes.end()) {
+        return nullptr;              // no such node
+    }
+
+    // 2) Remove rem from everyone else's adjacency
+    for (auto &kv : nodes) {
+        kv.second->removeNeighbor(rem);
+    }
+
+    // 3) Steal the unique_ptr<Transaction> out of the map
+    std::unique_ptr<Transaction> up = std::move(it->second);
+
+    // 4) Erase the entry so there's no null-pointer left behind
+    nodes.erase(it);
+
+    // 5) Return ownership to the caller
+    return up;
 }
 
 void Graph::strongConnect(Transaction* v) {
     // 1. Set the depth index for v
-    index_map[v] = currentIndex;
-    low_link_map[v]  = currentIndex;
-    ++currentIndex;
+    index_map[v] = current_index;
+    low_link_map[v] = current_index;
+    ++current_index;
 
     tarjan_stack.push(v);
     on_stack.insert(v);
@@ -100,7 +123,8 @@ void Graph::strongConnect(Transaction* v) {
         std::vector<Transaction*> component;
         Transaction* w = nullptr;
         do {
-            w = stack.top(); stack.pop();
+            w = tarjan_stack.top(); 
+            tarjan_stack.pop();
             on_stack.erase(w);
             component.push_back(w);
         } while (w != v);
@@ -115,7 +139,7 @@ void Graph::findSCCs() {
     while (!tarjan_stack.empty()) tarjan_stack.pop();
     on_stack.clear();
     sccs.clear();
-    currentIndex = 0;
+    current_index = 0;
 
     // run Tarjan on every node
     for (auto& kv : nodes) {
@@ -126,22 +150,24 @@ void Graph::findSCCs() {
     }
 
     // print the SCCs
-    std::cout << "Found " << sccs.size() << " strongly connected component(s):\n";
-    for (size_t i = 0; i < sccs.size(); ++i) {
-        auto& comp = sccs[i];
-        std::cout << " Component " << i+1 << " (size=" << comp.size() << "):\n";
-        for (Transaction* tx : comp) {
-            std::cout 
-                << "   - UUID: "   << tx->getUUID()
-                << ", order: "    << tx->getOrder()
-                << ", client: "   << tx->getClientId() 
-                << "\n";
-        }
-    }
+    // std::cout << "Found " << sccs.size() << " strongly connected component(s):\n";
+    // for (size_t i = 0; i < sccs.size(); ++i) {
+    //     auto& comp = sccs[i];
+    //     std::cout << " Component " << i+1 << " (size=" << comp.size() << "):\n";
+    //     for (Transaction* tx : comp) {
+    //         std::cout 
+    //             << "   - UUID: "   << tx->getUUID()
+    //             << ", order: "    << tx->getOrder()
+    //             << ", client: "   << tx->getClientId() 
+    //             << "\n";
+    //     }
+    // }
 
 }
 
 void Graph::buildTransactionSCCMap(){
+
+    txn_scc_index_map.clear();
 
     for (int i = 0; i < (int)sccs.size(); ++i) {
     for (Transaction* txn_ptr : sccs[i]) {
@@ -149,14 +175,40 @@ void Graph::buildTransactionSCCMap(){
     }
     }
 
-    // Print the mapping
-    std::cout << "Transaction to SCC mapping:\n";
-    for (const auto& pair : txn_scc_index_map) {
-        std::cout << "Transaction UUID: " << pair.first->getUUID() 
-                  << " is in SCC: " << pair.second << "\n";
-    }
+    // // Print the mapping
+    // std::cout << "Transaction to SCC mapping:\n";
+    // for (const auto& pair : txn_scc_index_map) {
+    //     std::cout << "Transaction UUID: " << pair.first->getUUID() 
+    //               << " is in SCC: " << pair.second << "\n";
+    // }
     
 }
+
+void Graph::buildCondensationGraph() {
+    // 1. Resize to one entry per SCC, and clear any old edges
+    neighbors_out.assign(sccs.size(), {});
+    neighbors_in .assign(sccs.size(), {});
+
+    // 2. Walk *every* original edge u → v in your graph:
+    for (auto& kv : nodes) {
+        Transaction* u = kv.second.get();
+        int cu = txn_scc_index_map[u];   // which SCC u belongs to
+
+        for (Transaction* v : u->getNeighbors()) {
+            int cv = txn_scc_index_map[v]; // which SCC v belongs to
+
+            // 3. If it crosses SCCs, record it once
+            if (cu != cv) {
+                // neighbors_out[cu].insert(cv).second is true only on the first insertion
+                if (neighbors_out[cu].insert(cv).second) {
+                    // record the reverse link too
+                    neighbors_in[cv].push_back(cu);
+                }
+            }
+        }
+    }
+}
+
 
 bool Graph::isSCCComplete(const int &scc_index)
 {
@@ -182,18 +234,64 @@ bool Graph::isSCCComplete(const int &scc_index)
 void Graph::getMergedOrders()
 {
 
-    sccs.clear();
-    txn_scc_index_map.clear();
-    merged_orders.clear();
-
+    // instead of seeding every node, seed one rep per SCC:
     findSCCs();
     buildTransactionSCCMap();
+    buildCondensationGraph();
 
+    std::queue<std::string> Q;
+    std::vector<std::unique_ptr<Transaction>> S; 
 
     for (int c = 0; c < (int)sccs.size(); ++c) {
-        if (isSCCComplete(c)) {
-            merged_orders.push_back(c);
+        // pick the first txn in each SCC as its “rep”
+        Q.push(sccs[c][0]->getUUID());
+    }
+    
+    while (!Q.empty())
+    {
+        auto *txn_ptr = getNode(Q.front());
+        Q.pop();
+
+        if (txn_ptr == nullptr)
+        {
+            continue;
         }
+
+        findSCCs();
+        buildTransactionSCCMap();
+        buildCondensationGraph();
+
+        int scc_index = txn_scc_index_map[txn_ptr];
+
+        // check sink + completeness 
+        bool allDone = neighbors_out[scc_index].empty();
+        for (auto *X : sccs[scc_index]){
+            if (!X->isComplete()) { 
+                allDone = false; break; 
+            }
+        }
+
+        if (allDone) {
+            // emit entire SCC, in UUID order
+            auto &scc = sccs[scc_index];
+            std::sort(scc.begin(), scc.end(), [&](auto *a, auto *b){ return a->getOrder() < b->getOrder(); });
+            for (auto *txn : scc) {
+                auto up = removeTransaction(txn);
+                if (up) S.push_back(std::move(up));
+            }
+            // re‐enqueue each predecessor SCC’s rep
+            for (int predC : neighbors_in[scc_index]) {
+                Q.push(sccs[predC][0]->getUUID());
+            }
+        }
+
+    }
+
+    // print S
+    std::cout << "Merged orders:\n";
+    for (const auto& txn : S) {
+        std::cout << "order: "  << txn->getOrder()
+                  << ", client: " << txn->getClientId() << "\n";
     }
 
 }

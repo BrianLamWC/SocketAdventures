@@ -95,8 +95,8 @@ void sendTransaction(int server_port, const std::vector<int>& keys) {
         error("writing to socket");
     }
 
-    printf("Sent TX (order=%d, UUID=%s) with %d ops to port %d\n",
-           txn->order(), txn->id().c_str(), txn->operations_size(), server_port);
+    // printf("Sent TX (order=%d) with %d ops to port %d\n",
+    //        txn->order(), txn->operations_size(), server_port);
 
     close(sockfd);
 }
@@ -106,26 +106,29 @@ int main(int argc, char *argv[])
     GOOGLE_PROTOBUF_VERIFY_VERSION;
 
     // Define your three transactions: port and list of keys to write
-    // std::vector<std::pair<int, std::vector<int>>> schedule = {
-    //     {7001, {1, 2}}, 
-    //     {7002, {1, 2}},      
-    //     {7001, {1 }},     
-    // };
+    std::vector<std::pair<int, std::vector<int>>> schedule = {
+        {7001, {1, 2}}, 
+        {7002, {1, 2}},      
+        {7001, {1 }},     
+    };
 
-    // for (auto &entry : schedule) {
-    //     sendTransaction(entry.first, entry.second);
-    //     sleep(0.1);  // small pause between sends
-    // }
+    while (true)
+    {
+        for (auto &entry : schedule) {
+            sendTransaction(entry.first, entry.second);
+        }
+    }
+    
 
-    // Send first two back-to-back:
-    sendTransaction(7001, {1,2});
-    sendTransaction(7002, {1,2});
+    // // Send first two back-to-back:
+    // sendTransaction(7001, {1,2});
+    // sendTransaction(7002, {1,2});
 
-    // Now sleep one second:
-    sleep(1);
+    // // Now sleep one second:
+    // sleep(1);
 
-    // Then send the third:
-    sendTransaction(7001, {1});
+    // // Then send the third:
+    // sendTransaction(7001, {1});
 
     google::protobuf::ShutdownProtobufLibrary();
     return 0;

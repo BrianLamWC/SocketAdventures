@@ -44,6 +44,7 @@ public:
     const std::vector<Operation>& getOperations() const { return operations; }
 
     void addNeighbor(Transaction* ptr) { neighbors.insert(ptr); }
+    void removeNeighbor(Transaction* ptr) { neighbors.erase(ptr); }
 
     const std::unordered_set<Transaction*>& getNeighbors() const { return neighbors; }
 

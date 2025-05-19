@@ -13,19 +13,21 @@
 
 class Graph {
 private:
-    std::unordered_map<std::string, std::unique_ptr<Transaction>> nodes;
+    std::unordered_map<std::string, std::unique_ptr<Transaction>> nodes; // all nodes in the graph
 
     // Tarjan’s helpers
     std::unordered_map<Transaction*, int> index_map, low_link_map;
     std::unordered_set<Transaction*> on_stack;
     std::stack<Transaction*> tarjan_stack;
-    int currentIndex = 0;
+    int current_index = 0;
     std::vector<std::vector<Transaction*>> sccs;
 
     void strongConnect(Transaction* v);
 
     // SCC helper
-    std::unordered_map<Transaction*, int> txn_scc_index_map;
+    std::unordered_map<Transaction*, int> txn_scc_index_map; // maps each transaction to its SCC index
+    std::vector<std::unordered_set<int>> neighbors_out; // indexed by SCC index
+    std::vector<std::vector<int>> neighbors_in; // indexed by SCC index
 
     // merged orders
     std::vector<int> merged_orders;
@@ -36,9 +38,11 @@ public:
 
     void printAll() const;
     void clear();
+    std::unique_ptr<Transaction> removeTransaction(Transaction* rem);
 
     void findSCCs();
     void buildTransactionSCCMap();
+    void buildCondensationGraph();
 
     bool isSCCComplete(const int &scc_index);
 

@@ -22,7 +22,7 @@ void PartialSequencer::processPartialSequence(){
         // print transction ids
         for (const auto& req_proto : transactions_received) {
             const request::Transaction& txn = req_proto.transaction(0);
-            printf("PARTIAL: Transaction %s for client %d:\n", txn.id().c_str(), txn.client_id());
+            //printf("PARTIAL: Transaction %s for client %d:\n", txn.id().c_str(), txn.client_id());
         }
 
         auto now = std::chrono::system_clock::now();
@@ -42,7 +42,7 @@ void PartialSequencer::processPartialSequence(){
         }
 
         // print current round
-        printf("PARTIAL: in round %ld\n", current_window);
+        //printf("PARTIAL: in round %ld\n", current_window);
 
         // push & notify (even if empty!)
         partial_sequencer_to_merger_queue_.push(partial_sequence_);
@@ -79,7 +79,7 @@ void PartialSequencer::sendPartialSequence(const std::string& ip, const int& por
 
     // Print the request size
     size_t request_size = request.size();
-    printf("PARTIAL: Serialized request size: %zu bytes\n", request_size);
+    //printf("PARTIAL: Serialized request size: %zu bytes\n", request_size);
 
     // 2) send 4-byte length prefix (network order)
     uint32_t len = htonl(static_cast<uint32_t>(request_size));
@@ -90,8 +90,8 @@ void PartialSequencer::sendPartialSequence(const std::string& ip, const int& por
     }
 
     // Optionally, print that you’re now sending the framed message
-    printf("PARTIAL: Sending %zu-byte request (plus 4-byte header) to %s:%d\n",
-           request_size, ip.c_str(), port);
+    // printf("PARTIAL: Sending %zu-byte request (plus 4-byte header) to %s:%d\n",
+    //        request_size, ip.c_str(), port);
 
     if (!writeNBytes(connfd, request.data(), request_size)) {
         perror("writeNBytes (request) failed");

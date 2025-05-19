@@ -35,33 +35,70 @@ void threadError(const char *msg)
 int setupConnection(const std::string &ip, int port)
 {
 
-    int connfd = socket(AF_INET, SOCK_STREAM, 0);
-    struct sockaddr_in server_addr = {};
-    struct hostent* server;
+    // int connfd = socket(AF_INET, SOCK_STREAM, 0);
+    // struct sockaddr_in server_addr = {};
+    // struct hostent* server;
+
+    // if (connfd < 0) {
+    //     perror("setupConnection: error opening socket");
+    //     return -1;
+    // }
+
+    // server = gethostbyname(ip.c_str());
+    // if (server == NULL) {
+    //     perror("setupConnection: server does not exist");
+    //     close(connfd);
+    //     return -1;
+    // }
+
+    // server_addr.sin_family = AF_INET;
+
+    // printf("%d, %p, %d\n", server_addr.sin_addr.s_addr, server->h_addr, server->h_length);
+
+    // memcpy((void*)&server_addr.sin_addr.s_addr, server->h_addr, server->h_length);
+    // server_addr.sin_port = htons(port);
+
+    // if (connect(connfd, (struct sockaddr*)&server_addr, sizeof(server_addr)) < 0) {
+    //     // perror("setupConnection: error connecting");
+    //     close(connfd);
+    //     return -1;
+    // }
+
+    // return connfd;  // Return the connected socket descriptor
+
+    struct addrinfo hints{}, *res = nullptr;
+    hints.ai_family   = AF_INET;           // IPv4 only
+    hints.ai_socktype = SOCK_STREAM;       // TCP
+
+    // Convert port to string
+    char portStr[6];
+    snprintf(portStr, sizeof(portStr), "%d", port);
+
+    int err = getaddrinfo(ip.c_str(), portStr, &hints, &res);
+    if (err != 0) {
+        fprintf(stderr, "setupConnection: getaddrinfo: %s\n", gai_strerror(err));
+        return -1;
+    }
+
+    int connfd = -1;
+    for (auto p = res; p; p = p->ai_next) {
+        connfd = socket(p->ai_family, p->ai_socktype, p->ai_protocol);
+        if (connfd < 0) continue;
+
+        if (connect(connfd, p->ai_addr, p->ai_addrlen) == 0)
+            break;  // success
+
+        close(connfd);
+        connfd = -1;
+    }
+
+    freeaddrinfo(res);
 
     if (connfd < 0) {
-        perror("setupConnection: error opening socket");
-        return -1;
+        perror("setupConnection: could not connect");
     }
+    return connfd;
 
-    server = gethostbyname(ip.c_str());
-    if (server == NULL) {
-        perror("setupConnection: server does not exist");
-        close(connfd);
-        return -1;
-    }
-
-    server_addr.sin_family = AF_INET;
-    memcpy((void*)&server_addr.sin_addr.s_addr, server->h_addr, server->h_length);
-    server_addr.sin_port = htons(port);
-
-    if (connect(connfd, (struct sockaddr*)&server_addr, sizeof(server_addr)) < 0) {
-        // perror("setupConnection: error connecting");
-        close(connfd);
-        return -1;
-    }
-
-    return connfd;  // Return the connected socket descriptor
 }
 
 int setupListenfd(int my_port)
