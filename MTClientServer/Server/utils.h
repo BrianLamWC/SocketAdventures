@@ -7,9 +7,8 @@
 #include <cstdint>
 #include <functional>
 #include <cstddef>
+#include <atomic>
 
-#include "partialSequencer.h" // dont include util.h in the components header file
-#include "merger.h"
 #include "transaction.h"
 #include "../proto/request.pb.h"
 
@@ -23,30 +22,6 @@ struct server
     int port;
     int32_t id;
     bool isOnline;
-};
-
-// LISTENER THREAD
-
-struct ListenerThreadsArgs
-{
-    int listenfd;
-    PartialSequencer* partial_sequencer;
-    Merger* merger;
-};
-
-enum class connectionType{
-    CLIENT,
-    PEER
-};
-
-class Listener
-{
-private:
-    ListenerThreadsArgs args;
-public:
-
-    Listener(connectionType connection_type, int listenfd, PartialSequencer* partial_sequencer, Merger* merger);
-
 };
 
 // PINGER THREAD
@@ -126,6 +101,8 @@ namespace std
     };
 }
 
+// lamport clock
+extern std::atomic<int32_t> lamport_clock;
 
 void error(const char *msg);
 int setupListenfd(int my_port);

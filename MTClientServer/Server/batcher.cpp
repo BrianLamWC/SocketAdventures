@@ -4,6 +4,7 @@
 #include <unordered_set>
 #include <stdlib.h>
 #include <thread>
+#include <arpa/inet.h>
 
 #include "batcher.h"
 
@@ -17,6 +18,9 @@ namespace {
 
 void Batcher::batchRequests()
 {
+    using Clock = std::chrono::high_resolution_clock;
+    static uint64_t total_txns = 0;
+    static Clock::time_point start_all = Clock::now();
 
     while (true)
     {
@@ -34,10 +38,30 @@ void Batcher::batchRequests()
         // print current round
         //printf("BATCHER: in round %ld\n", current_window);
 
+        auto t0_pop = Clock::now();
         batch_ = request_queue_.popAll();
+        auto t1_pop = Clock::now();
 
         if (!batch_.empty()) {
-            processBatch_();
+            // 2) time processBatch_
+            auto t0 = Clock::now();
+            processBatch_();          // your existing code
+            auto t1 = Clock::now();
+
+            // 3) compute metrics
+            auto pop_ms   = std::chrono::duration_cast<std::chrono::milliseconds>(t1_pop - t0_pop).count();
+            auto proc_ms  = std::chrono::duration_cast<std::chrono::milliseconds>(t1 - t0).count();
+            auto N        = batch_.size();
+            total_txns   += N;
+            auto elapsed_all_s = std::chrono::duration_cast<std::chrono::seconds>(
+                                Clock::now() - start_all
+                                ).count();
+
+            double batch_throughput = N / (proc_ms/1000.0);     // txn/sec for this batch
+            double avg_throughput   = total_txns / double(elapsed_all_s>0?elapsed_all_s:1);
+
+            printf("BATCH popped %zu txns (in %lld ms), processed in %lld ms → %.0f tx/s, avg=%.0f tx/s\n",
+                N, pop_ms, proc_ms, batch_throughput, avg_throughput);
         }
 
         batch_.clear();
@@ -51,15 +75,17 @@ void Batcher::processBatch_()
 {
     std::vector<request::Request> batch_for_partial_sequencer;
 
-    for (const request::Request&req_proto : batch_)
+    for (request::Request& req_proto : batch_)
     {
-        const request::Transaction& txn = req_proto.transaction(0);
+        auto* txn = req_proto.mutable_transaction(0);
+        //txn->set_order(uuidv7());
+        txn->set_lamport_stamp(lamport_clock.fetch_add(1));
 
         std::unordered_set<int32_t> target_peers;
         //printf("BATCHER: Transaction %s for client %d:\n", txn.id().c_str(), txn.client_id());
 
         bool validTransaction = true;
-        for (const auto& op : txn.operations())
+        for (const auto& op : txn->operations())
         {
             auto it = mockDB.find(op.key());
             if (it == mockDB.end()) {
@@ -74,6 +100,8 @@ void Batcher::processBatch_()
         }
         
         if (!validTransaction){
+            printf("BATCHER: Transaction %s for client %d is invalid, skipping\n", 
+                   txn->id().c_str(), txn->client_id());
             continue;
         }
 
@@ -86,7 +114,7 @@ void Batcher::processBatch_()
             else
             {
                 // Send to a remote server.
-                sendTransaction_(txn, serverID);
+                sendTransaction_(*(txn), serverID);
             }
         }
 
@@ -169,6 +197,49 @@ void Batcher::sendTransaction_(const request::Transaction& txn, const int32_t& i
 
     // Close the connection
     close(connfd);
+}
+
+std::string Batcher::uuidv7() {
+    // random bytes
+    std::random_device rd;
+    std::array<uint8_t, 16> random_bytes;
+    std::generate(random_bytes.begin(), random_bytes.end(), std::ref(rd));
+    std::array<uint8_t, 16> value;
+    std::copy(random_bytes.begin(), random_bytes.end(), value.begin());
+
+    // current timestamp in ms
+    auto now = std::chrono::system_clock::now();
+    auto millis = std::chrono::duration_cast<std::chrono::milliseconds>(
+        now.time_since_epoch()
+    ).count();
+
+    // timestamp
+    value[0] = (millis >> 40) & 0xFF;
+    value[1] = (millis >> 32) & 0xFF;
+    value[2] = (millis >> 24) & 0xFF;
+    value[3] = (millis >> 16) & 0xFF;
+    value[4] = (millis >> 8) & 0xFF;
+    value[5] = millis & 0xFF;
+
+    // version and variant
+    value[6] = (value[6] & 0x0F) | 0x70;
+    value[8] = (value[8] & 0x3F) | 0x80;
+
+    char buf[37];
+    std::snprintf(buf, sizeof(buf),
+        "%02x%02x%02x%02x-"
+        "%02x%02x-"
+        "%02x%02x-"
+        "%02x%02x-"
+        "%02x%02x%02x%02x%02x%02x",
+        value[0], value[1], value[2], value[3],
+        value[4], value[5],
+        value[6], value[7],
+        value[8], value[9],
+        value[10], value[11], value[12], value[13], value[14], value[15]
+    );
+    return std::string(buf);
+
 }
 
 // Constructor

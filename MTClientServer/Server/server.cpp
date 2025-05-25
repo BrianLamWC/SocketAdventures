@@ -4,9 +4,22 @@
 #include <cstring>
 
 #include "server.h"
-#include "utils.h"
-#include "partialSequencer.h"
 #include "../proto/request.pb.h"
+
+PeerListener::PeerListener(int listenfd, PartialSequencer* partial_sequencer, Merger* merger)
+{
+
+    args =  {listenfd, partial_sequencer, merger};
+    pthread_t listener_thread;
+
+    if (pthread_create(&listener_thread, NULL, peerListener, (void*)&args) != 0)
+    {
+        threadError("error creating server listener thread");
+    }
+    
+    pthread_detach(listener_thread);
+
+}
 
 void *handlePeer(void *server_args)
 {
@@ -86,7 +99,7 @@ void *handlePeer(void *server_args)
 
 void *peerListener(void *args)
 {
-    ListenerThreadsArgs *my_args = (ListenerThreadsArgs *)args;
+    PeerListenerThreadsArgs *my_args = (PeerListenerThreadsArgs *)args;
     struct sockaddr_in server_addr;
     socklen_t server_addrlen = sizeof(server_addr);
 

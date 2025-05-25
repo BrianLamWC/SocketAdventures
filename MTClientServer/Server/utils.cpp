@@ -7,8 +7,6 @@
 
 #include "json.hpp"
 #include "utils.h"
-#include "client.h"
-#include "server.h"
 
 using json = nlohmann::json;
 
@@ -16,9 +14,7 @@ std::unordered_map<std::string, DataItem> mockDB;
 int peer_port;
 int32_t my_id;
 std::vector<server> servers;
-std::mutex batch_ready_mtx;
-std::condition_variable batch_ready_cv;
-bool batch_ready = false;
+std::atomic<int32_t> lamport_clock{0};
 
 void error(const char *msg)
 {
@@ -233,31 +229,6 @@ std::vector<Operation> getOperationsFromProtoTransaction(const request::Transact
     }
 
     return operations;
-}
-
-Listener::Listener(connectionType connection_type, int listenfd, PartialSequencer* partial_sequencer, Merger* merger)
-{
-
-    args =  {listenfd, partial_sequencer, merger};
-    pthread_t listener_thread;
-
-    if (connection_type == connectionType::CLIENT)
-    {
-        if (pthread_create(&listener_thread, NULL, clientListener, (void*)&args) != 0)
-        {
-            threadError("error creating client listener thread");
-        }
-
-    }else if (connection_type == connectionType::PEER)
-    {
-        if (pthread_create(&listener_thread, NULL, peerListener, (void*)&args) != 0)
-        {
-            threadError("error creating server listener thread");
-        }
-    }
-    
-    pthread_detach(listener_thread);
-
 }
 
 Pinger::Pinger(std::vector<server>* servers, int num_servers, int my_port){

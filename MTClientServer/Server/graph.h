@@ -26,8 +26,8 @@ private:
 
     // SCC helper
     std::unordered_map<Transaction*, int> txn_scc_index_map; // maps each transaction to its SCC index
-    std::vector<std::unordered_set<int>> neighbors_out; // indexed by SCC index
-    std::vector<std::vector<int>> neighbors_in; // indexed by SCC index
+    std::vector<std::unordered_set<int>> neighbors_out; // outgoing edges of each SCC (indexed by SCC index)
+    std::vector<std::vector<int>> neighbors_in; // incoming edges of each SCC (indexed by SCC index)
 
     // merged orders
     std::vector<int> merged_orders;
@@ -47,6 +47,7 @@ public:
     bool isSCCComplete(const int &scc_index);
 
     void getMergedOrders();
+    void getMergedOrders_();
 
 };
 

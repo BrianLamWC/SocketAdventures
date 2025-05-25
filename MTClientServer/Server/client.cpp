@@ -3,12 +3,27 @@
 #include <string.h>
 
 #include "client.h"
-#include "utils.h"
+
 #include "../proto/request.pb.h"
+
+ClientListener::ClientListener(int listenfd)
+{
+
+    args =  {listenfd};
+    pthread_t listener_thread;
+
+    if (pthread_create(&listener_thread, NULL, clientListener, (void*)&args) != 0)
+    {
+        threadError("error creating client listener thread");
+    }
+    
+    pthread_detach(listener_thread);
+
+}
 
 void* clientListener(void *args)
 {
-    ListenerThreadsArgs *my_args = (ListenerThreadsArgs *) args;
+    ClientListenerThreadsArgs *my_args = (ClientListenerThreadsArgs *) args;
     struct sockaddr_in client_addr;
     socklen_t client_addrlen = sizeof(client_addr);
 
@@ -118,6 +133,8 @@ void* handleClient(void *client_args)
     }
     
     // expecting one transaction per client
+    auto *txn = req_proto.mutable_transaction(0);
+    txn->set_lamport_stamp(lamport_clock.fetch_add(1));
     request_queue_.push(req_proto);
 
     close(connfd);

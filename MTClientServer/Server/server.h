@@ -20,4 +20,21 @@ struct ServerArgs
 void* handlePeer(void *server_args);
 void* peerListener(void *args);
 
+struct PeerListenerThreadsArgs
+{
+    int listenfd;
+    PartialSequencer* partial_sequencer;
+    Merger* merger;
+};
+
+class PeerListener
+{
+private:
+    PeerListenerThreadsArgs args;
+public:
+
+    PeerListener(int listenfd, PartialSequencer* partial_sequencer, Merger* merger);
+
+};
+
 #endif // SERVER_H

@@ -488,9 +488,10 @@ class Transaction PROTOBUF_FINAL :
 
   enum : int {
     kOperationsFieldNumber = 3,
-    kIdFieldNumber = 2,
     kOrderFieldNumber = 1,
+    kIdFieldNumber = 2,
     kClientIdFieldNumber = 4,
+    kLamportStampFieldNumber = 5,
   };
   // repeated .request.Operation operations = 3;
   int operations_size() const;
@@ -509,6 +510,35 @@ class Transaction PROTOBUF_FINAL :
   ::request::Operation* add_operations();
   const ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::request::Operation >&
       operations() const;
+
+  // optional string order = 1;
+  bool has_order() const;
+  private:
+  bool _internal_has_order() const;
+  public:
+  void clear_order();
+  const std::string& order() const;
+  void set_order(const std::string& value);
+  void set_order(std::string&& value);
+  void set_order(const char* value);
+  void set_order(const char* value, size_t size);
+  std::string* mutable_order();
+  std::string* release_order();
+  void set_allocated_order(std::string* order);
+  GOOGLE_PROTOBUF_RUNTIME_DEPRECATED("The unsafe_arena_ accessors for"
+  "    string fields are deprecated and will be removed in a"
+  "    future release.")
+  std::string* unsafe_arena_release_order();
+  GOOGLE_PROTOBUF_RUNTIME_DEPRECATED("The unsafe_arena_ accessors for"
+  "    string fields are deprecated and will be removed in a"
+  "    future release.")
+  void unsafe_arena_set_allocated_order(
+      std::string* order);
+  private:
+  const std::string& _internal_order() const;
+  void _internal_set_order(const std::string& value);
+  std::string* _internal_mutable_order();
+  public:
 
   // required string id = 2;
   bool has_id() const;
@@ -539,19 +569,6 @@ class Transaction PROTOBUF_FINAL :
   std::string* _internal_mutable_id();
   public:
 
-  // required int32 order = 1;
-  bool has_order() const;
-  private:
-  bool _internal_has_order() const;
-  public:
-  void clear_order();
-  ::PROTOBUF_NAMESPACE_ID::int32 order() const;
-  void set_order(::PROTOBUF_NAMESPACE_ID::int32 value);
-  private:
-  ::PROTOBUF_NAMESPACE_ID::int32 _internal_order() const;
-  void _internal_set_order(::PROTOBUF_NAMESPACE_ID::int32 value);
-  public:
-
   // optional int32 client_id = 4;
   bool has_client_id() const;
   private:
@@ -565,12 +582,22 @@ class Transaction PROTOBUF_FINAL :
   void _internal_set_client_id(::PROTOBUF_NAMESPACE_ID::int32 value);
   public:
 
+  // optional int32 lamport_stamp = 5;
+  bool has_lamport_stamp() const;
+  private:
+  bool _internal_has_lamport_stamp() const;
+  public:
+  void clear_lamport_stamp();
+  ::PROTOBUF_NAMESPACE_ID::int32 lamport_stamp() const;
+  void set_lamport_stamp(::PROTOBUF_NAMESPACE_ID::int32 value);
+  private:
+  ::PROTOBUF_NAMESPACE_ID::int32 _internal_lamport_stamp() const;
+  void _internal_set_lamport_stamp(::PROTOBUF_NAMESPACE_ID::int32 value);
+  public:
+
   // @@protoc_insertion_point(class_scope:request.Transaction)
  private:
   class _Internal;
-
-  // helper for ByteSizeLong()
-  size_t RequiredFieldsByteSizeFallback() const;
 
   template <typename T> friend class ::PROTOBUF_NAMESPACE_ID::Arena::InternalHelper;
   typedef void InternalArenaConstructable_;
@@ -578,9 +605,10 @@ class Transaction PROTOBUF_FINAL :
   ::PROTOBUF_NAMESPACE_ID::internal::HasBits<1> _has_bits_;
   mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
   ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::request::Operation > operations_;
+  ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr order_;
   ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr id_;
-  ::PROTOBUF_NAMESPACE_ID::int32 order_;
   ::PROTOBUF_NAMESPACE_ID::int32 client_id_;
+  ::PROTOBUF_NAMESPACE_ID::int32 lamport_stamp_;
   friend struct ::TableStruct_request_2eproto;
 };
 // -------------------------------------------------------------------
@@ -1061,37 +1089,102 @@ inline void Operation::unsafe_arena_set_allocated_value(
 
 // Transaction
 
-// required int32 order = 1;
+// optional string order = 1;
 inline bool Transaction::_internal_has_order() const {
-  bool value = (_has_bits_[0] & 0x00000002u) != 0;
+  bool value = (_has_bits_[0] & 0x00000001u) != 0;
   return value;
 }
 inline bool Transaction::has_order() const {
   return _internal_has_order();
 }
 inline void Transaction::clear_order() {
-  order_ = 0;
-  _has_bits_[0] &= ~0x00000002u;
+  order_.ClearToEmpty(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArena());
+  _has_bits_[0] &= ~0x00000001u;
 }
-inline ::PROTOBUF_NAMESPACE_ID::int32 Transaction::_internal_order() const {
-  return order_;
-}
-inline ::PROTOBUF_NAMESPACE_ID::int32 Transaction::order() const {
+inline const std::string& Transaction::order() const {
   // @@protoc_insertion_point(field_get:request.Transaction.order)
   return _internal_order();
 }
-inline void Transaction::_internal_set_order(::PROTOBUF_NAMESPACE_ID::int32 value) {
-  _has_bits_[0] |= 0x00000002u;
-  order_ = value;
-}
-inline void Transaction::set_order(::PROTOBUF_NAMESPACE_ID::int32 value) {
+inline void Transaction::set_order(const std::string& value) {
   _internal_set_order(value);
   // @@protoc_insertion_point(field_set:request.Transaction.order)
+}
+inline std::string* Transaction::mutable_order() {
+  // @@protoc_insertion_point(field_mutable:request.Transaction.order)
+  return _internal_mutable_order();
+}
+inline const std::string& Transaction::_internal_order() const {
+  return order_.Get();
+}
+inline void Transaction::_internal_set_order(const std::string& value) {
+  _has_bits_[0] |= 0x00000001u;
+  order_.Set(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), value, GetArena());
+}
+inline void Transaction::set_order(std::string&& value) {
+  _has_bits_[0] |= 0x00000001u;
+  order_.Set(
+    &::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), ::std::move(value), GetArena());
+  // @@protoc_insertion_point(field_set_rvalue:request.Transaction.order)
+}
+inline void Transaction::set_order(const char* value) {
+  GOOGLE_DCHECK(value != nullptr);
+  _has_bits_[0] |= 0x00000001u;
+  order_.Set(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), ::std::string(value),
+              GetArena());
+  // @@protoc_insertion_point(field_set_char:request.Transaction.order)
+}
+inline void Transaction::set_order(const char* value,
+    size_t size) {
+  _has_bits_[0] |= 0x00000001u;
+  order_.Set(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), ::std::string(
+      reinterpret_cast<const char*>(value), size), GetArena());
+  // @@protoc_insertion_point(field_set_pointer:request.Transaction.order)
+}
+inline std::string* Transaction::_internal_mutable_order() {
+  _has_bits_[0] |= 0x00000001u;
+  return order_.Mutable(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArena());
+}
+inline std::string* Transaction::release_order() {
+  // @@protoc_insertion_point(field_release:request.Transaction.order)
+  if (!_internal_has_order()) {
+    return nullptr;
+  }
+  _has_bits_[0] &= ~0x00000001u;
+  return order_.ReleaseNonDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArena());
+}
+inline void Transaction::set_allocated_order(std::string* order) {
+  if (order != nullptr) {
+    _has_bits_[0] |= 0x00000001u;
+  } else {
+    _has_bits_[0] &= ~0x00000001u;
+  }
+  order_.SetAllocated(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), order,
+      GetArena());
+  // @@protoc_insertion_point(field_set_allocated:request.Transaction.order)
+}
+inline std::string* Transaction::unsafe_arena_release_order() {
+  // @@protoc_insertion_point(field_unsafe_arena_release:request.Transaction.order)
+  GOOGLE_DCHECK(GetArena() != nullptr);
+  _has_bits_[0] &= ~0x00000001u;
+  return order_.UnsafeArenaRelease(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(),
+      GetArena());
+}
+inline void Transaction::unsafe_arena_set_allocated_order(
+    std::string* order) {
+  GOOGLE_DCHECK(GetArena() != nullptr);
+  if (order != nullptr) {
+    _has_bits_[0] |= 0x00000001u;
+  } else {
+    _has_bits_[0] &= ~0x00000001u;
+  }
+  order_.UnsafeArenaSetAllocated(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(),
+      order, GetArena());
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:request.Transaction.order)
 }
 
 // required string id = 2;
 inline bool Transaction::_internal_has_id() const {
-  bool value = (_has_bits_[0] & 0x00000001u) != 0;
+  bool value = (_has_bits_[0] & 0x00000002u) != 0;
   return value;
 }
 inline bool Transaction::has_id() const {
@@ -1099,7 +1192,7 @@ inline bool Transaction::has_id() const {
 }
 inline void Transaction::clear_id() {
   id_.ClearToEmpty(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArena());
-  _has_bits_[0] &= ~0x00000001u;
+  _has_bits_[0] &= ~0x00000002u;
 }
 inline const std::string& Transaction::id() const {
   // @@protoc_insertion_point(field_get:request.Transaction.id)
@@ -1117,31 +1210,31 @@ inline const std::string& Transaction::_internal_id() const {
   return id_.Get();
 }
 inline void Transaction::_internal_set_id(const std::string& value) {
-  _has_bits_[0] |= 0x00000001u;
+  _has_bits_[0] |= 0x00000002u;
   id_.Set(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), value, GetArena());
 }
 inline void Transaction::set_id(std::string&& value) {
-  _has_bits_[0] |= 0x00000001u;
+  _has_bits_[0] |= 0x00000002u;
   id_.Set(
     &::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), ::std::move(value), GetArena());
   // @@protoc_insertion_point(field_set_rvalue:request.Transaction.id)
 }
 inline void Transaction::set_id(const char* value) {
   GOOGLE_DCHECK(value != nullptr);
-  _has_bits_[0] |= 0x00000001u;
+  _has_bits_[0] |= 0x00000002u;
   id_.Set(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), ::std::string(value),
               GetArena());
   // @@protoc_insertion_point(field_set_char:request.Transaction.id)
 }
 inline void Transaction::set_id(const char* value,
     size_t size) {
-  _has_bits_[0] |= 0x00000001u;
+  _has_bits_[0] |= 0x00000002u;
   id_.Set(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), ::std::string(
       reinterpret_cast<const char*>(value), size), GetArena());
   // @@protoc_insertion_point(field_set_pointer:request.Transaction.id)
 }
 inline std::string* Transaction::_internal_mutable_id() {
-  _has_bits_[0] |= 0x00000001u;
+  _has_bits_[0] |= 0x00000002u;
   return id_.Mutable(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArena());
 }
 inline std::string* Transaction::release_id() {
@@ -1149,14 +1242,14 @@ inline std::string* Transaction::release_id() {
   if (!_internal_has_id()) {
     return nullptr;
   }
-  _has_bits_[0] &= ~0x00000001u;
+  _has_bits_[0] &= ~0x00000002u;
   return id_.ReleaseNonDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArena());
 }
 inline void Transaction::set_allocated_id(std::string* id) {
   if (id != nullptr) {
-    _has_bits_[0] |= 0x00000001u;
+    _has_bits_[0] |= 0x00000002u;
   } else {
-    _has_bits_[0] &= ~0x00000001u;
+    _has_bits_[0] &= ~0x00000002u;
   }
   id_.SetAllocated(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), id,
       GetArena());
@@ -1165,7 +1258,7 @@ inline void Transaction::set_allocated_id(std::string* id) {
 inline std::string* Transaction::unsafe_arena_release_id() {
   // @@protoc_insertion_point(field_unsafe_arena_release:request.Transaction.id)
   GOOGLE_DCHECK(GetArena() != nullptr);
-  _has_bits_[0] &= ~0x00000001u;
+  _has_bits_[0] &= ~0x00000002u;
   return id_.UnsafeArenaRelease(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(),
       GetArena());
 }
@@ -1173,9 +1266,9 @@ inline void Transaction::unsafe_arena_set_allocated_id(
     std::string* id) {
   GOOGLE_DCHECK(GetArena() != nullptr);
   if (id != nullptr) {
-    _has_bits_[0] |= 0x00000001u;
+    _has_bits_[0] |= 0x00000002u;
   } else {
-    _has_bits_[0] &= ~0x00000001u;
+    _has_bits_[0] &= ~0x00000002u;
   }
   id_.UnsafeArenaSetAllocated(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(),
       id, GetArena());
@@ -1247,6 +1340,34 @@ inline void Transaction::_internal_set_client_id(::PROTOBUF_NAMESPACE_ID::int32 
 inline void Transaction::set_client_id(::PROTOBUF_NAMESPACE_ID::int32 value) {
   _internal_set_client_id(value);
   // @@protoc_insertion_point(field_set:request.Transaction.client_id)
+}
+
+// optional int32 lamport_stamp = 5;
+inline bool Transaction::_internal_has_lamport_stamp() const {
+  bool value = (_has_bits_[0] & 0x00000008u) != 0;
+  return value;
+}
+inline bool Transaction::has_lamport_stamp() const {
+  return _internal_has_lamport_stamp();
+}
+inline void Transaction::clear_lamport_stamp() {
+  lamport_stamp_ = 0;
+  _has_bits_[0] &= ~0x00000008u;
+}
+inline ::PROTOBUF_NAMESPACE_ID::int32 Transaction::_internal_lamport_stamp() const {
+  return lamport_stamp_;
+}
+inline ::PROTOBUF_NAMESPACE_ID::int32 Transaction::lamport_stamp() const {
+  // @@protoc_insertion_point(field_get:request.Transaction.lamport_stamp)
+  return _internal_lamport_stamp();
+}
+inline void Transaction::_internal_set_lamport_stamp(::PROTOBUF_NAMESPACE_ID::int32 value) {
+  _has_bits_[0] |= 0x00000008u;
+  lamport_stamp_ = value;
+}
+inline void Transaction::set_lamport_stamp(::PROTOBUF_NAMESPACE_ID::int32 value) {
+  _internal_set_lamport_stamp(value);
+  // @@protoc_insertion_point(field_set:request.Transaction.lamport_stamp)
 }
 
 // -------------------------------------------------------------------

@@ -50,8 +50,8 @@ int main(int argc, char *argv[])
     printf("Listening for clients on port %d\n", client_port);
 
     // start listeners
-    Listener peer_listener(connectionType::PEER, peer_listenfd, &partial_sequencer, &merger);
-    Listener client_listener(connectionType::CLIENT, client_listenfd, &partial_sequencer, &merger);
+    PeerListener peer_listener(peer_listenfd, &partial_sequencer, &merger);
+    ClientListener client_listener(client_listenfd);
 
     // arguments for pinger thread
     //Pinger pinger(&servers, num_servers, peer_port);

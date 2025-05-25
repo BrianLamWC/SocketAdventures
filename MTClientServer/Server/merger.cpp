@@ -29,9 +29,16 @@ void Merger::processRoundRequests()
 
         for (const auto &txn_proto : txn.transaction())
         {
+            // set lamport clock to max of current lamport clock and transaction's lamport stamp and increment it but find the max out of all the transactions first so it does not keep locking
+            int32_t max_lamport_stamp = lamport_clock.load();
+            if (txn_proto.lamport_stamp() > max_lamport_stamp) {
+                max_lamport_stamp = txn_proto.lamport_stamp();
+            }
+            lamport_clock.store(max_lamport_stamp + 1);
+
             std::vector<Operation> operations = getOperationsFromProtoTransaction(txn_proto);
             
-            Transaction transaction(txn_proto.order(), txn_proto.client_id(), operations, txn_proto.id());
+            Transaction transaction(txn_proto.lamport_stamp() , txn_proto.order(), txn_proto.client_id(), operations, txn_proto.id());
 
             inner_map->push(transaction);
 
@@ -239,7 +246,7 @@ void Merger::insertAlgorithm(){
         }
         
         //graph.printAll();
-        graph.getMergedOrders();
+        graph.getMergedOrders_();
 
     }
     
@@ -278,7 +285,6 @@ void Merger::processIncomingRequest(const request::Request& req_proto) {
         insert_cv.notify_one();
     }
 }
-
 
 Merger::Merger()
 {

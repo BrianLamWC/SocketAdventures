@@ -19,11 +19,11 @@ void PartialSequencer::processPartialSequence(){
         // pull whatever we got (might be empty)
         transactions_received = batcher_to_partial_sequencer_queue_.popAll();
 
-        // print transction ids
-        for (const auto& req_proto : transactions_received) {
-            const request::Transaction& txn = req_proto.transaction(0);
-            //printf("PARTIAL: Transaction %s for client %d:\n", txn.id().c_str(), txn.client_id());
-        }
+        // // print transction ids
+        // for (const auto& req_proto : transactions_received) {
+        //     const request::Transaction& txn = req_proto.transaction(0);
+        //     printf("PARTIAL: Transaction %s for client %d:\n", txn.id().c_str(), txn.client_id());
+        // }
 
         auto now = std::chrono::system_clock::now();
         auto since_0 = now - ROUND_EPOCH;
@@ -47,6 +47,11 @@ void PartialSequencer::processPartialSequence(){
         // push & notify (even if empty!)
         partial_sequencer_to_merger_queue_.push(partial_sequence_);
         partial_sequencer_to_merger_queue_cv.notify_one();
+
+        // print txns in the partial sequence
+        // for (const auto& txn : partial_sequence_.transaction()) {
+        //     printf("PARTIAL: Transaction %s for client %d:\n", txn.id().c_str(), txn.client_id());
+        // }
 
         // send to peers (even if empty!)
         for (const auto& server : servers) {
