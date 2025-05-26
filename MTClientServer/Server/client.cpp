@@ -132,9 +132,7 @@ void* handleClient(void *client_args)
         pthread_exit(NULL);
     }
     
-    // expecting one transaction per client
-    auto *txn = req_proto.mutable_transaction(0);
-    txn->set_lamport_stamp(lamport_clock.fetch_add(1));
+    //lamport_clock.fetch_add(1);
     request_queue_.push(req_proto);
 
     close(connfd);

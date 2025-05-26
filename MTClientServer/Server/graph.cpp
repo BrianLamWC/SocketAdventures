@@ -373,7 +373,7 @@ void Graph::getMergedOrders_()
         auto &comp = sccs[c];
 
         if (comp.size() > 1){
-            std::sort(comp.begin(), comp.end(), [&](auto *a, auto *b) { return a->getLamportStamp() < b->getLamportStamp(); });
+            std::sort(comp.begin(), comp.end(), [&](auto *a, auto *b) { return a->getOrder() < b->getOrder(); });
         }
 
         // emit & remove
@@ -400,7 +400,7 @@ void Graph::getMergedOrders_()
     {
         std::cout
             << "- UUID: " << txn->getUUID()
-            << " order: " << txn->getOrder()
-            << ", client: " << txn->getClientId() << "\n";
+            << " ORDER: " << txn->getOrder()
+            << " lamport_stamp: " << txn->getLamportStamp() << "\n";
     }
 }

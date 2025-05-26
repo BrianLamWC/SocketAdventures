@@ -60,8 +60,8 @@ void Batcher::batchRequests()
             double batch_throughput = N / (proc_ms/1000.0);     // txn/sec for this batch
             double avg_throughput   = total_txns / double(elapsed_all_s>0?elapsed_all_s:1);
 
-            printf("BATCH popped %zu txns (in %lld ms), processed in %lld ms → %.0f tx/s, avg=%.0f tx/s\n",
-                N, pop_ms, proc_ms, batch_throughput, avg_throughput);
+            // printf("BATCH popped %zu txns (in %lld ms), processed in %lld ms → %.0f tx/s, avg=%.0f tx/s\n",
+            //     N, pop_ms, proc_ms, batch_throughput, avg_throughput);
         }
 
         batch_.clear();
@@ -78,8 +78,9 @@ void Batcher::processBatch_()
     for (request::Request& req_proto : batch_)
     {
         auto* txn = req_proto.mutable_transaction(0);
-        //txn->set_order(uuidv7());
-        txn->set_lamport_stamp(lamport_clock.fetch_add(1));
+        txn->set_order(uuidv7());
+        // int64_t stamp = lamport_clock.fetch_add(1) + 1;
+        // txn->set_lamport_stamp(stamp);
 
         std::unordered_set<int32_t> target_peers;
         //printf("BATCHER: Transaction %s for client %d:\n", txn.id().c_str(), txn.client_id());

@@ -29,12 +29,12 @@ void Merger::processRoundRequests()
 
         for (const auto &txn_proto : txn.transaction())
         {
-            // set lamport clock to max of current lamport clock and transaction's lamport stamp and increment it but find the max out of all the transactions first so it does not keep locking
-            int32_t max_lamport_stamp = lamport_clock.load();
-            if (txn_proto.lamport_stamp() > max_lamport_stamp) {
-                max_lamport_stamp = txn_proto.lamport_stamp();
-            }
-            lamport_clock.store(max_lamport_stamp + 1);
+            // // set lamport clock to max of current lamport clock and transaction's lamport stamp and increment it but find the max out of all the transactions first so it does not keep locking
+            // int32_t max_lamport_stamp = lamport_clock.load();
+            // if (txn_proto.lamport_stamp() > max_lamport_stamp) {
+            //     max_lamport_stamp = txn_proto.lamport_stamp();
+            // }
+            // lamport_clock.store(max_lamport_stamp + 1);
 
             std::vector<Operation> operations = getOperationsFromProtoTransaction(txn_proto);
             
