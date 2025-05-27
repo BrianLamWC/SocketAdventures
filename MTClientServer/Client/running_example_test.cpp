@@ -104,27 +104,27 @@ int main(int argc, char *argv[]) {
     };
 
     std::vector<TxnSpec> schedule = {
-        {7001, request::Operation::WRITE, {1,2}},
+        {7001, request::Operation::WRITE, {1}},
+        {7002, request::Operation::WRITE, {2}},
         {7003, request::Operation::WRITE, {3}},
-        {7003, request::Operation::WRITE, {1,2,3}},
     };
 
-    // while (true)
-    // {
-    //     for (auto &spec : schedule) {
-    //         sendTransaction(spec.port, spec.type, spec.keys);
-    //     }
-    // }
+    while (true)
+    {
+        for (auto &spec : schedule) {
+            sendTransaction(spec.port, spec.type, spec.keys);
+        }
+    }
     
     // for (auto &spec : schedule) {
     //     sendTransaction(spec.port, spec.type, spec.keys);
     // }
 
 
-    sendTransaction(7001, request::Operation::WRITE, {1,2});
-    sendTransaction(7002, request::Operation::WRITE, {1,2});
-    sleep(1);
-    sendTransaction(7001, request::Operation::WRITE, {1});
+    // sendTransaction(7001, request::Operation::WRITE, {1,2});
+    // sendTransaction(7002, request::Operation::WRITE, {1,2});
+    // sleep(1);
+    // sendTransaction(7001, request::Operation::WRITE, {1});
 
     google::protobuf::ShutdownProtobufLibrary();
     return 0;

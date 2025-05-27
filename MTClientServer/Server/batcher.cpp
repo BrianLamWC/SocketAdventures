@@ -19,8 +19,10 @@ namespace {
 void Batcher::batchRequests()
 {
     using Clock = std::chrono::high_resolution_clock;
-    static uint64_t total_txns = 0;
-    static Clock::time_point start_all = Clock::now();
+
+    uint64_t total_txns = 0;
+    std::chrono::nanoseconds::rep ns_total_stamp_time = 0;
+    std::chrono::nanoseconds::rep ns_elapsed_time = 0;
 
     while (true)
     {
@@ -38,47 +40,59 @@ void Batcher::batchRequests()
         // print current round
         //printf("BATCHER: in round %ld\n", current_window);
 
-        auto t0_pop = Clock::now();
         batch_ = request_queue_.popAll();
-        auto t1_pop = Clock::now();
 
         if (!batch_.empty()) {
-            // 2) time processBatch_
             auto t0 = Clock::now();
-            processBatch_();          // your existing code
+            processBatch_(ns_total_stamp_time);
             auto t1 = Clock::now();
+            ns_elapsed_time += std::chrono::duration_cast<std::chrono::nanoseconds>(t1 - t0).count();
 
-            // 3) compute metrics
-            auto pop_ms   = std::chrono::duration_cast<std::chrono::milliseconds>(t1_pop - t0_pop).count();
-            auto proc_ms  = std::chrono::duration_cast<std::chrono::milliseconds>(t1 - t0).count();
-            auto N        = batch_.size();
-            total_txns   += N;
-            auto elapsed_all_s = std::chrono::duration_cast<std::chrono::seconds>(
-                                Clock::now() - start_all
-                                ).count();
-
-            double batch_throughput = N / (proc_ms/1000.0);     // txn/sec for this batch
-            double avg_throughput   = total_txns / double(elapsed_all_s>0?elapsed_all_s:1);
-
-            // printf("BATCH popped %zu txns (in %lld ms), processed in %lld ms → %.0f tx/s, avg=%.0f tx/s\n",
-            //     N, pop_ms, proc_ms, batch_throughput, avg_throughput);
+            total_txns += batch_.size();
         }
 
         batch_.clear();
+        if (total_txns >= 100)
+        {
+            // average nanoseconds per stamp
+            double avg_ns = double(ns_total_stamp_time) / double(total_txns);
+
+            // tx/sec = total_txns / seconds_spent
+            double throughput = double(total_txns) * 1e9 / double(ns_elapsed_time);
+
+            double elapsed_ms = double(ns_elapsed_time) / 1e6;
+            printf(
+                "Stamped %llu txns in %.3f ms: avg stamp = %.1f ns/txn, throughput = %.0f tx/s\n",
+                (unsigned long long)total_txns,
+                elapsed_ms,
+                avg_ns,
+                throughput);
+
+            total_txns = 0;
+        }
 
         std::this_thread::sleep_until(next_timestamp);
     }
     
 }
 
-void Batcher::processBatch_()
+void Batcher::processBatch_(std::chrono::nanoseconds::rep &ns_total_stamp_time_)
 {
     std::vector<request::Request> batch_for_partial_sequencer;
 
-    for (request::Request& req_proto : batch_)
+    using Clock = std::chrono::high_resolution_clock;
+
+    for (request::Request &req_proto : batch_)
     {
         auto* txn = req_proto.mutable_transaction(0);
+
+        auto t0s = Clock::now();
         txn->set_order(uuidv7());
+        auto t1s = Clock::now();
+
+        // accumulate the stamping time
+        ns_total_stamp_time_ += std::chrono::duration_cast<std::chrono::nanoseconds>(t1s - t0s).count();
+
         // int64_t stamp = lamport_clock.fetch_add(1) + 1;
         // txn->set_lamport_stamp(stamp);
 

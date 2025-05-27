@@ -395,12 +395,12 @@ void Graph::getMergedOrders_()
         }
     }
 
-    std::cout << "Merged orders:\n";
-    for (const auto &txn : S)
-    {
-        std::cout
-            << "- UUID: " << txn->getUUID()
-            << " ORDER: " << txn->getOrder()
-            << " lamport_stamp: " << txn->getLamportStamp() << "\n";
-    }
+    // std::cout << "Merged orders:\n";
+    // for (const auto &txn : S)
+    // {
+    //     std::cout
+    //         << "- UUID: " << txn->getUUID()
+    //         << " ORDER: " << txn->getOrder()
+    //         << " lamport_stamp: " << txn->getLamportStamp() << "\n";
+    // }
 }

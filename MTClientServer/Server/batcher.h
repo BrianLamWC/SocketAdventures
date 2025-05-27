@@ -25,7 +25,7 @@ public:
 
     Batcher();
     void batchRequests();
-    void processBatch_();
+    void processBatch_(std::chrono::nanoseconds::rep &ns_total_stamp_time_);
     void sendTransaction_(const request::Transaction& txn, const int32_t& id);
     std::string uuidv7();
 
