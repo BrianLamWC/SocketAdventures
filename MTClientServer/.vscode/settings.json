@@ -66,6 +66,7 @@
         "streambuf": "cpp",
         "thread": "cpp",
         "valarray": "cpp",
-        "queue": "cpp"
+        "queue": "cpp",
+        "csignal": "cpp"
     }
 }

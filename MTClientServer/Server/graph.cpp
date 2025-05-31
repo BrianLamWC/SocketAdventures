@@ -1,8 +1,11 @@
 // graph.cpp
-#include "graph.h"
+
 #include <iostream>
 #include <queue>
 #include <algorithm>
+
+#include "graph.h"
+
 
 Transaction *Graph::addNode(std::unique_ptr<Transaction> uptr)
 {
@@ -44,7 +47,7 @@ void Graph::printAll() const
             std::cout << "\n";
         }
         // Neighbors
-        const auto &nbr = t->getNeighbors();
+        const auto &nbr = t->getOutNeighbors();
         std::cout << "    Neighbors (" << nbr.size() << "):";
         for (auto *n : nbr)
         {
@@ -95,7 +98,7 @@ std::unique_ptr<Transaction> Graph::removeTransaction(Transaction *rem)
     // 2) Remove rem from everyone else's adjacency
     for (auto &kv : nodes)
     {
-        kv.second->removeNeighbor(rem);
+        kv.second->removeOutNeighbor(rem);
     }
 
     // 3) Steal the unique_ptr<Transaction> out of the map
@@ -108,6 +111,37 @@ std::unique_ptr<Transaction> Graph::removeTransaction(Transaction *rem)
     return up;
 }
 
+std::unique_ptr<Transaction> Graph::removeTransaction_(Transaction* rem)
+{
+    auto it = nodes.find(rem->getUUID());
+    if (it == nodes.end()) return nullptr;
+
+    // 1) copy the incoming‐neighbor list and break those edges
+    std::vector<Transaction*> preds(
+      rem->getIncomingNeighbors().begin(),
+      rem->getIncomingNeighbors().end()
+    );
+    for (Transaction* pred : preds) {
+        pred->removeOutNeighbor(rem);
+    }
+
+    // 2) copy the outgoing‐neighbor list and break those edges
+    std::vector<Transaction*> succs(
+      rem->getOutNeighbors().begin(),
+      rem->getOutNeighbors().end()
+    );
+    for (Transaction* succ : succs) {
+        rem->removeOutNeighbor(succ);
+        // or equivalently: succ->removeInNeighbor(rem);
+    }
+
+    // 3) now it’s safe to steal and erase
+    auto up = std::move(it->second);
+    nodes.erase(it);
+    return up;
+}
+
+
 void Graph::strongConnect(Transaction *v)
 {
     // 1. Set the depth index for v
@@ -119,7 +153,7 @@ void Graph::strongConnect(Transaction *v)
     on_stack.insert(v);
 
     // 2. Consider successors of v
-    for (Transaction *w : v->getNeighbors())
+    for (Transaction *w : v->getOutNeighbors())
     {
         if (index_map.find(w) == index_map.end())
         {
@@ -171,19 +205,7 @@ void Graph::findSCCs()
         }
     }
 
-    // print the SCCs
-    // std::cout << "Found " << sccs.size() << " strongly connected component(s):\n";
-    // for (size_t i = 0; i < sccs.size(); ++i) {
-    //     auto& comp = sccs[i];
-    //     std::cout << " Component " << i+1 << " (size=" << comp.size() << "):\n";
-    //     for (Transaction* tx : comp) {
-    //         std::cout
-    //             << "   - UUID: "   << tx->getUUID()
-    //             << ", order: "    << tx->getOrder()
-    //             << ", client: "   << tx->getClientId()
-    //             << "\n";
-    //     }
-    // }
+
 }
 
 void Graph::buildTransactionSCCMap()
@@ -219,7 +241,7 @@ void Graph::buildCondensationGraph()
         Transaction *u = kv.second.get();
         int cu = txn_scc_index_map[u]; // which SCC u belongs to
 
-        for (Transaction *v : u->getNeighbors())
+        for (Transaction *v : u->getOutNeighbors())
         {
             int cv = txn_scc_index_map[v]; // which SCC v belongs to
 
@@ -244,7 +266,7 @@ bool Graph::isSCCComplete(const int &scc_index)
     for (auto *T : sccs[scc_index])
     {
         // 1) SCC‐sink check: scan every outgoing edge of T
-        for (auto *nbr : T->getNeighbors())
+        for (auto *nbr : T->getOutNeighbors())
         {
             if (txn_scc_index_map.at(nbr) != scc_index)
             {
@@ -260,6 +282,73 @@ bool Graph::isSCCComplete(const int &scc_index)
     }
     // if we get here, no crossing edges *and* every T is complete
     return true;
+}
+
+void Graph::getMergedOrders_()
+{
+    // 1) SCC + condensation once
+    findSCCs();  // one rep per SCC
+    buildTransactionSCCMap();
+    buildCondensationGraph();
+    int C = sccs.size();
+
+    // 2) compute out-degrees and seed ready queue
+    std::vector<int> out_degrees(C);
+    std::queue<int> Q;
+
+    for (int c = 0; c < C; ++c)
+    {
+        out_degrees[c] = neighbors_out[c].size();
+    }
+
+    for (int c = 0; c < C; ++c)
+    {
+        if (out_degrees[c] == 0 && isSCCComplete(c))
+        {
+            Q.push(c);
+        }
+    }
+
+    while (!Q.empty())
+    {
+        int c = Q.front(); Q.pop();
+        auto &comp = sccs[c];
+
+        if (comp.size() > 1) {
+            std::sort(comp.begin(), comp.end(),
+                [&](auto *a, auto *b){
+                    return a->getOrder() < b->getOrder();
+                });
+        }
+
+        for (Transaction *T : comp) {
+            if (auto up = removeTransaction_(T)) {
+                merged_order.push(*up);
+            }
+        }
+
+        logging_cv.notify_all(); // notify logger thread
+
+        for (int p : neighbors_in[c]) {
+            if (--out_degrees[p] == 0 && isSCCComplete(p)) {
+                Q.push(p);
+            }
+        }
+
+    }
+
+    // print number of nodes left in the graph
+    //std::cout << "Graph now has " << nodes.size() << " node(s) left.\n";
+
+    // std::cout 
+    //   << "Detailed peel+emit breakdown (ms):\n"
+    //   << "  total SCCs processed: " << sccs.size() << "\n"
+    //   << "  sorting   : " << sort_ms   << " ms\n"
+    //   << "  emitting  : " << emit_ms   << " ms\n"
+    //   << "  updating  : " << update_ms << " ms\n"
+    //   << "  total     : " << (sort_ms+emit_ms+update_ms) << " ms\n"
+    //   << "  pushed txns: "  << pushed_count   << "\n";
+
 }
 
 void Graph::getMergedOrders()
@@ -335,72 +424,4 @@ void Graph::getMergedOrders()
             << " order: " << txn->getOrder()
             << ", client: " << txn->getClientId() << "\n";
     }
-}
-
-void Graph::getMergedOrders_()
-{
-
-    // 1) SCC + condensation once
-    findSCCs();
-    buildTransactionSCCMap();
-    buildCondensationGraph();
-    int C = sccs.size();
-
-    // 2) compute out-degrees and seed ready queue
-    std::vector<int> out_degrees(C);
-    std::queue<int> Q;
-
-    for (int c = 0; c < C; ++c)
-    {
-        out_degrees[c] = neighbors_out[c].size();
-    }
-
-    for (int c = 0; c < C; ++c)
-    {
-        if (out_degrees[c] == 0 && isSCCComplete(c))
-        {
-            Q.push(c);
-        }
-    }
-
-    // 3) peel off SCCs
-    std::vector<std::unique_ptr<Transaction>> S;
-    while (!Q.empty())
-    {
-        int c = Q.front();
-        Q.pop();
-
-        auto &comp = sccs[c];
-
-        if (comp.size() > 1){
-            std::sort(comp.begin(), comp.end(), [&](auto *a, auto *b) { return a->getOrder() < b->getOrder(); });
-        }
-
-        // emit & remove
-        for (auto *T : comp)
-        {
-            auto up = removeTransaction(T);
-            if (up)
-                S.push_back(std::move(up));
-        }
-
-        // update predecessors
-        for (int p : neighbors_in[c])
-        {
-
-            if (--out_degrees[p] == 0 && isSCCComplete(p))
-            {
-                Q.push(p);
-            }
-        }
-    }
-
-    // std::cout << "Merged orders:\n";
-    // for (const auto &txn : S)
-    // {
-    //     std::cout
-    //         << "- UUID: " << txn->getUUID()
-    //         << " ORDER: " << txn->getOrder()
-    //         << " lamport_stamp: " << txn->getLamportStamp() << "\n";
-    // }
 }

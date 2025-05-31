@@ -28,7 +28,8 @@ private:
     std::vector<Operation> operations;
 
     // intrusive adjacency list
-    std::unordered_set<Transaction*> neighbors;
+    std::unordered_set<Transaction*> neighbors_out;
+    std::unordered_set<Transaction*> neighbors_in;
 
     std::unordered_set<int32_t> expected_regions;
     std::unordered_set<int32_t> seen_regions;
@@ -46,10 +47,24 @@ public:
 
     const std::vector<Operation>& getOperations() const { return operations; }
 
-    void addNeighbor(Transaction* ptr) { neighbors.insert(ptr); }
-    void removeNeighbor(Transaction* ptr) { neighbors.erase(ptr); }
+    void addNeighborOut(Transaction* ptr) { 
+        neighbors_out.insert(ptr); 
+        ptr->neighbors_in.insert(this); 
+    }
 
-    const std::unordered_set<Transaction*>& getNeighbors() const { return neighbors; }
+    void removeOutNeighbor(Transaction* ptr) { 
+        neighbors_out.erase(ptr); 
+        ptr->neighbors_in.erase(this);
+    }
+
+    void removeInNeighbor(Transaction* ptr) { 
+        neighbors_in.erase(ptr); 
+        ptr->neighbors_out.erase(this);
+    }
+
+    const std::unordered_set<Transaction*>& getOutNeighbors() const { return neighbors_out; }
+
+    const std::unordered_set<Transaction*>& getIncomingNeighbors() const { return neighbors_in; }
 
     void setExpectedRegions(const std::unordered_set<int32_t>& regions) { expected_regions = regions; }
     const std::unordered_set<int32_t>& getExpectedRegions() const { return expected_regions; }

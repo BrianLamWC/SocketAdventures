@@ -63,6 +63,7 @@ struct DataItem
 };
 
 extern std::unordered_map<std::string, DataItem> mockDB;
+extern std::unordered_map<std::string, DataItem> mockDB_logging;
 
 // SERVER ID
 
@@ -99,6 +100,7 @@ namespace std
 
         }
     };
+
 }
 
 // lamport clock

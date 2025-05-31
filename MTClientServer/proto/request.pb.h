@@ -772,6 +772,7 @@ class Request PROTOBUF_FINAL :
     kServerIdFieldNumber = 2,
     kRecipientFieldNumber = 4,
     kRoundFieldNumber = 5,
+    kTargetServerIdFieldNumber = 6,
   };
   // repeated .request.Transaction transaction = 3;
   int transaction_size() const;
@@ -843,6 +844,19 @@ class Request PROTOBUF_FINAL :
   void _internal_set_round(::PROTOBUF_NAMESPACE_ID::int32 value);
   public:
 
+  // optional int32 target_server_id = 6;
+  bool has_target_server_id() const;
+  private:
+  bool _internal_has_target_server_id() const;
+  public:
+  void clear_target_server_id();
+  ::PROTOBUF_NAMESPACE_ID::int32 target_server_id() const;
+  void set_target_server_id(::PROTOBUF_NAMESPACE_ID::int32 value);
+  private:
+  ::PROTOBUF_NAMESPACE_ID::int32 _internal_target_server_id() const;
+  void _internal_set_target_server_id(::PROTOBUF_NAMESPACE_ID::int32 value);
+  public:
+
   // @@protoc_insertion_point(class_scope:request.Request)
  private:
   class _Internal;
@@ -857,6 +871,7 @@ class Request PROTOBUF_FINAL :
   ::PROTOBUF_NAMESPACE_ID::int32 server_id_;
   int recipient_;
   ::PROTOBUF_NAMESPACE_ID::int32 round_;
+  ::PROTOBUF_NAMESPACE_ID::int32 target_server_id_;
   friend struct ::TableStruct_request_2eproto;
 };
 // ===================================================================
@@ -1524,6 +1539,34 @@ inline void Request::_internal_set_round(::PROTOBUF_NAMESPACE_ID::int32 value) {
 inline void Request::set_round(::PROTOBUF_NAMESPACE_ID::int32 value) {
   _internal_set_round(value);
   // @@protoc_insertion_point(field_set:request.Request.round)
+}
+
+// optional int32 target_server_id = 6;
+inline bool Request::_internal_has_target_server_id() const {
+  bool value = (_has_bits_[0] & 0x00000010u) != 0;
+  return value;
+}
+inline bool Request::has_target_server_id() const {
+  return _internal_has_target_server_id();
+}
+inline void Request::clear_target_server_id() {
+  target_server_id_ = 0;
+  _has_bits_[0] &= ~0x00000010u;
+}
+inline ::PROTOBUF_NAMESPACE_ID::int32 Request::_internal_target_server_id() const {
+  return target_server_id_;
+}
+inline ::PROTOBUF_NAMESPACE_ID::int32 Request::target_server_id() const {
+  // @@protoc_insertion_point(field_get:request.Request.target_server_id)
+  return _internal_target_server_id();
+}
+inline void Request::_internal_set_target_server_id(::PROTOBUF_NAMESPACE_ID::int32 value) {
+  _has_bits_[0] |= 0x00000010u;
+  target_server_id_ = value;
+}
+inline void Request::set_target_server_id(::PROTOBUF_NAMESPACE_ID::int32 value) {
+  _internal_set_target_server_id(value);
+  // @@protoc_insertion_point(field_set:request.Request.target_server_id)
 }
 
 #ifdef __GNUC__

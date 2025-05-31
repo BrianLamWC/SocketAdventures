@@ -8,15 +8,19 @@
 #include "batcher.h"
 #include "partialSequencer.h"
 #include "merger.h"
+#include "graph.h"
+#include "logger.h"
+
 
 int main(int argc, char *argv[])
 {
-
     if (argc != 4)
     {
         std::cerr << "Usage: " << argv[0] << " <port for peers> <port for clients>\n";
         return 1;
     }
+
+    signal(SIGPIPE, SIG_IGN);
 
     peer_port = std::stoi(argv[1]);
     int client_port = std::stoi(argv[2]);
@@ -37,6 +41,9 @@ int main(int argc, char *argv[])
 
     // run merger
     Merger merger;
+    
+    // run logger
+    Logger logger;
 
     // set up listening sockets
     int peer_listenfd = setupListenfd(peer_port);
@@ -57,11 +64,13 @@ int main(int argc, char *argv[])
     //Pinger pinger(&servers, num_servers, peer_port);
 
     while (true) {
-        pause(); // Blocks until a signal is received (e.g., SIGINT)
+        pause();
     }
 
-    close(client_listenfd);
+
     close(peer_listenfd);
+    close(client_listenfd);
 
     return 0;
 }
+

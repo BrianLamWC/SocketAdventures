@@ -9,11 +9,18 @@
 #include "batcher.h"
 
 namespace {
-    // compile-time constant for a 5s window
-    constexpr std::chrono::seconds ROUND_PERIOD{1};
+    // compile-time constant for a 100ms window
+    constexpr std::chrono::milliseconds ROUND_PERIOD{100};
 
     // initialized once at program startup
     const auto ROUND_EPOCH = std::chrono::system_clock::from_time_t(0);
+
+    static thread_local std::mt19937_64 rng{ std::random_device{}() };
+
+    static thread_local std::uniform_int_distribution<int32_t> dist(
+        std::numeric_limits<int32_t>::min(),
+        std::numeric_limits<int32_t>::max()
+    );
 }
 
 void Batcher::batchRequests()
@@ -26,75 +33,71 @@ void Batcher::batchRequests()
 
     while (true)
     {
-        // align with the first boundary, can do this outside the loop once but repeating it might be safer?
         auto now = std::chrono::system_clock::now();
         auto since_0 = now - ROUND_EPOCH;
-        auto elapsed_seconds = std::chrono::duration_cast<std::chrono::seconds>(since_0).count();
+        auto elapsed_ms = std::chrono::duration_cast<std::chrono::milliseconds>(since_0).count();
 
-        // which window we’re currently in
-        int64_t current_window = elapsed_seconds / ROUND_PERIOD.count();
+        int64_t current_window = elapsed_ms / ROUND_PERIOD.count();
 
-        // the timestamp at which the next window begins
-        auto next_timestamp = ROUND_EPOCH + std::chrono::seconds((current_window+1) * ROUND_PERIOD.count());
+        auto next_timestamp = ROUND_EPOCH + std::chrono::milliseconds((current_window + 1) * ROUND_PERIOD.count());
 
-        // print current round
-        //printf("BATCHER: in round %ld\n", current_window);
+        batch = request_queue_.popAll();
 
-        batch_ = request_queue_.popAll();
-
-        if (!batch_.empty()) {
+        if (!batch.empty()) {
             auto t0 = Clock::now();
-            processBatch_(ns_total_stamp_time);
+            processBatch(ns_total_stamp_time);
             auto t1 = Clock::now();
             ns_elapsed_time += std::chrono::duration_cast<std::chrono::nanoseconds>(t1 - t0).count();
 
-            total_txns += batch_.size();
+            total_txns += batch.size();
         }
 
-        batch_.clear();
-        if (total_txns >= 100)
+        batch.clear();
+
+        if (total_txns >= 1000000)
         {
-            // average nanoseconds per stamp
             double avg_ns = double(ns_total_stamp_time) / double(total_txns);
-
-            // tx/sec = total_txns / seconds_spent
             double throughput = double(total_txns) * 1e9 / double(ns_elapsed_time);
-
             double elapsed_ms = double(ns_elapsed_time) / 1e6;
+
             printf(
-                "Stamped %llu txns in %.3f ms: avg stamp = %.1f ns/txn, throughput = %.0f tx/s\n",
+                "BATCHER: Stamped %llu txns in %.3f ms: avg stamp = %.1f ns/txn, throughput = %.0f tx/s\n",
                 (unsigned long long)total_txns,
                 elapsed_ms,
                 avg_ns,
                 throughput);
 
             total_txns = 0;
+            ns_elapsed_time = 0;
+            ns_total_stamp_time = 0;
         }
 
         std::this_thread::sleep_until(next_timestamp);
     }
-    
 }
 
-void Batcher::processBatch_(std::chrono::nanoseconds::rep &ns_total_stamp_time_)
+void Batcher::processBatch(std::chrono::nanoseconds::rep &ns_total_stamp_time_)
 {
     std::vector<request::Request> batch_for_partial_sequencer;
 
     using Clock = std::chrono::high_resolution_clock;
 
-    for (request::Request &req_proto : batch_)
+    for (request::Request &req_proto : batch)
     {
         auto* txn = req_proto.mutable_transaction(0);
 
         auto t0s = Clock::now();
+        
         txn->set_order(uuidv7());
+
+        //int32_t x = dist(rng);
+        // int64_t stamp = lamport_clock.fetch_add(1) + 1;
+        //txn->set_lamport_stamp(x);
+
         auto t1s = Clock::now();
 
         // accumulate the stamping time
         ns_total_stamp_time_ += std::chrono::duration_cast<std::chrono::nanoseconds>(t1s - t0s).count();
-
-        // int64_t stamp = lamport_clock.fetch_add(1) + 1;
-        // txn->set_lamport_stamp(stamp);
 
         std::unordered_set<int32_t> target_peers;
         //printf("BATCHER: Transaction %s for client %d:\n", txn.id().c_str(), txn.client_id());
@@ -120,115 +123,83 @@ void Batcher::processBatch_(std::chrono::nanoseconds::rep &ns_total_stamp_time_)
             continue;
         }
 
-        for (auto serverID : target_peers)
+        for (auto target_id : target_peers)
         {
-            if (serverID == my_id)
+            if (target_id == my_id)
             {
                 batch_for_partial_sequencer.push_back(req_proto);
             }
             else
             {
-                // Send to a remote server.
-                sendTransaction_(*(txn), serverID);
+                req_proto.set_target_server_id(target_id);
+                outbound_queue.push(req_proto);                
             }
         }
 
     }
+
+    batch_cv.notify_all();
 
     if (!batch_for_partial_sequencer.empty()) {
         batcher_to_partial_sequencer_queue_.pushAll(batch_for_partial_sequencer);
     }
 }
 
-void Batcher::sendTransaction_(const request::Transaction& txn, const int32_t& id)
+void Batcher::sendTransaction(request::Request& req_proto)
 {
-    std::string ip; 
-    int port;
 
-    // Find server details by id
-    for (const auto& server : servers)
-    {
-        if (server.id == id)
-        {
-            ip = server.ip;
-            port = server.port;
-            break;
+    int target_id = req_proto.target_server_id();
+    int& connfd = partial_sequencer_fds[target_id];
+
+    // (re)connect on-demand if we lost it
+    if (connfd < 0) {
+
+        server target = target_peers[target_id];
+
+        while ((connfd = setupConnection(target.ip, target.port)) < 0) {
+            //std::cerr << "Batcher " << my_id << ": reconnect to peer " << target_id << " failed, retrying in 1s…\n";
+            std::this_thread::sleep_for(std::chrono::seconds(1));
         }
-    }
-    
-    if (ip.empty() || port == 0)
-    {
-        perror("Batcher::sendTransaction: ip empty or port = 0");
-        return;
+
+        partial_sequencer_fds[target_id] = connfd; // update the fd in the map
+        
     }
 
-    int connfd = setupConnection(ip, port);
-    if (connfd < 0)
-    {
-        perror("Batcher::sendTransaction: connfd < 0");
-        return;
-    }
+    req_proto.set_recipient(request::Request::PARTIAL);
+    req_proto.set_server_id(my_id);  
     
-    // Create a Request message
-    request::Request request;
-
-    // Set the recipient, server_id, and optionally the client_id
-    request.set_recipient(request::Request::PARTIAL);
-    request.set_server_id(my_id);
-    if (txn.has_client_id())
-    {
-        request.set_client_id(txn.client_id());
-    }
-    
-    request.add_transaction()->CopyFrom(txn);
-    
-    // 1) serialize to string
     std::string serialized_request;
-    if (!request.SerializeToString(&serialized_request)) {
+    if (!req_proto.SerializeToString(&serialized_request)) {
         perror("SerializeToString failed");
         close(connfd);
         return;
     }
 
-    // Print the request size
-    size_t request_size = serialized_request.size();
-    //printf("BATCHER: Serialized request size: %zu bytes\n", request_size);
-
-    // 2) send 4-byte length prefix (network order)
-    uint32_t len = htonl(static_cast<uint32_t>(request_size));
-    if (!writeNBytes(connfd, &len, sizeof(len))) {
-        perror("writeNBytes (length prefix) failed");
+    uint32_t netlen = htonl(uint32_t(serialized_request.size()));
+    if (!writeNBytes(connfd, &netlen, sizeof(netlen)) ||
+        !writeNBytes(connfd, serialized_request.data(), serialized_request.size()))
+    {
+        perror("writeNBytes failed");
+        // connection broken, force reconnect
         close(connfd);
-        return;
+        connfd = -1;
     }
 
-    // Optionally, print that you’re now sending the framed message
-    // printf("BATCHER: Sending %zu-byte request (plus 4-byte header) to %s:%d\n",
-    //        request_size, ip.c_str(), port);
-
-    if (!writeNBytes(connfd, serialized_request.data(), request_size)) {
-        perror("writeNBytes (request) failed");
-    }
-
-    // Close the connection
-    close(connfd);
 }
 
 std::string Batcher::uuidv7() {
-    // random bytes
-    std::random_device rd;
-    std::array<uint8_t, 16> random_bytes;
-    std::generate(random_bytes.begin(), random_bytes.end(), std::ref(rd));
-    std::array<uint8_t, 16> value;
-    std::copy(random_bytes.begin(), random_bytes.end(), value.begin());
+    static thread_local std::mt19937_64 rng(std::random_device{}());
+    static thread_local std::uniform_int_distribution<uint64_t> dist;
 
-    // current timestamp in ms
+    std::array<uint8_t, 16> value;
+
+    // current timestamp in milliseconds
     auto now = std::chrono::system_clock::now();
-    auto millis = std::chrono::duration_cast<std::chrono::milliseconds>(
+    uint64_t millis = std::chrono::duration_cast<std::chrono::milliseconds>(
         now.time_since_epoch()
     ).count();
 
-    // timestamp
+    // UUIDv7 timestamp (first 48 bits)
     value[0] = (millis >> 40) & 0xFF;
     value[1] = (millis >> 32) & 0xFF;
     value[2] = (millis >> 24) & 0xFF;
@@ -236,10 +207,25 @@ std::string Batcher::uuidv7() {
     value[4] = (millis >> 8) & 0xFF;
     value[5] = millis & 0xFF;
 
-    // version and variant
-    value[6] = (value[6] & 0x0F) | 0x70;
-    value[8] = (value[8] & 0x3F) | 0x80;
+    // Random bits
+    uint64_t rand1 = dist(rng);
+    uint64_t rand2 = dist(rng);
 
+    // rand_a (12 bits) and version (4 bits)
+    value[6] = 0x70 | ((rand1 >> 56) & 0x0F);  // UUIDv7 version = 0111
+    value[7] = (rand1 >> 48) & 0xFF;
+
+    // Variant bits (2 bits = 10xxxxxx) + rand_b (62 bits)
+    value[8] = 0x80 | ((rand1 >> 40) & 0x3F);
+    value[9] = (rand1 >> 32) & 0xFF;
+    value[10] = (rand1 >> 24) & 0xFF;
+    value[11] = (rand1 >> 16) & 0xFF;
+    value[12] = (rand1 >> 8) & 0xFF;
+    value[13] = rand1 & 0xFF;
+    value[14] = (rand2 >> 8) & 0xFF;
+    value[15] = rand2 & 0xFF;
+
+    // Format as string
     char buf[37];
     std::snprintf(buf, sizeof(buf),
         "%02x%02x%02x%02x-"
@@ -253,13 +239,23 @@ std::string Batcher::uuidv7() {
         value[8], value[9],
         value[10], value[11], value[12], value[13], value[14], value[15]
     );
-    return std::string(buf);
 
+    return std::string(buf);
 }
+
 
 // Constructor
 Batcher::Batcher()
 {
+    if (pthread_create(&sender_thread, NULL, [](void* arg) -> void* {
+            static_cast<Batcher*>(arg)->Batcher::sendTransactions();
+            return nullptr;
+        }, this) != 0) 
+    {
+        threadError("Error creating sender thread");
+    }
+
+    pthread_detach(sender_thread);
 
     if (pthread_create(&batcher_thread, NULL, [](void* arg) -> void* {
             static_cast<Batcher*>(arg)->Batcher::batchRequests();
@@ -270,5 +266,31 @@ Batcher::Batcher()
     }
     
     pthread_detach(batcher_thread);
+
+    for (auto &server : servers)
+    {
+        if (server.id != my_id)
+        {
+            target_peers[server.id] = server;
+            partial_sequencer_fds[server.id] = -1;
+        }
+        
+    }
+
+    printf("Batcher initialized with %zu target peers\n", target_peers.size());
+    
+}
+
+void Batcher::sendTransactions(){
+
+    while (true) {
+        std::unique_lock<std::mutex> lk(batch_mutex);
+        batch_cv.wait(lk, [&]{ return !outbound_queue.empty(); });
+        auto req = outbound_queue.pop();   // thread-safe pop
+        lk.unlock();
+
+        sendTransaction(req);
+
+    }
 
 }

@@ -8,12 +8,13 @@ void Merger::processLocalRequests()
         // wait on the local queue’s CV, then pop 
         request::Request req_proto;
         {
-          std::unique_lock<std::mutex> local_lock(partial_sequencer_to_merger_queue_mtx);
-          partial_sequencer_to_merger_queue_cv.wait(local_lock, [] {
-              return !partial_sequencer_to_merger_queue_.empty();
-          });
-          req_proto = partial_sequencer_to_merger_queue_.pop();
-          processIncomingRequest(req_proto);
+            std::unique_lock<std::mutex> local_lock(partial_sequencer_to_merger_queue_mtx);
+            partial_sequencer_to_merger_queue_cv.wait(local_lock, [] {
+                return !partial_sequencer_to_merger_queue_.empty();
+            });
+            req_proto = partial_sequencer_to_merger_queue_.pop();
+
+            processIncomingRequest(req_proto);
         } // local_lock unlocked here
 
     }
@@ -162,7 +163,7 @@ void Merger::insertAlgorithm(){
                             if (graph.getNode(mrw_it->second->getUUID()) != nullptr) { // if mrw in graph
                                 //std::cout << "INSERT::READSET:" << mrw_it->second->getUUID() << " in graph" << std::endl;
                                 auto current_txn = graph.getNode(txn.getUUID());
-                                current_txn->addNeighbor(mrw_it->second);
+                                current_txn->addNeighborOut(mrw_it->second);
                                 //std::cout << "INSERT::READSET: adding edge from " << txn.getUUID() << " to " << mrw_it->second->getUUID() << std::endl;
                             }
                             
@@ -196,7 +197,7 @@ void Merger::insertAlgorithm(){
                             if (graph.getNode(mrw_it->second->getUUID()) != nullptr) { // if mrw in graph
                                 //std::cout << "INSERT::WRITESET:" << mrw_it->second->getUUID() << " in graph" << std::endl;
                                 auto current_txn = graph.getNode(txn.getUUID());
-                                current_txn->addNeighbor(mrw_it->second);
+                                current_txn->addNeighborOut(mrw_it->second);
                                 //std::cout << "INSERT::WRITESET: adding edge from " << txn.getUUID() << " to " << mrw_it->second->getUUID() << std::endl;
                             }
     
@@ -226,7 +227,7 @@ void Merger::insertAlgorithm(){
                                 if (read_txn != nullptr) // if reader in graph
                                 {
                                     auto current_txn = graph.getNode(txn.getUUID());
-                                    current_txn->addNeighbor(read_txn); // add reader to current transaction
+                                    current_txn->addNeighborOut(read_txn); // add reader to current transaction
                                     //std::cout << "INSERT::READERS: adding edge from " << txn.getUUID() << " to " << read_txn->getUUID() << std::endl;
                                 }
                                 

@@ -35,6 +35,7 @@ message Request {
   optional int32 server_id = 2;     // Server ID making the request
   repeated Transaction transaction = 3;  // The transactions being requested
   required RequestRecipient recipient = 4; // The recipient of the request
-  optional int32 round = 5;  // ← new field!
+  optional int32 round = 5;  // batch round
+  optional int32 target_server_id = 6;  //
 
 }

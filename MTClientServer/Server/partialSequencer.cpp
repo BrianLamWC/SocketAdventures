@@ -1,13 +1,12 @@
 #include <chrono>
-
 #include "partialSequencer.h"
-#include "utils.h"
 #include <netinet/in.h>
 #include <thread>
 
+
 namespace {
     // compile-time constant for a 5s window
-    constexpr std::chrono::seconds ROUND_PERIOD{5};
+    constexpr std::chrono::milliseconds ROUND_PERIOD{500};
 
     // initialized once at program startup
     const auto ROUND_EPOCH = std::chrono::system_clock::from_time_t(0);
@@ -19,18 +18,12 @@ void PartialSequencer::processPartialSequence(){
         // pull whatever we got (might be empty)
         transactions_received = batcher_to_partial_sequencer_queue_.popAll();
 
-        // // print transction ids
-        // for (const auto& req_proto : transactions_received) {
-        //     const request::Transaction& txn = req_proto.transaction(0);
-        //     printf("PARTIAL: Transaction %s for client %d:\n", txn.id().c_str(), txn.client_id());
-        // }
-
         auto now = std::chrono::system_clock::now();
         auto since_0 = now - ROUND_EPOCH;
-        auto elapsed_seconds = std::chrono::duration_cast<std::chrono::seconds>(since_0).count();
+        auto elapsed_seconds = std::chrono::duration_cast<std::chrono::milliseconds>(since_0).count();
 
         int64_t current_window = elapsed_seconds / ROUND_PERIOD.count();
-        auto next_timestamp = ROUND_EPOCH + std::chrono::seconds((current_window+1) * ROUND_PERIOD.count());
+        auto next_timestamp = ROUND_EPOCH + std::chrono::milliseconds((current_window+1) * ROUND_PERIOD.count());
 
         // build the request
         partial_sequence_.Clear();
@@ -42,7 +35,7 @@ void PartialSequencer::processPartialSequence(){
         }
 
         // print current round
-        //printf("PARTIAL: in round %ld\n", current_window);
+        // printf("PARTIAL: in round %ld\n", current_window);
 
         // push & notify (even if empty!)
         partial_sequencer_to_merger_queue_.push(partial_sequence_);
@@ -54,11 +47,7 @@ void PartialSequencer::processPartialSequence(){
         // }
 
         // send to peers (even if empty!)
-        for (const auto& server : servers) {
-            if (server.id != my_id) {
-                sendPartialSequence(server.ip, server.port);
-            }
-        }
+        sendPartialSequence();
 
         transactions_received.clear();
         std::this_thread::sleep_until(next_timestamp);
@@ -67,42 +56,45 @@ void PartialSequencer::processPartialSequence(){
 }
 
 
-void PartialSequencer::sendPartialSequence(const std::string& ip, const int& port) {
-    int connfd = setupConnection(ip, port);
-    if (connfd < 0) {
-        perror("connect failed");
-        return;
+void PartialSequencer::sendPartialSequence() {
+    for (auto &target : target_peers)
+    {
+        int target_id = target.first;
+        int& connfd = merger_fds[target_id];
+
+        // (re)connect on-demand if we lost it
+        if (connfd < 0) {
+
+            server target = target_peers[target_id];
+
+            while ((connfd = setupConnection(target.ip, target.port)) < 0) {
+                //std::cerr << "Merger " << my_id << ": reconnect to peer " << target_id << " failed, retrying in 1s…\n";
+                std::this_thread::sleep_for(std::chrono::seconds(1));
+            }
+
+            merger_fds[target_id] = connfd; // update the fd in the map
+            
+        }
+
+        std::string serialized_request;
+        if (!partial_sequence_.SerializeToString(&serialized_request)) {
+            perror("SerializeToString failed");
+            close(connfd);
+            return;
+        }
+
+        uint32_t netlen = htonl(uint32_t(serialized_request.size()));
+        if (!writeNBytes(connfd, &netlen, sizeof(netlen)) ||
+            !writeNBytes(connfd, serialized_request.data(), serialized_request.size()))
+        {
+            perror("writeNBytes failed");
+            // connection broken, force reconnect
+            close(connfd);
+            connfd = -1;
+        }
+
     }
-
-    // 1) serialize to string
-    std::string request;
-    if (!partial_sequence_.SerializeToString(&request)) {
-        perror("SerializeToString failed");
-        close(connfd);
-        return;
-    }
-
-    // Print the request size
-    size_t request_size = request.size();
-    //printf("PARTIAL: Serialized request size: %zu bytes\n", request_size);
-
-    // 2) send 4-byte length prefix (network order)
-    uint32_t len = htonl(static_cast<uint32_t>(request_size));
-    if (!writeNBytes(connfd, &len, sizeof(len))) {
-        perror("writeNBytes (length prefix) failed");
-        close(connfd);
-        return;
-    }
-
-    // Optionally, print that you’re now sending the framed message
-    // printf("PARTIAL: Sending %zu-byte request (plus 4-byte header) to %s:%d\n",
-    //        request_size, ip.c_str(), port);
-
-    if (!writeNBytes(connfd, request.data(), request_size)) {
-        perror("writeNBytes (request) failed");
-    }
-
-    close(connfd);
+    
 }
 
 void PartialSequencer::pushReceivedTransactionIntoPartialSequence(const request::Request& req_proto){
@@ -121,4 +113,17 @@ PartialSequencer::PartialSequencer(){
         threadError("Error creating batcher thread");
     }    
 
+    pthread_detach(partial_sequencer_thread);
+
+    for (auto &server : servers)
+    {
+        if (server.id != my_id)
+        {
+            target_peers[server.id] = server;
+            merger_fds[server.id] = -1;
+        }
+        
+    }
+
 }
+

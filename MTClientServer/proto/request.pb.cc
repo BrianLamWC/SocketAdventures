@@ -115,16 +115,18 @@ const ::PROTOBUF_NAMESPACE_ID::uint32 TableStruct_request_2eproto::offsets[] PRO
   PROTOBUF_FIELD_OFFSET(::request::Request, transaction_),
   PROTOBUF_FIELD_OFFSET(::request::Request, recipient_),
   PROTOBUF_FIELD_OFFSET(::request::Request, round_),
+  PROTOBUF_FIELD_OFFSET(::request::Request, target_server_id_),
   0,
   1,
   ~0u,
   2,
   3,
+  4,
 };
 static const ::PROTOBUF_NAMESPACE_ID::internal::MigrationSchema schemas[] PROTOBUF_SECTION_VARIABLE(protodesc_cold) = {
   { 0, 8, sizeof(::request::Operation)},
   { 11, 21, sizeof(::request::Transaction)},
-  { 26, 36, sizeof(::request::Request)},
+  { 26, 37, sizeof(::request::Request)},
 };
 
 static ::PROTOBUF_NAMESPACE_ID::Message const * const file_default_instances[] = {
@@ -140,13 +142,14 @@ const char descriptor_table_protodef_request_2eproto[] PROTOBUF_SECTION_VARIABLE
   "rationType\022\010\n\004READ\020\000\022\t\n\005WRITE\020\001\"z\n\013Trans"
   "action\022\r\n\005order\030\001 \001(\t\022\n\n\002id\030\002 \002(\t\022&\n\nope"
   "rations\030\003 \003(\0132\022.request.Operation\022\021\n\tcli"
-  "ent_id\030\004 \001(\005\022\025\n\rlamport_stamp\030\005 \001(\005\"\343\001\n\007"
+  "ent_id\030\004 \001(\005\022\025\n\rlamport_stamp\030\005 \001(\005\"\375\001\n\007"
   "Request\022\021\n\tclient_id\030\001 \001(\005\022\021\n\tserver_id\030"
   "\002 \001(\005\022)\n\013transaction\030\003 \003(\0132\024.request.Tra"
   "nsaction\0224\n\trecipient\030\004 \002(\0162!.request.Re"
-  "quest.RequestRecipient\022\r\n\005round\030\005 \001(\005\"B\n"
-  "\020RequestRecipient\022\013\n\007BATCHER\020\000\022\013\n\007PARTIA"
-  "L\020\001\022\n\n\006MERGER\020\003\022\010\n\004PING\020\004"
+  "quest.RequestRecipient\022\r\n\005round\030\005 \001(\005\022\030\n"
+  "\020target_server_id\030\006 \001(\005\"B\n\020RequestRecipi"
+  "ent\022\013\n\007BATCHER\020\000\022\013\n\007PARTIAL\020\001\022\n\n\006MERGER\020"
+  "\003\022\010\n\004PING\020\004"
   ;
 static const ::PROTOBUF_NAMESPACE_ID::internal::DescriptorTable*const descriptor_table_request_2eproto_deps[1] = {
 };
@@ -157,7 +160,7 @@ static ::PROTOBUF_NAMESPACE_ID::internal::SCCInfoBase*const descriptor_table_req
 };
 static ::PROTOBUF_NAMESPACE_ID::internal::once_flag descriptor_table_request_2eproto_once;
 const ::PROTOBUF_NAMESPACE_ID::internal::DescriptorTable descriptor_table_request_2eproto = {
-  false, false, descriptor_table_protodef_request_2eproto, "request.proto", 505,
+  false, false, descriptor_table_protodef_request_2eproto, "request.proto", 531,
   &descriptor_table_request_2eproto_once, descriptor_table_request_2eproto_sccs, descriptor_table_request_2eproto_deps, 3, 0,
   schemas, file_default_instances, TableStruct_request_2eproto::offsets,
   file_level_metadata_request_2eproto, 3, file_level_enum_descriptors_request_2eproto, file_level_service_descriptors_request_2eproto,
@@ -951,6 +954,9 @@ class Request::_Internal {
   static void set_has_round(HasBits* has_bits) {
     (*has_bits)[0] |= 8u;
   }
+  static void set_has_target_server_id(HasBits* has_bits) {
+    (*has_bits)[0] |= 16u;
+  }
   static bool MissingRequiredFields(const HasBits& has_bits) {
     return ((has_bits[0] & 0x00000004) ^ 0x00000004) != 0;
   }
@@ -969,16 +975,16 @@ Request::Request(const Request& from)
       transaction_(from.transaction_) {
   _internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
   ::memcpy(&client_id_, &from.client_id_,
-    static_cast<size_t>(reinterpret_cast<char*>(&round_) -
-    reinterpret_cast<char*>(&client_id_)) + sizeof(round_));
+    static_cast<size_t>(reinterpret_cast<char*>(&target_server_id_) -
+    reinterpret_cast<char*>(&client_id_)) + sizeof(target_server_id_));
   // @@protoc_insertion_point(copy_constructor:request.Request)
 }
 
 void Request::SharedCtor() {
   ::PROTOBUF_NAMESPACE_ID::internal::InitSCC(&scc_info_Request_request_2eproto.base);
   ::memset(&client_id_, 0, static_cast<size_t>(
-      reinterpret_cast<char*>(&round_) -
-      reinterpret_cast<char*>(&client_id_)) + sizeof(round_));
+      reinterpret_cast<char*>(&target_server_id_) -
+      reinterpret_cast<char*>(&client_id_)) + sizeof(target_server_id_));
 }
 
 Request::~Request() {
@@ -1014,10 +1020,10 @@ void Request::Clear() {
 
   transaction_.Clear();
   cached_has_bits = _has_bits_[0];
-  if (cached_has_bits & 0x0000000fu) {
+  if (cached_has_bits & 0x0000001fu) {
     ::memset(&client_id_, 0, static_cast<size_t>(
-        reinterpret_cast<char*>(&round_) -
-        reinterpret_cast<char*>(&client_id_)) + sizeof(round_));
+        reinterpret_cast<char*>(&target_server_id_) -
+        reinterpret_cast<char*>(&client_id_)) + sizeof(target_server_id_));
   }
   _has_bits_.Clear();
   _internal_metadata_.Clear<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>();
@@ -1077,6 +1083,14 @@ const char* Request::_InternalParse(const char* ptr, ::PROTOBUF_NAMESPACE_ID::in
         if (PROTOBUF_PREDICT_TRUE(static_cast<::PROTOBUF_NAMESPACE_ID::uint8>(tag) == 40)) {
           _Internal::set_has_round(&has_bits);
           round_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint64(&ptr);
+          CHK_(ptr);
+        } else goto handle_unusual;
+        continue;
+      // optional int32 target_server_id = 6;
+      case 6:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<::PROTOBUF_NAMESPACE_ID::uint8>(tag) == 48)) {
+          _Internal::set_has_target_server_id(&has_bits);
+          target_server_id_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint64(&ptr);
           CHK_(ptr);
         } else goto handle_unusual;
         continue;
@@ -1143,6 +1157,12 @@ failure:
     target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::WriteInt32ToArray(5, this->_internal_round(), target);
   }
 
+  // optional int32 target_server_id = 6;
+  if (cached_has_bits & 0x00000010u) {
+    target = stream->EnsureSpace(target);
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::WriteInt32ToArray(6, this->_internal_target_server_id(), target);
+  }
+
   if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
     target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormat::InternalSerializeUnknownFieldsToArray(
         _internal_metadata_.unknown_fields<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(::PROTOBUF_NAMESPACE_ID::UnknownFieldSet::default_instance), target, stream);
@@ -1188,13 +1208,22 @@ size_t Request::ByteSizeLong() const {
     }
 
   }
-  // optional int32 round = 5;
-  if (cached_has_bits & 0x00000008u) {
-    total_size += 1 +
-      ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::Int32Size(
-        this->_internal_round());
-  }
+  if (cached_has_bits & 0x00000018u) {
+    // optional int32 round = 5;
+    if (cached_has_bits & 0x00000008u) {
+      total_size += 1 +
+        ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::Int32Size(
+          this->_internal_round());
+    }
 
+    // optional int32 target_server_id = 6;
+    if (cached_has_bits & 0x00000010u) {
+      total_size += 1 +
+        ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::Int32Size(
+          this->_internal_target_server_id());
+    }
+
+  }
   if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
     return ::PROTOBUF_NAMESPACE_ID::internal::ComputeUnknownFieldsSize(
         _internal_metadata_, total_size, &_cached_size_);
@@ -1228,7 +1257,7 @@ void Request::MergeFrom(const Request& from) {
 
   transaction_.MergeFrom(from.transaction_);
   cached_has_bits = from._has_bits_[0];
-  if (cached_has_bits & 0x0000000fu) {
+  if (cached_has_bits & 0x0000001fu) {
     if (cached_has_bits & 0x00000001u) {
       client_id_ = from.client_id_;
     }
@@ -1240,6 +1269,9 @@ void Request::MergeFrom(const Request& from) {
     }
     if (cached_has_bits & 0x00000008u) {
       round_ = from.round_;
+    }
+    if (cached_has_bits & 0x00000010u) {
+      target_server_id_ = from.target_server_id_;
     }
     _has_bits_[0] |= cached_has_bits;
   }
@@ -1271,8 +1303,8 @@ void Request::InternalSwap(Request* other) {
   swap(_has_bits_[0], other->_has_bits_[0]);
   transaction_.InternalSwap(&other->transaction_);
   ::PROTOBUF_NAMESPACE_ID::internal::memswap<
-      PROTOBUF_FIELD_OFFSET(Request, round_)
-      + sizeof(Request::round_)
+      PROTOBUF_FIELD_OFFSET(Request, target_server_id_)
+      + sizeof(Request::target_server_id_)
       - PROTOBUF_FIELD_OFFSET(Request, client_id_)>(
           reinterpret_cast<char*>(&client_id_),
           reinterpret_cast<char*>(&other->client_id_));

@@ -79,62 +79,64 @@ void* handleClient(void *client_args)
 
     int connfd = local.connfd;
     sockaddr_in client_addr = local.client_addr;
-
-    // get client's IP address and port
     char *client_ip = inet_ntoa(client_addr.sin_addr);
     int client_port = ntohs(client_addr.sin_port);
 
-    //printf("Client connected: %s:%d\n", client_ip, client_port);
-
-    // 1) Read 4-byte length
-    uint32_t netlen;
-    if (readNBytes(connfd, &netlen, sizeof(netlen)) != sizeof(netlen)) {
-        fprintf(stderr, "Failed to read length from %s:%d\n",
-                client_ip, client_port);
-        close(connfd);
-        return nullptr;
-    }
-    uint32_t msglen = ntohl(netlen);
-
-    // 2) Read exactly msglen bytes
-    std::vector<char> buf(msglen);
-    ssize_t bytes_read = readNBytes(connfd, buf.data(), msglen);
-
-    if (bytes_read != static_cast<ssize_t>(msglen)) {
-        fprintf(stderr,
-                "CLIENT_HANDLER: Truncated read: expected %u bytes, got %zd bytes from %s:%d\n",
-                msglen,             // what we expected
-                bytes_read,         // what we actually got
-                client_ip,          // peer IP
-                client_port         // peer port
-        );
-        close(connfd);
-        return nullptr;
-    }
-
-
-    // 3) Parse
-    request::Request req_proto;
-    if (!req_proto.ParseFromArray(buf.data(), msglen)) {
-        fprintf(stderr, "ParseFromArray failed (%u bytes) from %s:%d\n",
-                msglen,
-                client_ip, client_port);
-        close(connfd);
-        return nullptr;
-    }
-
-    // Check if request is for batcher (not done)
-
-    if (req_proto.recipient() != request::Request::BATCHER)
+    while (true)
     {
-        printf("Invalid request %s:%d \n", client_ip, client_port);
-        close(connfd);
-        pthread_exit(NULL);
-    }
+        // read the 4-byte length prefix
+        uint32_t netlen;
+        ssize_t len = readNBytes(connfd, &netlen, sizeof(netlen));
+        if (len == 0) {
+            // peer cleanly closed
+            break;
+        }
+        if (len < 0 || len != sizeof(netlen)) {
+            fprintf(stderr, "CLIENT_HANDLER: length read error from %s:%d\n",
+                    client_ip, client_port);
+            break;
+        }
+
+        uint32_t msglen = ntohl(netlen);
+
+        // read exactly msglen bytes
+        std::vector<char> buf(msglen);
+        ssize_t bytes_read = readNBytes(connfd, buf.data(), msglen);
+
+        if (bytes_read != static_cast<ssize_t>(msglen)) {
+            fprintf(stderr,
+                    "CLIENT_HANDLER: Truncated read: expected %u bytes, got %zd bytes from %s:%d\n",
+                    msglen,             // what we expected
+                    bytes_read,         // what we actually got
+                    client_ip,          // peer IP
+                    client_port         // peer port
+            );
+            break;
+        }
     
-    //lamport_clock.fetch_add(1);
-    request_queue_.push(req_proto);
+        // parse
+        request::Request req_proto;
+        if (!req_proto.ParseFromArray(buf.data(), msglen)) {
+            fprintf(stderr, "ParseFromArray failed (%u bytes) from %s:%d\n",
+                    msglen,
+                    client_ip, client_port);
+            break;
+        }
+
+        // check if request is for batcher 
+
+        if (req_proto.recipient() != request::Request::BATCHER)
+        {
+            fprintf(stderr,"CLIENT_HANDLER: unknown recipient %d from %s:%d\n",
+            req_proto.recipient(), client_ip, client_port);
+            break;
+        }
+
+        //lamport_clock.fetch_add(1);
+        request_queue_.push(req_proto);
+
+    }
 
     close(connfd);
-    pthread_exit(NULL);
+    return nullptr;
 }

@@ -10,12 +10,100 @@
 #include <string>
 #include <atomic>
 #include <uuid/uuid.h>
+#include <unistd.h> 
+#include <vector>
+#include <thread>
+#include <fstream>
+#include <random>
+
 #include "../proto/request.pb.h"
+#include "../Server/json.hpp"
+using json = nlohmann::json;
 
 #define SERVER_ADDRESS "localhost"
 
+std::unordered_map<int, int> key_to_primary;
+static std::mt19937 rng{std::random_device{}()};
+std::vector<int> all_keys;  // initialized once at startup
+
 // Global atomic counter for transaction orders
 std::atomic<int32_t> globalTransactionCounter{1};
+static std::atomic<uint64_t> sent_count{0};
+static std::atomic<bool> start_flag{false};
+
+struct TxnSpec {
+    int port;
+    request::Operation::OperationType type;
+    std::vector<int> keys;
+};
+
+void loadMockDB(const std::string& filename) {
+    std::ifstream ifs(filename);
+    if (!ifs) {
+        std::cerr << "Could not open mock DB file.\n";
+        exit(1);
+    }
+
+    json db;
+    ifs >> db;
+
+    for (const auto& item : db["data_items"]) {
+        int key = std::stoi(item["key"].get<std::string>());
+        int server_id = item["primary_server_id"].get<int>();
+        key_to_primary[key] = server_id;
+        all_keys.push_back(key);
+    }
+
+    std::cout << "Loaded " << key_to_primary.size() << " keys.\n";
+}
+
+std::vector<int> getRandomKeys(int num_keys = 3) {
+    std::uniform_int_distribution<size_t> dist(0, all_keys.size() - 1);
+    std::unordered_set<int> key_set;
+
+    while (key_set.size() < std::min(static_cast<size_t>(num_keys), all_keys.size())) {
+        key_set.insert(all_keys[dist(rng)]);
+    }
+
+    return std::vector<int>(key_set.begin(), key_set.end());
+}
+
+int chooseEligibleServer(const std::vector<int>& keys) {
+    std::unordered_set<int> server_candidates;
+    for (int key : keys) {
+        auto it = key_to_primary.find(key);
+        if (it != key_to_primary.end()) {
+            server_candidates.insert(it->second);
+        }
+    }
+
+    if (server_candidates.empty()) {
+        std::cerr << "No eligible server found for keys.\n";
+        return -1;
+    }
+
+    std::vector<int> options(server_candidates.begin(), server_candidates.end());
+    std::uniform_int_distribution<size_t> dist(0, options.size() - 1);
+    return options[dist(rng)];
+}
+
+TxnSpec generateTxn() {
+    std::vector<int> keys = getRandomKeys();
+    int server_id = chooseEligibleServer(keys);
+
+    // map server ID to port
+    std::unordered_map<int, int> server_to_port = {
+        {1, 7001},
+        {2, 7002},
+        {3, 7003}
+    };
+
+    return {
+        .port = server_to_port[server_id],
+        .type = request::Operation::WRITE,
+        .keys = keys
+    };
+}
 
 void error(const char *msg) {
     perror(msg);
@@ -26,7 +114,7 @@ bool writeNBytes(int fd, const void *buf, size_t n) {
     const char *p = static_cast<const char*>(buf);
     size_t left = n;
     while (left) {
-        ssize_t w = ::write(fd, p, left);
+        ssize_t w = ::send(fd, p, left, MSG_NOSIGNAL);
         if (w <= 0) return false;
         left -= w;
         p    += w;
@@ -42,90 +130,141 @@ std::string generateUUID() {
     return std::string(uuid_str);
 }
 
-// Now take an opType parameter so you can choose READ vs WRITE
-void sendTransaction(int server_port,
-                     request::Operation::OperationType opType,
-                     const std::vector<int>& keys) {
-    request::Request req;
-    req.set_recipient(request::Request::BATCHER);
-    req.set_client_id(getpid());
+int connectOne(const char* host, int port) {
+    struct addrinfo hints{}, *res;
+    hints.ai_family   = AF_INET;
+    hints.ai_socktype = SOCK_STREAM;
+    char portstr[6];
+    snprintf(portstr, sizeof(portstr), "%d", port);
+    if (getaddrinfo(host, portstr, &hints, &res))
+        return -1;
+    int fd = -1;
+    for (auto p=res; p; p=p->ai_next) {
+        fd = socket(p->ai_family,p->ai_socktype,p->ai_protocol);
+        if (fd<0) continue;
+        if (connect(fd,p->ai_addr,p->ai_addrlen)==0) break;
+        close(fd);
+        fd = -1;
+    }
+    freeaddrinfo(res);
+    return fd;
+}
 
-    auto *txn = req.add_transaction();
-    txn->set_id(std::to_string(globalTransactionCounter.fetch_add(1)));
-    txn->set_client_id(getpid());
+void senderThread(int thread_id)
+{
 
-    for (int k : keys) {
-        auto *op = txn->add_operations();
-        op->set_type(opType);
-        op->set_key(std::to_string(k));
-        if (opType == request::Operation::WRITE) {
-            op->set_value("val" + std::to_string(k));
+    // thread-local connection table
+    thread_local std::unordered_map<int,int> my_conns;
+
+    // one-time setup in each thread:
+    for (int target_port : {7001,7002,7003}) {
+        int fd = connectOne("localhost", target_port);
+        if (fd<0) {
+        fprintf(stderr,"thread %d: can't connect to %d\n",thread_id,target_port);
+        exit(1);
         }
+        my_conns[target_port] = fd;
     }
 
-    std::string serialized;
-    if (!req.SerializeToString(&serialized)) {
-        error("error serializing request");
+    while (!start_flag.load(std::memory_order_acquire)) {
+        std::this_thread::yield();
     }
 
-    uint32_t payload_size = serialized.size();
-    uint32_t netlen = htonl(payload_size);
+    while (sent_count.load(std::memory_order_relaxed) < 10'100'000) {
+        TxnSpec txn = generateTxn();
+        int fd = my_conns[txn.port];
 
-    int sockfd = socket(AF_INET, SOCK_STREAM, 0);
-    if (sockfd < 0) error("opening socket");
+        request::Request req;
+        req.set_recipient(request::Request::BATCHER);
+        req.set_client_id(getpid());
 
-    struct hostent *server = gethostbyname(SERVER_ADDRESS);
-    if (!server) error("resolving host");
+        auto *t = req.add_transaction();
+        t->set_id(std::to_string(globalTransactionCounter.fetch_add(1)));
+        t->set_client_id(getpid());
 
-    struct sockaddr_in serv_addr = {};
-    serv_addr.sin_family = AF_INET;
-    memcpy(&serv_addr.sin_addr.s_addr, server->h_addr, server->h_length);
-    serv_addr.sin_port = htons(server_port);
+        for (int k : txn.keys) {
+            auto *op = t->add_operations();
+            op->set_type(txn.type);
+            op->set_key(std::to_string(k));
+            if (txn.type == request::Operation::WRITE) {
+                // generate a random value for write operations
+                std::uniform_int_distribution<int> value_dist(1000, 9999);
+                op->set_value(std::to_string(value_dist(rng)));
+            }
+        }
 
-    if (connect(sockfd, (struct sockaddr*)&serv_addr, sizeof(serv_addr)) < 0)
-        error("connecting");
+        std::string serialized;
+        req.SerializeToString(&serialized);
+        uint32_t netlen = htonl(serialized.size());
 
-    if (!writeNBytes(sockfd, &netlen, sizeof(netlen)) ||
-        !writeNBytes(sockfd, serialized.data(), payload_size)) {
-        error("writing to socket");
+        writeNBytes(fd, &netlen, sizeof(netlen));
+        writeNBytes(fd, serialized.data(), serialized.size());
+
+        sent_count.fetch_add(1, std::memory_order_relaxed);
+
+        sleep(0.1);
     }
 
-    close(sockfd);
+    for (auto [port, fd] : my_conns) {
+        close(fd);
+    }
+
+}
+
+// a simple monitor that prints every second
+void throughput_monitor() {
+    using Clock = std::chrono::steady_clock;
+    auto last_t = Clock::now();
+    uint64_t last_count = sent_count.load(std::memory_order_relaxed);
+
+    while (true) {
+        std::this_thread::sleep_for(std::chrono::seconds(5));
+        auto now = Clock::now();
+        uint64_t now_count = sent_count.load(std::memory_order_relaxed);
+
+        auto delta = now_count - last_count;
+        double secs = std::chrono::duration<double>(now - last_t).count();
+
+        printf("Client throughput: %.0f tx/s\n", delta / secs);
+
+        // print the total count
+        printf("Total transactions sent: %llu\n", (unsigned long long)now_count);
+
+        last_t = now;
+        last_count = now_count;
+    }
 }
 
 int main(int argc, char *argv[]) {
     GOOGLE_PROTOBUF_VERIFY_VERSION;
 
-    // A little struct to hold port, op-type, and keys
-    struct TxnSpec {
-        int port;
-        request::Operation::OperationType type;
-        std::vector<int> keys;
-    };
-
-    std::vector<TxnSpec> schedule = {
-        {7001, request::Operation::WRITE, {1}},
-        {7002, request::Operation::WRITE, {2}},
-        {7003, request::Operation::WRITE, {3}},
-    };
-
-    while (true)
-    {
-        for (auto &spec : schedule) {
-            sendTransaction(spec.port, spec.type, spec.keys);
-        }
+    if (argc != 2) {
+        std::cerr << "Usage: " << argv[0] << " <num_threads>\n";
+        return 1;
     }
-    
-    // for (auto &spec : schedule) {
-    //     sendTransaction(spec.port, spec.type, spec.keys);
-    // }
+    int num_threads = std::stoi(argv[1]);
 
+    loadMockDB("../Server/data.json");
 
-    // sendTransaction(7001, request::Operation::WRITE, {1,2});
-    // sendTransaction(7002, request::Operation::WRITE, {1,2});
-    // sleep(1);
-    // sendTransaction(7001, request::Operation::WRITE, {1});
+    std::vector<std::thread> threads;
+    threads.reserve(num_threads);
+
+    for (int i = 0; i < num_threads; ++i) {
+        // emplace forwards them to the constructor of the element type
+        threads.emplace_back(senderThread, i);
+    }
+
+    std::thread(throughput_monitor).detach();
+
+    // give all threads a moment to spin up and wait on start_flag
+    std::this_thread::sleep_for(std::chrono::seconds(1));
+
+    std::cout << "All threads ready, starting senders now!\n";
+    start_flag.store(true, std::memory_order_release);
+
+    for (auto &t : threads) t.join();
 
     google::protobuf::ShutdownProtobufLibrary();
     return 0;
 }
+

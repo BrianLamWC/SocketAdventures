@@ -1,0 +1,146 @@
+#include <fstream>
+#include <thread>
+
+#include "logger.h"
+#include "graph.h"
+#include "json.hpp"
+using json = nlohmann::json;
+
+Queue_TS<Transaction> merged_order;
+std::mutex logging_mutex;
+std::condition_variable logging_cv;
+
+void dumpDB() {
+    namespace fs = std::filesystem;
+    fs::create_directories("./logs");
+    std::ofstream ofs("./logs/db_state" + std::to_string(my_id) + ".json",
+                      std::ios::out|std::ios::trunc);
+    // give it a big buffer so that each << doesn't flush
+    static char buf[1<<20];
+    ofs.rdbuf()->pubsetbuf(buf, sizeof(buf));
+
+    ofs << "{\"data_items\":[\n";
+    bool first = true;
+    for (auto& [key,item] : mockDB_logging) {
+        if (!first) ofs << ",\n";
+        first = false;
+        ofs
+          << "  {\"key\":\""     << key
+          << "\",\"value\":\""   << item.val
+          << "\",\"primary_server_id\":" << item.primaryCopyID
+          << "}";
+    }
+    ofs << "\n]}\n";
+}
+
+
+void Logger::logMergedOrders()
+{
+
+    // track how many transactions we have logged
+    int32_t logged_txns = 0;
+
+    while (true)
+    {
+
+        std::vector<Transaction> txns;
+        {
+            std::unique_lock<std::mutex> lock(logging_mutex);
+            logging_cv.wait(
+                lock,
+                [this] { return shutdown || !merged_order.empty(); }
+            );
+            txns = merged_order.popAll(); 
+            logged_txns += txns.size();
+        }
+
+        if (shutdown)
+        {
+            std::cout << "Logger: Shutting down logging thread.\n";
+            break; // exit the thread
+        }
+
+        if (txns.empty())
+        {
+            std::cout << "Logger: No transactions to log.\n";
+            continue; // nothing to log
+        }
+
+        // apply changes to mockDB_logging
+        
+        for(auto & txn : txns){
+
+            for (auto & op : txn.getOperations())
+            {
+
+                if (op.type == OperationType::WRITE) {
+                    // write operation
+                    auto it = mockDB_logging.find(op.key);
+                    if (it != mockDB_logging.end()) {
+                        // printf("Logger: Updating key %s with value %s for client %d\n", 
+                        //        op.key.c_str(), op.value.c_str(), txn.getClientId());
+                        it->second.val = op.value; // update value
+                    }
+                    else {
+                        mockDB_logging.emplace(op.key,DataItem{op.value, txn.getClientId()});
+                    }
+                } else if (op.type == OperationType::READ) {
+                    // read operation, we can log or ignore it as needed
+                    auto it = mockDB_logging.find(op.key);
+                    if (it != mockDB_logging.end()) {
+                        // log read operation if necessary
+                    }
+                }
+
+            }
+
+        }
+        
+
+    }
+
+}
+
+Logger::Logger(){
+    shutdown = false;
+    if (pthread_create(&logging_thread, NULL, [](void* arg) -> void* {
+            static_cast<Logger*>(arg)->Logger::logMergedOrders();
+            return nullptr;
+        }, this) != 0) 
+    {
+        threadError("Error creating sender thread");
+    }
+
+    std::cout << "Logger: Logging thread created.\n";
+
+    pthread_detach(logging_thread);
+    
+
+    // dump thread
+    if (pthread_create(&db_dump_thread, NULL, [](void* arg) -> void* {
+            while (true) {
+                std::this_thread::sleep_for(std::chrono::seconds(30));
+                dumpDB();
+                std::cout << "Logger: dumped\n";
+            }
+            return nullptr;
+        }, this) != 0) 
+    {
+        threadError("Error creating db dump thread");
+    }
+
+    pthread_detach(db_dump_thread);
+
+}
+
+Logger::~Logger() {
+    {
+        std::lock_guard<std::mutex> lk(logging_mutex);
+        shutdown = true;
+    }
+    
+    logging_cv.notify_all();
+
+}
+
+

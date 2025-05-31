@@ -11,6 +11,7 @@
 using json = nlohmann::json;
 
 std::unordered_map<std::string, DataItem> mockDB;
+std::unordered_map<std::string, DataItem> mockDB_logging;
 int peer_port;
 int32_t my_id;
 std::vector<server> servers;
@@ -30,38 +31,7 @@ void threadError(const char *msg)
 
 int setupConnection(const std::string &ip, int port)
 {
-
-    // int connfd = socket(AF_INET, SOCK_STREAM, 0);
-    // struct sockaddr_in server_addr = {};
-    // struct hostent* server;
-
-    // if (connfd < 0) {
-    //     perror("setupConnection: error opening socket");
-    //     return -1;
-    // }
-
-    // server = gethostbyname(ip.c_str());
-    // if (server == NULL) {
-    //     perror("setupConnection: server does not exist");
-    //     close(connfd);
-    //     return -1;
-    // }
-
-    // server_addr.sin_family = AF_INET;
-
-    // printf("%d, %p, %d\n", server_addr.sin_addr.s_addr, server->h_addr, server->h_length);
-
-    // memcpy((void*)&server_addr.sin_addr.s_addr, server->h_addr, server->h_length);
-    // server_addr.sin_port = htons(port);
-
-    // if (connect(connfd, (struct sockaddr*)&server_addr, sizeof(server_addr)) < 0) {
-    //     // perror("setupConnection: error connecting");
-    //     close(connfd);
-    //     return -1;
-    // }
-
-    // return connfd;  // Return the connected socket descriptor
-
+ 
     struct addrinfo hints{}, *res = nullptr;
     hints.ai_family   = AF_INET;           // IPv4 only
     hints.ai_socktype = SOCK_STREAM;       // TCP
@@ -91,7 +61,8 @@ int setupConnection(const std::string &ip, int port)
     freeaddrinfo(res);
 
     if (connfd < 0) {
-        perror("setupConnection: could not connect");
+        // print the address of the peer we tried to connect to
+        fprintf(stderr, "setupConnection: error connecting to %s:%d\n", ip.c_str(), port);
     }
     return connfd;
 
@@ -180,6 +151,7 @@ void setupMockDB(){
     for (auto data_item : data_items)
     {
         mockDB.insert({data_item["key"], {data_item["value"], (int32_t) data_item["primary_server_id"]} });
+        mockDB_logging.insert({data_item["key"], {data_item["value"], (int32_t) data_item["primary_server_id"]} });
     }
     
     file.close();
@@ -331,7 +303,7 @@ bool writeNBytes(int fd, const void *buf, size_t n) {
     const char *p = static_cast<const char*>(buf);
     size_t left = n;
     while (left) {
-        ssize_t w = ::write(fd, p, left);
+        ssize_t w = ::send(fd, p, left, MSG_NOSIGNAL);
         if (w <= 0) return false;
         left -= w; p += w;
     }

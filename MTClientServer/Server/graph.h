@@ -8,8 +8,14 @@
 #include <vector>
 #include <stack>
 #include <unordered_set>
+#include <mutex>
+#include <condition_variable>
 
 #include "transaction.h"
+#include "queueTS.h" 
+#include "utils.h"
+#include "logger.h"
+
 
 class Graph {
 private:
@@ -29,9 +35,6 @@ private:
     std::vector<std::unordered_set<int>> neighbors_out; // outgoing edges of each SCC (indexed by SCC index)
     std::vector<std::vector<int>> neighbors_in; // incoming edges of each SCC (indexed by SCC index)
 
-    // merged orders
-    std::vector<int> merged_orders;
-
 public:
     Transaction* addNode(std::unique_ptr<Transaction> uptr);
     Transaction* getNode(const std::string& uuid);
@@ -39,6 +42,7 @@ public:
     void printAll() const;
     void clear();
     std::unique_ptr<Transaction> removeTransaction(Transaction* rem);
+    std::unique_ptr<Transaction> removeTransaction_(Transaction* rem);
 
     void findSCCs();
     void buildTransactionSCCMap();
