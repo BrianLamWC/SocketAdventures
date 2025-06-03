@@ -24,7 +24,6 @@ COPY . .
 RUN protoc --cpp_out=proto proto/request.proto
 
 # Build client and server
-RUN make -C proto
 RUN make -C Client
 RUN make -C Server
 
