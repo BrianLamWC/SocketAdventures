@@ -12,6 +12,7 @@ RUN apt-get update && apt-get install -y \
     g++ \
     libprotobuf-dev \
     protobuf-compiler \
+    uuid-dev \
     && rm -rf /var/lib/apt/lists/*
 
 # Set working directory
