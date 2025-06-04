@@ -32,7 +32,7 @@ static std::atomic<uint64_t> sent_count{0};
 static std::atomic<bool> start_flag{false};
 
 struct TxnSpec {
-    int port;
+    std::string hostname;
     request::Operation::OperationType type;
     std::vector<int> keys;
 };
@@ -91,19 +91,19 @@ TxnSpec generateTxn() {
     std::vector<int> keys = getRandomKeys();
     int server_id = chooseEligibleServer(keys);
 
-    // map server ID to port
-    std::unordered_map<int, int> server_to_port = {
-        {1, 7001},
-        {2, 7002},
-        {3, 7003}
+    std::unordered_map<int, std::string> server_to_host = {
+        {1, "leo.sfc.keio.ac.jp"},
+        {2, "aries.sfc.keio.ac.jp"},
+        {3, "cygnus.sfc.keio.ac.jp"}
     };
 
     return {
-        .port = server_to_port[server_id],
+        .hostname = server_to_host[server_id],
         .type = request::Operation::WRITE,
         .keys = keys
     };
 }
+
 
 void error(const char *msg) {
     perror(msg);
@@ -152,18 +152,23 @@ int connectOne(const char* host, int port) {
 
 void senderThread(int thread_id)
 {
+    thread_local std::unordered_map<std::string, int> my_conns;
+    const int target_port = 7001;
 
-    // thread-local connection table
-    thread_local std::unordered_map<int,int> my_conns;
+    // list of servers
+    std::vector<std::string> hostnames = {
+        "leo.sfc.keio.ac.jp",
+        "aries.sfc.keio.ac.jp",
+        "cygnus.sfc.keio.ac.jp"
+    };
 
-    // one-time setup in each thread:
-    for (int target_port : {7001,7002,7003}) {
-        int fd = connectOne("localhost", target_port);
-        if (fd<0) {
-        fprintf(stderr,"thread %d: can't connect to %d\n",thread_id,target_port);
-        exit(1);
+    for (const std::string& host : hostnames) {
+        int fd = connectOne(host.c_str(), target_port);
+        if (fd < 0) {
+            fprintf(stderr, "thread %d: can't connect to %s:%d\n", thread_id, host.c_str(), target_port);
+            exit(1);
         }
-        my_conns[target_port] = fd;
+        my_conns[host] = fd;
     }
 
     while (!start_flag.load(std::memory_order_acquire)) {
@@ -172,7 +177,7 @@ void senderThread(int thread_id)
 
     while (sent_count.load(std::memory_order_relaxed) < 10'100'000) {
         TxnSpec txn = generateTxn();
-        int fd = my_conns[txn.port];
+        int fd = my_conns[txn.hostname];
 
         request::Request req;
         req.set_recipient(request::Request::BATCHER);
@@ -187,7 +192,6 @@ void senderThread(int thread_id)
             op->set_type(txn.type);
             op->set_key(std::to_string(k));
             if (txn.type == request::Operation::WRITE) {
-                // generate a random value for write operations
                 std::uniform_int_distribution<int> value_dist(1000, 9999);
                 op->set_value(std::to_string(value_dist(rng)));
             }
@@ -201,15 +205,14 @@ void senderThread(int thread_id)
         writeNBytes(fd, serialized.data(), serialized.size());
 
         sent_count.fetch_add(1, std::memory_order_relaxed);
-
         sleep(0.1);
     }
 
-    for (auto [port, fd] : my_conns) {
+    for (auto& [hostname, fd] : my_conns) {
         close(fd);
     }
-
 }
+
 
 // a simple monitor that prints every second
 void throughput_monitor() {
