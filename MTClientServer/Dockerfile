@@ -30,3 +30,6 @@ RUN make -C Server
 
 # Set default command (change if you want client/server by default)
 CMD ["/bin/bash"]
+
+# Expose ports (change if needed)
+EXPOSE 8001 7001
