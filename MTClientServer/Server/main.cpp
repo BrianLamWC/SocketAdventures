@@ -14,17 +14,17 @@
 
 int main(int argc, char *argv[])
 {
-    if (argc != 4)
+    if (argc != 2)
     {
-        std::cerr << "Usage: " << argv[0] << " <port for peers> <port for clients>\n";
+        std::cerr << "Usage: " << argv[0] << " <id>" << std::endl;
         return 1;
     }
 
     signal(SIGPIPE, SIG_IGN);
 
-    peer_port = std::stoi(argv[1]);
-    int client_port = std::stoi(argv[2]);
-    my_id = std::stoi(argv[3]);
+    peer_port = 8001;
+    int client_port = 7001;
+    my_id = std::stoi(argv[1]);
     
     // setup mockdb
     setupMockDB();
