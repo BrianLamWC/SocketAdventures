@@ -22,7 +22,7 @@ int main(int argc, char *argv[])
 
     signal(SIGPIPE, SIG_IGN);
 
-    peer_port = 8001;
+    peer_port = 8030;
     int client_port = 7001;
     my_id = std::stoi(argv[1]);
     
