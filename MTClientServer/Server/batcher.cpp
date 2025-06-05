@@ -10,7 +10,7 @@
 
 namespace {
     // compile-time constant for a 100ms window
-    constexpr std::chrono::milliseconds ROUND_PERIOD{100};
+    constexpr std::chrono::milliseconds ROUND_PERIOD{500};
 
     // initialized once at program startup
     const auto ROUND_EPOCH = std::chrono::system_clock::from_time_t(0);
