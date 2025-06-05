@@ -1,7 +1,7 @@
 {
     "servers": [
-        { "ip": "leo.sfc.keio.ac.jp", "port": 8001, "id": 1},
-        { "ip": "aries.sfc.keio.ac.jp", "port": 8001, "id": 2},
-        { "ip": "cygnus.sfc.keio.ac.jp", "port": 8001, "id": 3}
+        { "ip": "127.0.0.1", "port": 8001, "id": 1},
+        { "ip": "127.0.0.1", "port": 8002, "id": 2},
+        { "ip": "127.0.0.1", "port": 8003, "id": 3}
     ]
 }
