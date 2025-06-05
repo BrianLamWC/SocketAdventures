@@ -10,7 +10,7 @@
 
 namespace {
     // compile-time constant for a 100ms window
-    constexpr std::chrono::milliseconds ROUND_PERIOD{500};
+    constexpr std::chrono::milliseconds ROUND_PERIOD{1000};
 
     // initialized once at program startup
     const auto ROUND_EPOCH = std::chrono::system_clock::from_time_t(0);
@@ -38,6 +38,9 @@ void Batcher::batchRequests()
         auto elapsed_ms = std::chrono::duration_cast<std::chrono::milliseconds>(since_0).count();
 
         int64_t current_window = elapsed_ms / ROUND_PERIOD.count();
+
+        // print current round
+        printf("BATCHER: in round %ld\n", current_window);
 
         auto next_timestamp = ROUND_EPOCH + std::chrono::milliseconds((current_window + 1) * ROUND_PERIOD.count());
 
