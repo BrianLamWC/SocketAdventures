@@ -68,7 +68,7 @@ void PartialSequencer::sendPartialSequence() {
             server target = target_peers[target_id];
 
             while ((connfd = setupConnection(target.ip, target.port)) < 0) {
-                //std::cerr << "Merger " << my_id << ": reconnect to peer " << target_id << " failed, retrying in 1s…\n";
+                std::cerr << "Partial Sequencer " << my_id << ": reconnect to peer " << target_id << " failed, retrying in 1s…\n";
                 std::this_thread::sleep_for(std::chrono::seconds(1));
             }
 

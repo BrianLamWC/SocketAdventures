@@ -157,7 +157,7 @@ void Batcher::sendTransaction(request::Request& req_proto)
         server target = target_peers[target_id];
 
         while ((connfd = setupConnection(target.ip, target.port)) < 0) {
-            //std::cerr << "Batcher " << my_id << ": reconnect to peer " << target_id << " failed, retrying in 1s…\n";
+            std::cerr << "Batcher " << my_id << ": reconnect to peer " << target_id << " failed, retrying in 1s…\n";
             std::this_thread::sleep_for(std::chrono::seconds(1));
         }
 
