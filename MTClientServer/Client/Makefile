@@ -9,7 +9,7 @@ PROTO_SRC = ../proto/request.pb.cc
 PROTO_LIBS = -lprotobuf
 
 # All .cpp files in the current directory
-SRC = test.cpp
+SRC = running_example_test.cpp
 
 # Corresponding .o files
 OBJ = $(SRC:.cpp=.o)
