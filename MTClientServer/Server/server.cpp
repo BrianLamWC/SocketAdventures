@@ -105,6 +105,9 @@ void *handlePeer(void *server_args)
         }else if (req_proto.recipient() == request::Request::READY) {
             int sender_id = req_proto.server_id();  // whichever ID the other server put
             {
+
+                printf("Received READY from server %d\n", sender_id);
+
                 std::lock_guard<std::mutex> lg(READY_MTX);
                 if (READY_SET.insert(sender_id).second) {
                     // first time seeing this server’s READY
