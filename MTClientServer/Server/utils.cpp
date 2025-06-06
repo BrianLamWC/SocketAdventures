@@ -193,14 +193,19 @@ void getServers()
         servers.push_back({server["ip"], server["port"], (int32_t) server["id"], false, (bool) server["leader"]});
 
 
-        if ((bool)server["leader"] == true && server["id"] == my_id)
+        if ((bool)server["leader"] == true)
         {
-            LEADER = true;
-        }
+            LEADER_IP = server["ip"];
+            LEADER_PORT = server["port"];
+            LEADER_ID = (int32_t) server["id"];
 
-        LEADER_IP = server["ip"];
-        LEADER_PORT = server["port"];
-        LEADER_ID = (int32_t) server["id"];
+
+            if (my_id == LEADER_ID)
+            {
+                LEADER = true;
+            }
+             
+        }
 
     }
 
