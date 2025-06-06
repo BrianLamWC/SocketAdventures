@@ -9,6 +9,7 @@
 #include <cstddef>
 #include <atomic>
 #include <chrono>
+#include <condition_variable>
 
 #include "transaction.h"
 #include "../proto/request.pb.h"

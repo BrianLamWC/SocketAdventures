@@ -21,10 +21,16 @@ std::atomic<int32_t> lamport_clock{0};
 
 std::string LEADER_IP;
 int LEADER_PORT;
+int LEADER_ID;
 
 std::chrono::steady_clock::time_point LOGICAL_EPOCH;
 std::atomic<bool> LOGICAL_EPOCH_READY{false};
 bool LEADER = false;
+
+std::mutex READY_MTX;
+std::condition_variable READY_CV;
+std::unordered_set<int> READY_SET;
+int EXPECTED_SERVERS_COUNT;
 
 void error(const char *msg)
 {
