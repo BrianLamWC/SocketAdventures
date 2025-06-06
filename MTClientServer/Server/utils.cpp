@@ -399,6 +399,8 @@ Coordinator::Coordinator()
 
 void Coordinator::sendReadyToLeader(const std::string &leader_ip, int leader_port, int my_id)
 {
+    printf("Coordinator: sending READY to leader %s:%d\n", leader_ip.c_str(), leader_port);
+
     int connfd = setupConnection(leader_ip, leader_port);
     if (connfd < 0) {
         fprintf(stderr, "sendReady: cannot connect to leader %s:%d\n",
@@ -427,5 +429,7 @@ void Coordinator::sendReadyToLeader(const std::string &leader_ip, int leader_por
         close(connfd);
         connfd = -1;
     }    
+
+    printf("Coordinator: READY sent to leader %s:%d\n", leader_ip.c_str(), leader_port);
 
 }
