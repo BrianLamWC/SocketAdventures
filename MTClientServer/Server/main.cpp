@@ -33,7 +33,7 @@ int main(int argc, char *argv[])
     getServers();
     int num_servers = servers.size();
 
-    Coordinator coordinator;
+    
 
     // run batcher
     Batcher batcher;
@@ -61,6 +61,8 @@ int main(int argc, char *argv[])
     // start listeners
     PeerListener peer_listener(peer_listenfd, &partial_sequencer, &merger);
     ClientListener client_listener(client_listenfd);
+
+    Coordinator coordinator;
 
     // arguments for pinger thread
     //Pinger pinger(&servers, num_servers, peer_port);
