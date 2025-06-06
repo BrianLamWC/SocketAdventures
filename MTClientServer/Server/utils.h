@@ -8,6 +8,7 @@
 #include <functional>
 #include <cstddef>
 #include <atomic>
+#include <chrono>
 
 #include "transaction.h"
 #include "../proto/request.pb.h"
@@ -22,6 +23,7 @@ struct server
     int port;
     int32_t id;
     bool isOnline;
+    bool isLeader;
 };
 
 // PINGER THREAD
@@ -105,6 +107,33 @@ namespace std
 
 // lamport clock
 extern std::atomic<int32_t> lamport_clock;
+
+
+//LEADER INFO
+extern std::string LEADER_IP;
+extern int LEADER_PORT;
+extern int32_t LEADER_ID; 
+
+// steady clock
+extern std::chrono::steady_clock::time_point LOGICAL_EPOCH;
+extern std::atomic<bool> LOGICAL_EPOCH_READY;
+extern bool LEADER;
+
+// for the ready‐handshake
+extern std::mutex READY_MTX;
+extern std::condition_variable READY_CV;
+extern std::unordered_set<int> READY_SET;   // which server IDs we’ve seen
+extern int EXPECTED_SERVERS_COUNT;
+
+class Coordinator
+{
+private:
+
+public:
+    Coordinator();
+    void sendReadyToLeader(const std::string& leader_ip, int leader_port, int my_id);
+};
+
 
 void error(const char *msg);
 int setupListenfd(int my_port);

@@ -12,10 +12,19 @@ using json = nlohmann::json;
 
 std::unordered_map<std::string, DataItem> mockDB;
 std::unordered_map<std::string, DataItem> mockDB_logging;
+
 int peer_port;
 int32_t my_id;
 std::vector<server> servers;
+
 std::atomic<int32_t> lamport_clock{0};
+
+std::string LEADER_IP;
+int LEADER_PORT;
+
+std::chrono::steady_clock::time_point LOGICAL_EPOCH;
+std::atomic<bool> LOGICAL_EPOCH_READY{false};
+bool LEADER = false;
 
 void error(const char *msg)
 {
@@ -175,7 +184,16 @@ void getServers()
 
     for (auto& server : servers_list)
     {
-        servers.push_back({server["ip"], server["port"], (int32_t) server["id"], false});
+        servers.push_back({server["ip"], server["port"], (int32_t) server["id"], false, (bool) server["leader"]});
+
+
+        if ((bool)server["leader"] == true)
+        {
+            LEADER_IP = server["ip"];
+            LEADER_PORT = server["port"];
+            LEADER_ID = (int32_t) server["id"];
+        }
+
     }
 
     file.close();
@@ -308,4 +326,99 @@ bool writeNBytes(int fd, const void *buf, size_t n) {
         left -= w; p += w;
     }
     return true;
+}
+
+Coordinator::Coordinator()
+{
+
+    if (LEADER)
+    {
+        
+        EXPECTED_SERVERS_COUNT = (int)servers.size() - 1;
+
+        std::unique_lock<std::mutex> lk(READY_MTX);
+        READY_CV.wait(lk, [] {
+            return (int)READY_SET.size() >= EXPECTED_SERVERS_COUNT;
+        });
+
+        for (auto& peer : servers) {
+            if (peer.id == my_id) continue;
+            int connfd = setupConnection(peer.ip, peer.port);
+            if (connfd < 0) {
+                fprintf(stderr, "Coordinator: cannot connect to %s:%d\n",
+                        peer.ip.c_str(), peer.port);
+                continue;
+            }
+
+            request::Request start_msg;
+            start_msg.set_recipient(request::Request::START);
+            start_msg.set_server_id(my_id);
+
+            std::string serialized_request;
+            if (!start_msg.SerializeToString(&serialized_request)) {
+                perror("SerializeToString failed");
+                close(connfd);
+                return;
+            }
+
+            uint32_t netlen = htonl(uint32_t(serialized_request.size()));
+            if (!writeNBytes(connfd, &netlen, sizeof(netlen)) ||
+                !writeNBytes(connfd, serialized_request.data(), serialized_request.size()))
+            {
+                perror("writeNBytes failed");
+                // connection broken, force reconnect
+                close(connfd);
+                connfd = -1;
+            }  
+
+            close(connfd);
+        }
+
+        LOGICAL_EPOCH = std::chrono::steady_clock::now();
+        LOGICAL_EPOCH_READY.store(true);
+
+        printf("Coordinator: All peers ready → START broadcast. Epoch set.\n");
+
+    }else{
+
+
+        Coordinator::sendReadyToLeader(LEADER_IP, LEADER_PORT, my_id);
+
+    }
+    
+
+
+}
+
+void Coordinator::sendReadyToLeader(const std::string &leader_ip, int leader_port, int my_id)
+{
+    int connfd = setupConnection(leader_ip, leader_port);
+    if (connfd < 0) {
+        fprintf(stderr, "sendReady: cannot connect to leader %s:%d\n",
+                leader_ip.c_str(), leader_port);
+        return;
+    }
+
+    request::Request ready_msg;
+    ready_msg.set_recipient(request::Request::READY);
+    ready_msg.set_server_id(my_id);
+    ready_msg.set_target_server_id(LEADER_ID);
+
+    std::string serialized_request;
+    if (!ready_msg.SerializeToString(&serialized_request)) {
+        perror("SerializeToString failed");
+        close(connfd);
+        return;
+    }
+
+    uint32_t netlen = htonl(uint32_t(serialized_request.size()));
+    if (!writeNBytes(connfd, &netlen, sizeof(netlen)) ||
+        !writeNBytes(connfd, serialized_request.data(), serialized_request.size()))
+    {
+        perror("writeNBytes failed");
+        // connection broken, force reconnect
+        close(connfd);
+        connfd = -1;
+    }    
+
 }

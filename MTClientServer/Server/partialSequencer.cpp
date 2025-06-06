@@ -13,6 +13,12 @@ namespace {
 }
 
 void PartialSequencer::processPartialSequence(){
+
+    // Wait until logical clock is ready
+    while (!LOGICAL_EPOCH_READY.load()) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(1));
+    }
+
     while (true)
     {
         // pull whatever we got (might be empty)
@@ -61,6 +67,8 @@ void PartialSequencer::sendPartialSequence() {
     {
         int target_id = target.first;
         int& connfd = merger_fds[target_id];
+
+        partial_sequence_.set_target_server_id(target_id);
 
         // (re)connect on-demand if we lost it
         if (connfd < 0) {

@@ -12,9 +12,6 @@ namespace {
     // compile-time constant for a 100ms window
     constexpr std::chrono::milliseconds ROUND_PERIOD{1000};
 
-    // initialized once at program startup
-    const auto ROUND_EPOCH = std::chrono::system_clock::from_time_t(0);
-
     static thread_local std::mt19937_64 rng{ std::random_device{}() };
 
     static thread_local std::uniform_int_distribution<int32_t> dist(
@@ -25,6 +22,12 @@ namespace {
 
 void Batcher::batchRequests()
 {
+
+    // Wait until logical clock is ready
+    while (!LOGICAL_EPOCH_READY.load()) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(1));
+    }
+
     using Clock = std::chrono::high_resolution_clock;
 
     uint64_t total_txns = 0;
@@ -33,16 +36,14 @@ void Batcher::batchRequests()
 
     while (true)
     {
-        auto now = std::chrono::system_clock::now();
-        auto since_0 = now - ROUND_EPOCH;
+        auto now = std::chrono::steady_clock::now();
+        auto since_0 = now - LOGICAL_EPOCH;
         auto elapsed_ms = std::chrono::duration_cast<std::chrono::milliseconds>(since_0).count();
 
         int64_t current_window = elapsed_ms / ROUND_PERIOD.count();
-
-        // print current round
         printf("BATCHER: in round %ld\n", current_window);
 
-        auto next_timestamp = ROUND_EPOCH + std::chrono::milliseconds((current_window + 1) * ROUND_PERIOD.count());
+        auto next_timestamp = LOGICAL_EPOCH + std::chrono::milliseconds((current_window + 1) * ROUND_PERIOD.count());
 
         batch = request_queue_.popAll();
 

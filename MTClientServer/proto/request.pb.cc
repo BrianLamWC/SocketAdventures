@@ -142,14 +142,14 @@ const char descriptor_table_protodef_request_2eproto[] PROTOBUF_SECTION_VARIABLE
   "rationType\022\010\n\004READ\020\000\022\t\n\005WRITE\020\001\"z\n\013Trans"
   "action\022\r\n\005order\030\001 \001(\t\022\n\n\002id\030\002 \002(\t\022&\n\nope"
   "rations\030\003 \003(\0132\022.request.Operation\022\021\n\tcli"
-  "ent_id\030\004 \001(\005\022\025\n\rlamport_stamp\030\005 \001(\005\"\375\001\n\007"
+  "ent_id\030\004 \001(\005\022\025\n\rlamport_stamp\030\005 \001(\005\"\223\002\n\007"
   "Request\022\021\n\tclient_id\030\001 \001(\005\022\021\n\tserver_id\030"
   "\002 \001(\005\022)\n\013transaction\030\003 \003(\0132\024.request.Tra"
   "nsaction\0224\n\trecipient\030\004 \002(\0162!.request.Re"
   "quest.RequestRecipient\022\r\n\005round\030\005 \001(\005\022\030\n"
-  "\020target_server_id\030\006 \001(\005\"B\n\020RequestRecipi"
+  "\020target_server_id\030\006 \001(\005\"X\n\020RequestRecipi"
   "ent\022\013\n\007BATCHER\020\000\022\013\n\007PARTIAL\020\001\022\n\n\006MERGER\020"
-  "\003\022\010\n\004PING\020\004"
+  "\003\022\010\n\004PING\020\004\022\t\n\005START\020\005\022\t\n\005READY\020\006"
   ;
 static const ::PROTOBUF_NAMESPACE_ID::internal::DescriptorTable*const descriptor_table_request_2eproto_deps[1] = {
 };
@@ -160,7 +160,7 @@ static ::PROTOBUF_NAMESPACE_ID::internal::SCCInfoBase*const descriptor_table_req
 };
 static ::PROTOBUF_NAMESPACE_ID::internal::once_flag descriptor_table_request_2eproto_once;
 const ::PROTOBUF_NAMESPACE_ID::internal::DescriptorTable descriptor_table_request_2eproto = {
-  false, false, descriptor_table_protodef_request_2eproto, "request.proto", 531,
+  false, false, descriptor_table_protodef_request_2eproto, "request.proto", 553,
   &descriptor_table_request_2eproto_once, descriptor_table_request_2eproto_sccs, descriptor_table_request_2eproto_deps, 3, 0,
   schemas, file_default_instances, TableStruct_request_2eproto::offsets,
   file_level_metadata_request_2eproto, 3, file_level_enum_descriptors_request_2eproto, file_level_service_descriptors_request_2eproto,
@@ -200,6 +200,8 @@ bool Request_RequestRecipient_IsValid(int value) {
     case 1:
     case 3:
     case 4:
+    case 5:
+    case 6:
       return true;
     default:
       return false;
@@ -211,6 +213,8 @@ constexpr Request_RequestRecipient Request::BATCHER;
 constexpr Request_RequestRecipient Request::PARTIAL;
 constexpr Request_RequestRecipient Request::MERGER;
 constexpr Request_RequestRecipient Request::PING;
+constexpr Request_RequestRecipient Request::START;
+constexpr Request_RequestRecipient Request::READY;
 constexpr Request_RequestRecipient Request::RequestRecipient_MIN;
 constexpr Request_RequestRecipient Request::RequestRecipient_MAX;
 constexpr int Request::RequestRecipient_ARRAYSIZE;

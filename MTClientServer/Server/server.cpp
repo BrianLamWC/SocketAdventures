@@ -97,6 +97,22 @@ void *handlePeer(void *server_args)
             //printf("MERGER: received partial sequence from: %d\n", req_proto.server_id());
             merger->processIncomingRequest(req_proto);
         }
+        else if(req_proto.recipient() == request::Request::START)
+        {
+            LOGICAL_EPOCH = std::chrono::steady_clock::now();
+            LOGICAL_EPOCH_READY.store(true);
+            close(connfd);
+        }else if (req_proto.recipient() == request::Request::READY) {
+            int sender_id = req_proto.server_id();  // whichever ID the other server put
+            {
+                std::lock_guard<std::mutex> lg(READY_MTX);
+                if (READY_SET.insert(sender_id).second) {
+                    // first time seeing this server’s READY
+                    READY_CV.notify_one();
+                }
+            }
+            close(connfd);
+        }
 
     }
     
