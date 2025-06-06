@@ -34,6 +34,8 @@ int main(int argc, char *argv[])
     getServers();
     int num_servers = servers.size();
 
+    Coordinator coordinator;
+
     // run batcher
     Batcher batcher;
 
