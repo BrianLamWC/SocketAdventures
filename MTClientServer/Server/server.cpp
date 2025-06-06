@@ -51,7 +51,7 @@ void *handlePeer(void *server_args)
             break;
         }
         if (len < 0 || len != sizeof(netlen)) {
-            fprintf(stderr, "CLIENT_HANDLER: length read error from %s:%d\n",
+            fprintf(stderr, "PEER_HANDLER: length read error from %s:%d\n",
                     server_ip, server_port);
             break;
         }
@@ -64,7 +64,7 @@ void *handlePeer(void *server_args)
 
         if (bytes_read != static_cast<ssize_t>(msglen)) {
             fprintf(stderr,
-                    "CLIENT_HANDLER: Truncated read: expected %u bytes, got %zd bytes from %s:%d\n",
+                    "PEER_HANDLER: Truncated read: expected %u bytes, got %zd bytes from %s:%d\n",
                     msglen,             // what we expected
                     bytes_read,         // what we actually got
                     server_ip,          // peer IP
@@ -101,7 +101,7 @@ void *handlePeer(void *server_args)
         {
             LOGICAL_EPOCH = std::chrono::steady_clock::now();
             LOGICAL_EPOCH_READY.store(true);
-            close(connfd);
+            
         }else if (req_proto.recipient() == request::Request::READY) {
             int sender_id = req_proto.server_id();  // whichever ID the other server put
             {
@@ -114,7 +114,6 @@ void *handlePeer(void *server_args)
                     READY_CV.notify_one();
                 }
             }
-            close(connfd);
         }
 
     }
