@@ -193,7 +193,7 @@ void getServers()
         servers.push_back({server["ip"], server["port"], (int32_t) server["id"], false, (bool) server["leader"]});
 
 
-        if ((bool)server["leader"] == true && server["ip"] == my_id)
+        if ((bool)server["leader"] == true && server["id"] == my_id)
         {
             LEADER = true;
             LEADER_IP = server["ip"];
@@ -391,7 +391,14 @@ Coordinator::Coordinator()
     }else{
 
         printf("Coordinator: I am not the leader, sending READY to leader %s:%d\n", LEADER_IP.c_str(), LEADER_PORT);
-        Coordinator::sendReadyToLeader(LEADER_IP, LEADER_PORT, my_id);
+        
+        while(!Coordinator::sendReadyToLeader(LEADER_IP, LEADER_PORT, my_id)){
+
+            sleep(1);
+
+        }
+
+        
 
     }
     
@@ -399,7 +406,7 @@ Coordinator::Coordinator()
 
 }
 
-void Coordinator::sendReadyToLeader(const std::string &leader_ip, int leader_port, int my_id)
+bool Coordinator::sendReadyToLeader(const std::string &leader_ip, int leader_port, int my_id)
 {
     printf("Coordinator: sending READY to leader %s:%d\n", leader_ip.c_str(), leader_port);
 
@@ -407,7 +414,7 @@ void Coordinator::sendReadyToLeader(const std::string &leader_ip, int leader_por
     if (connfd < 0) {
         fprintf(stderr, "sendReady: cannot connect to leader %s:%d\n",
                 leader_ip.c_str(), leader_port);
-        return;
+        return false;
     }
 
     request::Request ready_msg;
@@ -419,7 +426,7 @@ void Coordinator::sendReadyToLeader(const std::string &leader_ip, int leader_por
     if (!ready_msg.SerializeToString(&serialized_request)) {
         perror("SerializeToString failed");
         close(connfd);
-        return;
+        return false;
     }
 
     uint32_t netlen = htonl(uint32_t(serialized_request.size()));
@@ -429,9 +436,9 @@ void Coordinator::sendReadyToLeader(const std::string &leader_ip, int leader_por
         perror("writeNBytes failed");
         // connection broken, force reconnect
         close(connfd);
-        connfd = -1;
+        return false;
     }    
 
     printf("Coordinator: READY sent to leader %s:%d\n", leader_ip.c_str(), leader_port);
-
+    return true;
 }

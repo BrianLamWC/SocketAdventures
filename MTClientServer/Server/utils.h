@@ -132,7 +132,7 @@ private:
 
 public:
     Coordinator();
-    void sendReadyToLeader(const std::string& leader_ip, int leader_port, int my_id);
+    bool sendReadyToLeader(const std::string& leader_ip, int leader_port, int my_id);
 };
 
 
