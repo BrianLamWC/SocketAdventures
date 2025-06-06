@@ -390,7 +390,7 @@ Coordinator::Coordinator()
 
     }else{
 
-        // printf("Coordinator: I am not the leader, sending READY to leader %s:%d\n", LEADER_IP.c_str(), LEADER_PORT);
+        printf("Coordinator: I am not the leader, sending READY to leader %s:%d\n", LEADER_IP.c_str(), LEADER_PORT);
         Coordinator::sendReadyToLeader(LEADER_IP, LEADER_PORT, my_id);
 
     }
