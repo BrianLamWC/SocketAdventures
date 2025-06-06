@@ -341,6 +341,8 @@ Coordinator::Coordinator()
     if (LEADER)
     {
         
+        printf("Coordinator: I am the leader, setting up the logical epoch.\n");
+
         EXPECTED_SERVERS_COUNT = (int)servers.size() - 1;
 
         std::unique_lock<std::mutex> lk(READY_MTX);
