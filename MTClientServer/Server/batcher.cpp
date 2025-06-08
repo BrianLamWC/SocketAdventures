@@ -41,7 +41,7 @@ void Batcher::batchRequests()
         auto elapsed_ms = std::chrono::duration_cast<std::chrono::milliseconds>(since_0).count();
 
         current_window = elapsed_ms / ROUND_PERIOD.count();
-        printf("BATCHER: in round %ld\n", current_window);
+        //printf("BATCHER: in round %ld\n", current_window);
 
         auto next_timestamp = LOGICAL_EPOCH + std::chrono::milliseconds((current_window + 1) * ROUND_PERIOD.count());
 
