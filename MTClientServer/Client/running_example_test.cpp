@@ -178,7 +178,7 @@ void senderThread(int thread_id)
         std::this_thread::yield();
     }
 
-    while (sent_count.load(std::memory_order_relaxed) < 1'000'000) {
+    while (sent_count.load(std::memory_order_relaxed) < 100'000) {
         TxnSpec txn = generateTxn();
         int fd = my_conns[txn.hostname];
 
@@ -211,19 +211,19 @@ void senderThread(int thread_id)
         sleep(0.8);
     }
 
-    // send a requst to all servers to dump their state
-    request::Request dump_req;
-    dump_req.set_recipient(request::Request::DUMP);
-    dump_req.set_client_id(getpid());
-    for (const auto& [hostname, fd] : my_conns) {
-        printf("Thread %d: Sending dump request to %s\n", thread_id, hostname.c_str());
-        std::string serialized_dump;
-        dump_req.SerializeToString(&serialized_dump);
-        uint32_t netlen = htonl(serialized_dump.size());
-        writeNBytes(fd, &netlen, sizeof(netlen));
-        writeNBytes(fd, serialized_dump.data(), serialized_dump.size());
-    }
-    printf("Thread %d: Sent dump request to all servers.\n", thread_id);
+    // // send a requst to all servers to dump their state
+    // request::Request dump_req;
+    // dump_req.set_recipient(request::Request::DUMP);
+    // dump_req.set_client_id(getpid());
+    // for (const auto& [hostname, fd] : my_conns) {
+    //     printf("Thread %d: Sending dump request to %s\n", thread_id, hostname.c_str());
+    //     std::string serialized_dump;
+    //     dump_req.SerializeToString(&serialized_dump);
+    //     uint32_t netlen = htonl(serialized_dump.size());
+    //     writeNBytes(fd, &netlen, sizeof(netlen));
+    //     writeNBytes(fd, serialized_dump.data(), serialized_dump.size());
+    // }
+    // printf("Thread %d: Sent dump request to all servers.\n", thread_id);
 
     for (auto& [hostname, fd] : my_conns) {
         close(fd);
