@@ -4,15 +4,18 @@
 #include <netinet/in.h>
 #include "utils.h"
 #include "batcher.h"
+#include "logger.h"
 
 struct ClientListenerThreadsArgs
 {
     int listenfd;
+    Logger* logger;
 };
 
 struct ClientArgs {
     int connfd;
     struct sockaddr_in client_addr;
+    Logger* logger;  // Pointer to logger for DUMP requests
 };
 
 // Function prototypes
@@ -25,7 +28,7 @@ private:
     ClientListenerThreadsArgs args;
 public:
 
-    ClientListener(int listenfd);
+    ClientListener(int listenfd, Logger* logger);
 
 };
 

@@ -6,10 +6,10 @@
 
 #include "../proto/request.pb.h"
 
-ClientListener::ClientListener(int listenfd)
+ClientListener::ClientListener(int listenfd, Logger* logger)
 {
 
-    args =  {listenfd};
+    args =  {listenfd, logger};
     pthread_t listener_thread;
 
     if (pthread_create(&listener_thread, NULL, clientListener, (void*)&args) != 0)
@@ -81,6 +81,7 @@ void* handleClient(void *client_args)
     sockaddr_in client_addr = local.client_addr;
     char *client_ip = inet_ntoa(client_addr.sin_addr);
     int client_port = ntohs(client_addr.sin_port);
+    Logger* logger = local.logger;
 
     while (true)
     {
@@ -130,6 +131,15 @@ void* handleClient(void *client_args)
             fprintf(stderr,"CLIENT_HANDLER: unknown recipient %d from %s:%d\n",
             req_proto.recipient(), client_ip, client_port);
             break;
+        }else if (req_proto.recipient() == request::Request::DUMP) {
+
+            printf("Received DUMP from server %d\n", req_proto.server_id());
+            if (logger) {
+                logger->dumpDB();
+            } else {
+                fprintf(stderr, "Logger not initialized, cannot log DUMP request\n");
+            }
+
         }
 
         //lamport_clock.fetch_add(1);
