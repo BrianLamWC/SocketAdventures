@@ -290,9 +290,13 @@ int main(int argc, char *argv[]) {
     for (auto &t : threads) t.join();
 
     // calculate average throughput
-    uint64_t total_sent = sent_count.load(std::memory_order_relaxed);
-    double avg_throughput = static_cast<double>(total_sent) / 5.0; // 5 seconds
-    printf("Average throughput: %.2f tx/s\n", avg_throughput);
+    double total_throughput = 0.0;
+    for (double t : throughputs) {
+        total_throughput += t;
+    }
+    total_throughput /= throughputs.size(); 
+    std::cout << "Average throughput across all threads: " << total_throughput << " tx/s\n";
+    std::cout << "Total transactions sent: " << sent_count.load(std::memory_order_relaxed) << "\n";
 
     google::protobuf::ShutdownProtobufLibrary();
     return 0;
