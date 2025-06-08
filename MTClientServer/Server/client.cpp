@@ -124,14 +124,7 @@ void* handleClient(void *client_args)
             break;
         }
 
-        // check if request is for batcher 
-
-        if (req_proto.recipient() != request::Request::BATCHER)
-        {
-            fprintf(stderr,"CLIENT_HANDLER: unknown recipient %d from %s:%d\n",
-            req_proto.recipient(), client_ip, client_port);
-            break;
-        }else if (req_proto.recipient() == request::Request::DUMP) {
+        if (req_proto.recipient() == request::Request::DUMP) {
 
             printf("Received DUMP from server %d\n", req_proto.server_id());
             if (logger) {
