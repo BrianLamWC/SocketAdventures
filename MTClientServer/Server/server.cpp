@@ -123,8 +123,7 @@ void *handlePeer(void *server_args)
             } else {
                 fprintf(stderr, "Logger not initialized, cannot log DUMP request\n");
             }
-        }
-        else
+        }else
         {
             fprintf(stderr, "Unknown recipient type: %d from %s:%d\n",
                     req_proto.recipient(), server_ip, server_port);

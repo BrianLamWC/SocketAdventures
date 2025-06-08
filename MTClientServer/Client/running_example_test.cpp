@@ -31,6 +31,9 @@ std::atomic<int32_t> globalTransactionCounter{1};
 static std::atomic<uint64_t> sent_count{0};
 static std::atomic<bool> start_flag{false};
 
+// vector to hold average throughput
+std::vector<double> throughputs;
+
 struct TxnSpec {
     std::string hostname;
     request::Operation::OperationType type;
@@ -242,8 +245,11 @@ void throughput_monitor() {
         auto delta = now_count - last_count;
         double secs = std::chrono::duration<double>(now - last_t).count();
 
-        printf("Client throughput: %.0f tx/s\n", delta / secs);
+        double throughput = delta / secs;
+        throughputs.push_back(throughput);
 
+        printf("Client throughput: %.0f tx/s\n", throughput);
+        
         // print the total count
         printf("Total transactions sent: %llu\n", (unsigned long long)now_count);
 
