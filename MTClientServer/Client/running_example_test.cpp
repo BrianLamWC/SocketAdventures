@@ -211,6 +211,8 @@ void senderThread(int thread_id)
         sleep(0.8);
     }
 
+    sleep(30);
+
     // send a requst to all servers to dump their state
     request::Request dump_req;
     dump_req.set_recipient(request::Request::DUMP);
