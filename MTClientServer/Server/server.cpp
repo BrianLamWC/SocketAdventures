@@ -6,7 +6,7 @@
 #include "server.h"
 #include "../proto/request.pb.h"
 
-PeerListener::PeerListener(int listenfd, PartialSequencer* partial_sequencer, Merger* merger)
+PeerListener::PeerListener(int listenfd, PartialSequencer* partial_sequencer, Merger* merger, Logger* logger)
 {
 
     args =  {listenfd, partial_sequencer, merger};
@@ -36,6 +36,7 @@ void *handlePeer(void *server_args)
     sockaddr_in server_addr = local.server_addr;
     auto* partial_sequencer = local.partial_sequencer;
     auto* merger = local.merger;
+    auto *logger = local.logger;
 
     // get server's IP address and port
     char *server_ip = inet_ntoa(server_addr.sin_addr);
@@ -114,6 +115,21 @@ void *handlePeer(void *server_args)
                     READY_CV.notify_one();
                 }
             }
+        }else if (req_proto.recipient() == request::Request::DUMP) {
+
+            printf("Received DUMP from server %d\n", req_proto.server_id());
+            if (logger) {
+                logger->logMergedOrders();
+            } else {
+                fprintf(stderr, "Logger not initialized, cannot log DUMP request\n");
+            }
+        }
+        else
+        {
+            fprintf(stderr, "Unknown recipient type: %d from %s:%d\n",
+                    req_proto.recipient(), server_ip, server_port);
+            break;
+
         }
 
     }

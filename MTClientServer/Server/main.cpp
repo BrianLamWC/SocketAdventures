@@ -20,7 +20,7 @@ int main(int argc, char *argv[])
         return 1;
     }
 
-    // signal(SIGPIPE, SIG_IGN);
+    signal(SIGPIPE, SIG_IGN);
 
     peer_port = 8001;
     int client_port = 7001;
@@ -59,7 +59,7 @@ int main(int argc, char *argv[])
     printf("Listening for clients on port %d\n", client_port);
 
     // start listeners
-    PeerListener peer_listener(peer_listenfd, &partial_sequencer, &merger);
+    PeerListener peer_listener(peer_listenfd, &partial_sequencer, &merger, &logger);
     ClientListener client_listener(client_listenfd);
 
     Coordinator coordinator;

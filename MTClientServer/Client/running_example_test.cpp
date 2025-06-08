@@ -208,6 +208,11 @@ void senderThread(int thread_id)
         sleep(0.9);
     }
 
+    // calculate average throughput
+    uint64_t total_sent = sent_count.load(std::memory_order_relaxed);
+    double avg_throughput = static_cast<double>(total_sent) / 5.0; // 5 seconds
+    printf("Thread %d: Average throughput: %.2f tx/s\n", thread_id, avg_throughput);
+
     for (auto& [hostname, fd] : my_conns) {
         close(fd);
     }

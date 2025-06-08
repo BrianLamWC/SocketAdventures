@@ -102,11 +102,12 @@ enum Request_RequestRecipient : int {
   Request_RequestRecipient_MERGER = 3,
   Request_RequestRecipient_PING = 4,
   Request_RequestRecipient_START = 5,
-  Request_RequestRecipient_READY = 6
+  Request_RequestRecipient_READY = 6,
+  Request_RequestRecipient_DUMP = 7
 };
 bool Request_RequestRecipient_IsValid(int value);
 constexpr Request_RequestRecipient Request_RequestRecipient_RequestRecipient_MIN = Request_RequestRecipient_BATCHER;
-constexpr Request_RequestRecipient Request_RequestRecipient_RequestRecipient_MAX = Request_RequestRecipient_READY;
+constexpr Request_RequestRecipient Request_RequestRecipient_RequestRecipient_MAX = Request_RequestRecipient_DUMP;
 constexpr int Request_RequestRecipient_RequestRecipient_ARRAYSIZE = Request_RequestRecipient_RequestRecipient_MAX + 1;
 
 const ::PROTOBUF_NAMESPACE_ID::EnumDescriptor* Request_RequestRecipient_descriptor();
@@ -745,6 +746,8 @@ class Request PROTOBUF_FINAL :
     Request_RequestRecipient_START;
   static constexpr RequestRecipient READY =
     Request_RequestRecipient_READY;
+  static constexpr RequestRecipient DUMP =
+    Request_RequestRecipient_DUMP;
   static inline bool RequestRecipient_IsValid(int value) {
     return Request_RequestRecipient_IsValid(value);
   }

@@ -10,7 +10,7 @@ Queue_TS<Transaction> merged_order;
 std::mutex logging_mutex;
 std::condition_variable logging_cv;
 
-void dumpDB() {
+void Logger::dumpDB() {
     namespace fs = std::filesystem;
     fs::create_directories("./logs");
     std::ofstream ofs("./logs/db_state" + std::to_string(my_id) + ".json",
@@ -114,22 +114,6 @@ Logger::Logger(){
     std::cout << "Logger: Logging thread created.\n";
 
     pthread_detach(logging_thread);
-    
-
-    // dump thread
-    if (pthread_create(&db_dump_thread, NULL, [](void* arg) -> void* {
-            while (true) {
-                std::this_thread::sleep_for(std::chrono::seconds(30));
-                dumpDB();
-                std::cout << "Logger: dumped\n";
-            }
-            return nullptr;
-        }, this) != 0) 
-    {
-        threadError("Error creating db dump thread");
-    }
-
-    pthread_detach(db_dump_thread);
 
 }
 

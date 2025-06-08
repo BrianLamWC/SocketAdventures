@@ -8,6 +8,7 @@
 #include "utils.h"
 #include "partialSequencer.h"
 #include "merger.h"
+#include "logger.h"
 
 struct ServerArgs
 {
@@ -15,6 +16,8 @@ struct ServerArgs
     struct sockaddr_in server_addr;
     PartialSequencer* partial_sequencer;
     Merger* merger;
+    Logger* logger;
+
 };
 
 void* handlePeer(void *server_args);
@@ -25,6 +28,7 @@ struct PeerListenerThreadsArgs
     int listenfd;
     PartialSequencer* partial_sequencer;
     Merger* merger;
+    Logger* logger;
 };
 
 class PeerListener
@@ -33,7 +37,7 @@ private:
     PeerListenerThreadsArgs args;
 public:
 
-    PeerListener(int listenfd, PartialSequencer* partial_sequencer, Merger* merger);
+    PeerListener(int listenfd, PartialSequencer* partial_sequencer, Merger* merger, Logger* logger);
 
 };
 

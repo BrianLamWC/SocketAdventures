@@ -32,6 +32,7 @@ public:
     ~Logger();
 
     void logMergedOrders();
+    void dumpDB();
 
 };
 
