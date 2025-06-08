@@ -34,6 +34,13 @@ static std::atomic<bool> start_flag{false};
 // vector to hold average throughput
 std::vector<double> throughputs;
 
+// list of servers
+std::vector<std::string> hostnames = {
+    "leo.sfc.keio.ac.jp",
+    "aries.sfc.keio.ac.jp",
+    "cygnus.sfc.keio.ac.jp"
+};
+
 struct TxnSpec {
     std::string hostname;
     request::Operation::OperationType type;
@@ -158,13 +165,6 @@ void senderThread(int thread_id)
     thread_local std::unordered_map<std::string, int> my_conns;
     const int target_port = 7001;
 
-    // list of servers
-    std::vector<std::string> hostnames = {
-        "leo.sfc.keio.ac.jp",
-        "aries.sfc.keio.ac.jp",
-        "cygnus.sfc.keio.ac.jp"
-    };
-
     for (const std::string& host : hostnames) {
         int fd = connectOne(host.c_str(), target_port);
         if (fd < 0) {
@@ -211,25 +211,6 @@ void senderThread(int thread_id)
         sleep(0.2);
     }
 
-    sleep(30);
-
-    // send a requst to all servers to dump their state
-    request::Request dump_req;
-    dump_req.set_recipient(request::Request::DUMP);
-    dump_req.set_client_id(getpid());
-    for (const auto& [hostname, fd] : my_conns) {
-        printf("Thread %d: Sending dump request to %s\n", thread_id, hostname.c_str());
-        std::string serialized_dump;
-        dump_req.SerializeToString(&serialized_dump);
-        uint32_t netlen = htonl(serialized_dump.size());
-        writeNBytes(fd, &netlen, sizeof(netlen));
-        writeNBytes(fd, serialized_dump.data(), serialized_dump.size());
-    }
-    printf("Thread %d: Sent dump request to all servers.\n", thread_id);
-
-    for (auto& [hostname, fd] : my_conns) {
-        close(fd);
-    }
 }
 
 
@@ -297,6 +278,29 @@ int main(int argc, char *argv[]) {
     total_throughput /= throughputs.size(); 
     std::cout << "Average throughput across all threads: " << total_throughput << " tx/s\n";
     std::cout << "Total transactions sent: " << sent_count.load(std::memory_order_relaxed) << "\n";
+
+    sleep(30);
+    std::cout << "Sending DUMP requests to servers...\n";
+    // send dump request to the servers
+    for (const std::string& host : hostnames) {
+        std::cout << "Connecting to " << host << ":7001\n";
+        int fd = connectOne(host.c_str(), 7001);
+        if (fd < 0) {
+            fprintf(stderr, "Can't connect to %s:%d\n", host.c_str(), 7001);
+            continue;
+        }
+        request::Request req;
+        req.set_recipient(request::Request::DUMP);
+        req.set_client_id(getpid());    
+        std::string serialized;
+        req.SerializeToString(&serialized);
+        uint32_t netlen = htonl(serialized.size());
+        writeNBytes(fd, &netlen, sizeof(netlen));
+        writeNBytes(fd, serialized.data(), serialized.size());
+        close(fd);
+        std::cout << "Sent DUMP request to " << host << "\n";
+    }
+
 
     google::protobuf::ShutdownProtobufLibrary();
     return 0;
