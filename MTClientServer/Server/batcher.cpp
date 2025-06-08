@@ -40,7 +40,7 @@ void Batcher::batchRequests()
         auto since_0 = now - LOGICAL_EPOCH;
         auto elapsed_ms = std::chrono::duration_cast<std::chrono::milliseconds>(since_0).count();
 
-        int64_t current_window = elapsed_ms / ROUND_PERIOD.count();
+        current_window = elapsed_ms / ROUND_PERIOD.count();
         printf("BATCHER: in round %ld\n", current_window);
 
         auto next_timestamp = LOGICAL_EPOCH + std::chrono::milliseconds((current_window + 1) * ROUND_PERIOD.count());
@@ -89,6 +89,7 @@ void Batcher::processBatch(std::chrono::nanoseconds::rep &ns_total_stamp_time_)
     for (request::Request &req_proto : batch)
     {
         auto* txn = req_proto.mutable_transaction(0);
+        req_proto.set_round(current_window);
 
         auto t0s = Clock::now();
         

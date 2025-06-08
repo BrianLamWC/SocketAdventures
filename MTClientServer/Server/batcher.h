@@ -21,6 +21,7 @@ class Batcher
 {
 private:
 
+    int64_t current_window;
     std::vector<request::Request> batch;
     pthread_t batcher_thread;
 

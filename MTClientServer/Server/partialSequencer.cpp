@@ -8,8 +8,6 @@ namespace {
     // compile-time constant for a 5s window
     constexpr std::chrono::milliseconds ROUND_PERIOD{5000};
 
-    // initialized once at program startup
-    const auto ROUND_EPOCH = std::chrono::system_clock::from_time_t(0);
 }
 
 void PartialSequencer::processPartialSequence(){
@@ -24,12 +22,12 @@ void PartialSequencer::processPartialSequence(){
         // pull whatever we got (might be empty)
         transactions_received = batcher_to_partial_sequencer_queue_.popAll();
 
-        auto now = std::chrono::system_clock::now();
-        auto since_0 = now - ROUND_EPOCH;
+        auto now = std::chrono::steady_clock::now();
+        auto since_0 = now - LOGICAL_EPOCH;
         auto elapsed_seconds = std::chrono::duration_cast<std::chrono::milliseconds>(since_0).count();
 
         int64_t current_window = elapsed_seconds / ROUND_PERIOD.count();
-        auto next_timestamp = ROUND_EPOCH + std::chrono::milliseconds((current_window+1) * ROUND_PERIOD.count());
+        auto next_timestamp = LOGICAL_EPOCH + std::chrono::milliseconds((current_window+1) * ROUND_PERIOD.count());
 
         // build the request
         partial_sequence_.Clear();
