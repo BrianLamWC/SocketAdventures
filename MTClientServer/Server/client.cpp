@@ -130,10 +130,12 @@ void* handleClient(void *client_args)
             printf("Received DUMP from server %d\n", req_proto.server_id());
             if (logger) {
                 printf("Logging DUMP request from client %d\n", req_proto.client_id());
-                //logger->dumpDB();
+                logger->dumpDB();
             } else {
                 fprintf(stderr, "Logger not initialized, cannot log DUMP request\n");
             }
+
+            break;
 
         }
 
