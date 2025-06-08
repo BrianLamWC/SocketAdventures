@@ -57,7 +57,7 @@ void Merger::processIncomingRequest(const request::Request& req_proto) {
     int32_t sid = req_proto.server_id();
     int32_t rnd = req_proto.round();
 
-    printf("MERGER: Received request from server %d for round %d\n", sid, rnd);
+    //printf("MERGER: Received request from server %d for round %d\n", sid, rnd);
 
     std::lock_guard<std::mutex> lk(round_mutex);
     auto &bucket = pending_rounds[rnd];

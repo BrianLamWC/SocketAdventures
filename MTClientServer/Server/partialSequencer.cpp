@@ -6,7 +6,7 @@
 
 namespace {
     // compile-time constant for a 5s window
-    constexpr std::chrono::milliseconds ROUND_PERIOD{5000};
+    constexpr std::chrono::milliseconds ROUND_PERIOD{500};
 
 }
 
@@ -39,7 +39,7 @@ void PartialSequencer::processPartialSequence(){
         }
 
         // print current round
-        printf("PARTIAL: in round %ld\n", current_window);
+        //printf("PARTIAL: in round %ld\n", current_window);
 
         // push & notify (even if empty!)
         partial_sequencer_to_merger_queue_.push(partial_sequence_);
