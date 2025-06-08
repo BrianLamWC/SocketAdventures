@@ -205,14 +205,8 @@ void senderThread(int thread_id)
         writeNBytes(fd, serialized.data(), serialized.size());
 
         sent_count.fetch_add(1, std::memory_order_relaxed);
-        sleep(0.9);
+        sleep(0.8);
     }
-
-    // calculate average throughput
-    uint64_t total_sent = sent_count.load(std::memory_order_relaxed);
-    double avg_throughput = static_cast<double>(total_sent) / 5.0; // 5 seconds
-    printf("Thread %d: Average throughput: %.2f tx/s\n", thread_id, avg_throughput);
-
 
     // send a requst to all servers to dump their state
     request::Request dump_req;
@@ -286,6 +280,11 @@ int main(int argc, char *argv[]) {
     start_flag.store(true, std::memory_order_release);
 
     for (auto &t : threads) t.join();
+
+    // calculate average throughput
+    uint64_t total_sent = sent_count.load(std::memory_order_relaxed);
+    double avg_throughput = static_cast<double>(total_sent) / 5.0; // 5 seconds
+    printf("Average throughput: %.2f tx/s\n", avg_throughput);
 
     google::protobuf::ShutdownProtobufLibrary();
     return 0;
