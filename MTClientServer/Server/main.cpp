@@ -59,8 +59,8 @@ int main(int argc, char *argv[])
     printf("Listening for clients on port %d\n", client_port);
 
     // start listeners
-    PeerListener peer_listener(peer_listenfd, &partial_sequencer, &merger, &logger);
-    ClientListener client_listener(client_listenfd);
+    PeerListener peer_listener(peer_listenfd, &partial_sequencer, &merger);
+    ClientListener client_listener(client_listenfd, &logger);
 
     Coordinator coordinator;
 
