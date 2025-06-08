@@ -205,7 +205,7 @@ void senderThread(int thread_id)
         writeNBytes(fd, serialized.data(), serialized.size());
 
         sent_count.fetch_add(1, std::memory_order_relaxed);
-        sleep(0.1);
+        sleep(0.9);
     }
 
     for (auto& [hostname, fd] : my_conns) {

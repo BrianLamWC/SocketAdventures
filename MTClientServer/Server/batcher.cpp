@@ -89,7 +89,7 @@ void Batcher::processBatch(std::chrono::nanoseconds::rep &ns_total_stamp_time_)
     for (request::Request &req_proto : batch)
     {
         auto* txn = req_proto.mutable_transaction(0);
-        req_proto.set_round(current_window);
+        //req_proto.set_round(current_window);
 
         auto t0s = Clock::now();
         
