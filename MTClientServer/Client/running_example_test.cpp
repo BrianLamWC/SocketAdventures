@@ -213,6 +213,20 @@ void senderThread(int thread_id)
     double avg_throughput = static_cast<double>(total_sent) / 5.0; // 5 seconds
     printf("Thread %d: Average throughput: %.2f tx/s\n", thread_id, avg_throughput);
 
+
+    // send a requst to all servers to dump their state
+    request::Request dump_req;
+    dump_req.set_recipient(request::Request::DUMP);
+    dump_req.set_client_id(getpid());
+    for (const auto& [hostname, fd] : my_conns) {
+        std::string serialized_dump;
+        dump_req.SerializeToString(&serialized_dump);
+        uint32_t netlen = htonl(serialized_dump.size());
+        writeNBytes(fd, &netlen, sizeof(netlen));
+        writeNBytes(fd, serialized_dump.data(), serialized_dump.size());
+    }
+    printf("Thread %d: Sent dump request to all servers.\n", thread_id);
+
     for (auto& [hostname, fd] : my_conns) {
         close(fd);
     }

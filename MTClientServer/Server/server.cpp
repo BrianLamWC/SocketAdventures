@@ -119,7 +119,7 @@ void *handlePeer(void *server_args)
 
             printf("Received DUMP from server %d\n", req_proto.server_id());
             if (logger) {
-                logger->logMergedOrders();
+                logger->dumpDB();
             } else {
                 fprintf(stderr, "Logger not initialized, cannot log DUMP request\n");
             }
