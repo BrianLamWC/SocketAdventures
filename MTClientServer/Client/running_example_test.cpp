@@ -175,7 +175,7 @@ void senderThread(int thread_id)
         std::this_thread::yield();
     }
 
-    while (sent_count.load(std::memory_order_relaxed) < 3'500'000) {
+    while (sent_count.load(std::memory_order_relaxed) < 1'000'000) {
         TxnSpec txn = generateTxn();
         int fd = my_conns[txn.hostname];
 
@@ -219,6 +219,7 @@ void senderThread(int thread_id)
     dump_req.set_recipient(request::Request::DUMP);
     dump_req.set_client_id(getpid());
     for (const auto& [hostname, fd] : my_conns) {
+        printf("Thread %d: Sending dump request to %s\n", thread_id, hostname.c_str());
         std::string serialized_dump;
         dump_req.SerializeToString(&serialized_dump);
         uint32_t netlen = htonl(serialized_dump.size());
