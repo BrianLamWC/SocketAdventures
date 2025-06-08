@@ -54,6 +54,7 @@ void* clientListener(void *args)
 
         client_args->connfd = connfd;
         client_args->client_addr = client_addr;
+        client_args->logger = my_args->logger;
 
         pthread_t client_thread;
 

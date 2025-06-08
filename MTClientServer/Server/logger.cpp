@@ -111,20 +111,7 @@ Logger::Logger(){
         threadError("Error creating sender thread");
     }
 
-    std::cout << "Logger: Logging thread created.\n";
-
     pthread_detach(logging_thread);
 
 }
-
-Logger::~Logger() {
-    {
-        std::lock_guard<std::mutex> lk(logging_mutex);
-        shutdown = true;
-    }
-    
-    logging_cv.notify_all();
-
-}
-
 
