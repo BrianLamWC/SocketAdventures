@@ -33,6 +33,7 @@ static std::atomic<bool> start_flag{false};
 
 // vector to hold average throughput
 std::vector<double> throughputs;
+std::atomic<bool> stop_monitor{false};
 
 // list of servers
 std::vector<std::string> hostnames = {
@@ -220,7 +221,7 @@ void throughput_monitor() {
     auto last_t = Clock::now();
     uint64_t last_count = sent_count.load(std::memory_order_relaxed);
 
-    while (true) {
+    while (!stop_monitor.load(std::memory_order_acquire)) {
         std::this_thread::sleep_for(std::chrono::seconds(5));
         auto now = Clock::now();
         uint64_t now_count = sent_count.load(std::memory_order_relaxed);
@@ -260,7 +261,7 @@ int main(int argc, char *argv[]) {
         threads.emplace_back(senderThread, i);
     }
 
-    std::thread(throughput_monitor).detach();
+    std::thread monitor_thread(throughput_monitor);
 
     // give all threads a moment to spin up and wait on start_flag
     std::this_thread::sleep_for(std::chrono::seconds(1));
@@ -269,6 +270,10 @@ int main(int argc, char *argv[]) {
     start_flag.store(true, std::memory_order_release);
 
     for (auto &t : threads) t.join();
+
+    // Signal the monitor to stop
+    stop_monitor.store(true, std::memory_order_release);
+    monitor_thread.join();
 
     // calculate average throughput
     double total_throughput = 0.0;
