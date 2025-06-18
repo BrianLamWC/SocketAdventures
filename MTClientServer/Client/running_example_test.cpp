@@ -81,15 +81,6 @@ bool isMultiRegion(const std::vector<int>& keys) {
     return sids.size() > 1;
 }
 
-std::vector<int> getKeysWithRegionConstraint(bool wantMRT) {
-    for (;;) {
-        auto keys = getRandomKeys();
-        if (isMultiRegion(keys) == wantMRT) {
-            return keys;
-        }
-    }
-}
-
 std::vector<int> getRandomKeys() {
     int min_keys = std::min(1, static_cast<int>(all_keys.size()));
     int max_keys = std::min(9, static_cast<int>(all_keys.size()));
@@ -104,6 +95,15 @@ std::vector<int> getRandomKeys() {
     }
 
     return std::vector<int>(key_set.begin(), key_set.end());
+}
+
+std::vector<int> getKeysWithRegionConstraint(bool wantMRT) {
+    for (;;) {
+        auto keys = getRandomKeys();
+        if (isMultiRegion(keys) == wantMRT) {
+            return keys;
+        }
+    }
 }
 
 int chooseEligibleServer(const std::vector<int>& keys) {
