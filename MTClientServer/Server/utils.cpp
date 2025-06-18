@@ -357,6 +357,7 @@ Coordinator::Coordinator()
         });
 
         for (auto& peer : servers) {
+            printf("Coordinator: peer %s:%d\n", peer.ip.c_str(), peer.port);
             if (peer.id == my_id) continue;
             int connfd = setupConnection(peer.ip, peer.port);
             if (connfd < 0) {
