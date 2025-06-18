@@ -101,9 +101,9 @@ int chooseEligibleServer(const std::vector<int>& keys) {
     }
 
     if (server_candidates.size() > 1) {
-       SRT_count.fetch_add(1, std::memory_order_relaxed);
-    }else {
        MRT_count.fetch_add(1, std::memory_order_relaxed);
+    }else {
+       SRT_count.fetch_add(1, std::memory_order_relaxed);
     }
 
     std::vector<int> options(server_candidates.begin(), server_candidates.end());
