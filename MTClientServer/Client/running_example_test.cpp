@@ -336,7 +336,7 @@ int main(int argc, char *argv[]) {
               << "%\n";
 
 
-    sleep(30);
+    sleep(60);
     std::cout << "Sending DUMP requests to servers...\n";
     // send dump request to the servers
     for (const std::string& host : hostnames) {
