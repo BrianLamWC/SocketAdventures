@@ -120,11 +120,11 @@ int chooseEligibleServer(const std::vector<int>& keys) {
         return -1;
     }
 
-    if (server_candidates.size() > 1) {
-       MRT_count.fetch_add(1, std::memory_order_relaxed);
-    }else {
-       SRT_count.fetch_add(1, std::memory_order_relaxed);
-    }
+    // if (server_candidates.size() > 1) {
+    //    MRT_count.fetch_add(1, std::memory_order_relaxed);
+    // }else {
+    //    SRT_count.fetch_add(1, std::memory_order_relaxed);
+    // }
 
     std::vector<int> options(server_candidates.begin(), server_candidates.end());
     std::uniform_int_distribution<size_t> dist(0, options.size() - 1);
@@ -241,7 +241,7 @@ void senderThread(int thread_id)
     }
 
     while (sent_count.load(std::memory_order_relaxed) < 3'500'000) {
-        TxnSpec txn = generateTxnOld();
+        TxnSpec txn = generateTxn();
         int fd = my_conns[txn.hostname];
 
         request::Request req;
