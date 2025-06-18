@@ -291,6 +291,8 @@ int main(int argc, char *argv[]) {
     total_throughput /= throughputs.size(); 
     std::cout << "Average throughput across all threads: " << total_throughput << " tx/s\n";
     std::cout << "Total transactions sent: " << sent_count.load(std::memory_order_relaxed) << "\n";
+    std::cout << "MRT count: " << MRT_count.load(std::memory_order_relaxed) << "\n";
+    std::cout << "SRT count: " << SRT_count.load(std::memory_order_relaxed) << "\n";
 
     sleep(30);
     std::cout << "Sending DUMP requests to servers...\n";
