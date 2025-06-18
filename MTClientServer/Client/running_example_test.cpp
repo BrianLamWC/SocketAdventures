@@ -28,6 +28,8 @@ std::vector<int> all_keys;  // initialized once at startup
 
 // Global atomic counter for transaction orders
 std::atomic<int32_t> globalTransactionCounter{1};
+std::atomic<int32_t> MRT_count{0};
+std::atomic<int32_t> SRT_count{0};
 static std::atomic<uint64_t> sent_count{0};
 static std::atomic<bool> start_flag{false};
 
@@ -91,6 +93,12 @@ int chooseEligibleServer(const std::vector<int>& keys) {
     if (server_candidates.empty()) {
         std::cerr << "No eligible server found for keys.\n";
         return -1;
+    }
+
+    if (server_candidates.size() > 1) {
+       SRT_count.fetch_add(1, std::memory_order_relaxed);
+    }else {
+       MRT_count.fetch_add(1, std::memory_order_relaxed);
     }
 
     std::vector<int> options(server_candidates.begin(), server_candidates.end());
@@ -188,7 +196,7 @@ void senderThread(int thread_id)
         req.set_client_id(getpid());
 
         auto *t = req.add_transaction();
-        t->set_id(std::to_string(globalTransactionCounter.fetch_add(1)));
+        t->set_id(std::to_string(globalTransactionCounter.fetch_add(1, std::memory_order_relaxed)));
         t->set_client_id(getpid());
 
         for (int k : txn.keys) {
