@@ -2,6 +2,6 @@
     "servers": [
         { "ip": "leo.sfc.keio.ac.jp", "port": 8001, "id": 1, "leader": true },
         { "ip": "aries.sfc.keio.ac.jp", "port": 8001, "id": 2, "leader": false },
-        { "ip": "cygnus.sfc.keio.ac.jp", "port": 8001, "id": 3, "leader": false}
+        { "ip": "133.27.19.50", "port": 8001, "id": 3, "leader": false}
     ]
 }
