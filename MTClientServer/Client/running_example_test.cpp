@@ -105,7 +105,7 @@ TxnSpec generateTxn() {
     std::unordered_map<int, std::string> server_to_host = {
         {1, "leo.sfc.keio.ac.jp"},
         {2, "aries.sfc.keio.ac.jp"},
-        {3, "cygnus.sfc.keio.ac.jp"}
+        {3, "133.27.19.50"}
     };
 
     return {
