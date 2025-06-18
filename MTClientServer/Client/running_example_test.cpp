@@ -39,7 +39,7 @@ std::atomic<bool> stop_monitor{false};
 std::vector<std::string> hostnames = {
     "leo.sfc.keio.ac.jp",
     "aries.sfc.keio.ac.jp",
-    "cygnus.sfc.keio.ac.jp"
+    "133.27.19.50"
 };
 
 struct TxnSpec {
