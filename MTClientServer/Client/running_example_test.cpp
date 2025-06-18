@@ -293,6 +293,11 @@ int main(int argc, char *argv[]) {
     std::cout << "Total transactions sent: " << sent_count.load(std::memory_order_relaxed) << "\n";
     std::cout << "MRT count: " << MRT_count.load(std::memory_order_relaxed) << "\n";
     std::cout << "SRT count: " << SRT_count.load(std::memory_order_relaxed) << "\n";
+    std::cout << "Percentage of MRT: "
+              << (static_cast<double>(MRT_count.load(std::memory_order_relaxed)) / 
+                  (MRT_count.load(std::memory_order_relaxed) + SRT_count.load(std::memory_order_relaxed))) * 100
+              << "%\n";
+
 
     sleep(30);
     std::cout << "Sending DUMP requests to servers...\n";
