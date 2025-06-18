@@ -27,6 +27,7 @@ static std::mt19937 rng{std::random_device{}()};
 std::vector<int> all_keys;  // initialized once at startup
 
 // Global atomic counter for transaction orders
+double target_mrt_ratio = 0.1;  // default 10%
 std::atomic<int32_t> globalTransactionCounter{1};
 std::atomic<int32_t> MRT_count{0};
 std::atomic<int32_t> SRT_count{0};
@@ -68,6 +69,25 @@ void loadMockDB(const std::string& filename) {
     }
 
     std::cout << "Loaded " << key_to_primary.size() << " keys.\n";
+}
+
+bool isMultiRegion(const std::vector<int>& keys) {
+    std::unordered_set<int> sids;
+    for (int k : keys) {
+      auto it = key_to_primary.find(k);
+      if (it != key_to_primary.end())
+        sids.insert(it->second);
+    }
+    return sids.size() > 1;
+}
+
+std::vector<int> getKeysWithRegionConstraint(bool wantMRT) {
+    for (;;) {
+        auto keys = getRandomKeys();
+        if (isMultiRegion(keys) == wantMRT) {
+            return keys;
+        }
+    }
 }
 
 std::vector<int> getRandomKeys() {
@@ -112,19 +132,30 @@ int chooseEligibleServer(const std::vector<int>& keys) {
 }
 
 TxnSpec generateTxn() {
-    std::vector<int> keys = getRandomKeys();
+    // decide whether this txn should be MRT or SRT
+    std::uniform_real_distribution<double> prob(0.0, 1.0);
+    bool wantMRT = (prob(rng) < target_mrt_ratio);
+
+    // pick keys that satisfy the constraint
+    auto keys = getKeysWithRegionConstraint(wantMRT);
+
+    // count for stats
+    if (wantMRT) MRT_count.fetch_add(1, std::memory_order_relaxed);
+    else         SRT_count.fetch_add(1, std::memory_order_relaxed);
+
+    // pick one of the primary servers for routing
     int server_id = chooseEligibleServer(keys);
 
-    std::unordered_map<int, std::string> server_to_host = {
-        {1, "leo.sfc.keio.ac.jp"},
-        {2, "aries.sfc.keio.ac.jp"},
-        {3, "133.27.19.50"}
+    static std::unordered_map<int, std::string> server_to_host = {
+      {1, "leo.sfc.keio.ac.jp"},
+      {2, "aries.sfc.keio.ac.jp"},
+      {3, "133.27.19.50"}
     };
 
     return {
-        .hostname = server_to_host[server_id],
-        .type = request::Operation::WRITE,
-        .keys = keys
+      .hostname = server_to_host[server_id],
+      .type     = request::Operation::WRITE,
+      .keys     = std::move(keys)
     };
 }
 
@@ -258,11 +289,12 @@ void throughput_monitor() {
 int main(int argc, char *argv[]) {
     GOOGLE_PROTOBUF_VERIFY_VERSION;
 
-    if (argc != 2) {
-        std::cerr << "Usage: " << argv[0] << " <num_threads>\n";
+    if (argc != 3) {
+        std::cerr << "Usage: " << argv[0] << " <num_threads> <ratio>\n";
         return 1;
     }
     int num_threads = std::stoi(argv[1]);
+    target_mrt_ratio = std::stod(argv[2]);
 
     loadMockDB("../Server/data.json");
 
