@@ -340,7 +340,6 @@ int main(int argc, char *argv[]) {
     std::cout << "Sending DUMP requests to servers...\n";
     // send dump request to the servers
     for (const std::string& host : hostnames) {
-        std::cout << "Connecting to " << host << ":7001\n";
         int fd = connectOne(host.c_str(), 7001);
         if (fd < 0) {
             fprintf(stderr, "Can't connect to %s:%d\n", host.c_str(), 7001);
@@ -355,7 +354,6 @@ int main(int argc, char *argv[]) {
         writeNBytes(fd, &netlen, sizeof(netlen));
         writeNBytes(fd, serialized.data(), serialized.size());
         close(fd);
-        std::cout << "Sent DUMP request to " << host << "\n";
     }
 
 
