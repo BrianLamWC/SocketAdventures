@@ -70,11 +70,15 @@ void loadMockDB(const std::string& filename) {
     std::cout << "Loaded " << key_to_primary.size() << " keys.\n";
 }
 
-std::vector<int> getRandomKeys(int num_keys = 3) {
+std::vector<int> getRandomKeys() {
+    int max_keys = std::min(10, static_cast<int>(all_keys.size()));
+    std::uniform_int_distribution<int> num_dist(1, max_keys);
+    int num_keys = num_dist(rng);
+
     std::uniform_int_distribution<size_t> dist(0, all_keys.size() - 1);
     std::unordered_set<int> key_set;
 
-    while (key_set.size() < std::min(static_cast<size_t>(num_keys), all_keys.size())) {
+    while (key_set.size() < static_cast<size_t>(num_keys)) {
         key_set.insert(all_keys[dist(rng)]);
     }
 
