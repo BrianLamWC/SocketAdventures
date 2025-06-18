@@ -159,6 +159,23 @@ TxnSpec generateTxn() {
     };
 }
 
+TxnSpec generateTxnOld() {
+    std::vector<int> keys = getRandomKeys();
+    int server_id = chooseEligibleServer(keys);
+
+    std::unordered_map<int, std::string> server_to_host = {
+        {1, "leo.sfc.keio.ac.jp"},
+        {2, "aries.sfc.keio.ac.jp"},
+        {3, "133.27.19.50"}
+    };
+
+    return {
+        .hostname = server_to_host[server_id],
+        .type = request::Operation::WRITE,
+        .keys = keys
+    };
+}
+
 
 void error(const char *msg) {
     perror(msg);
@@ -224,7 +241,7 @@ void senderThread(int thread_id)
     }
 
     while (sent_count.load(std::memory_order_relaxed) < 3'500'000) {
-        TxnSpec txn = generateTxn();
+        TxnSpec txn = generateTxnOld();
         int fd = my_conns[txn.hostname];
 
         request::Request req;
