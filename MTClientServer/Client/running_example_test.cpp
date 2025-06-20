@@ -267,7 +267,7 @@ void senderThread(int thread_id)
 
     while (sent_count.load(std::memory_order_relaxed) < 3'500'000)
     {
-        TxnSpec txn = generateTxn();
+        TxnSpec txn = generateTxnOld();
         int fd = my_conns[txn.hostname];
 
         request::Request req;
