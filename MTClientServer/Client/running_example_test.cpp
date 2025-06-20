@@ -301,6 +301,8 @@ void senderThread(int thread_id)
         sent_count.fetch_add(1, std::memory_order_relaxed);
         usleep(100); // simulate some delay between sends
     }
+
+    sleep(10);
 }
 
 // a simple monitor that prints every second
