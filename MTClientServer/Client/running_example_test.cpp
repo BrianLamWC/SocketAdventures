@@ -23,7 +23,8 @@ using json = nlohmann::json;
 #define SERVER_ADDRESS "localhost"
 
 std::unordered_map<int, int> key_to_primary;
-static std::mt19937 rng{std::random_device{}()};
+// every thread sees its own copy, initialized once per thread
+static thread_local std::mt19937 rng{ std::random_device{}() };
 std::vector<int> all_keys; // initialized once at startup
 
 // Global atomic counter for transaction orders
@@ -267,7 +268,7 @@ void senderThread(int thread_id)
 
     while (sent_count.load(std::memory_order_relaxed) < 3'500'000)
     {
-        TxnSpec txn = generateTxnOld();
+        TxnSpec txn = generateTxn();
         int fd = my_conns[txn.hostname];
 
         request::Request req;
