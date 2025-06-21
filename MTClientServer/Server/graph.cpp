@@ -317,7 +317,7 @@ void Graph::getMergedOrders_()
         if (comp.size() > 1) {
             std::sort(comp.begin(), comp.end(),
                 [&](auto *a, auto *b){
-                    return a->getOrder() < b->getOrder();
+                    return a->getLamportStamp() < b->getLamportStamp();
                 });
         }
 
