@@ -93,11 +93,11 @@ void Batcher::processBatch(std::chrono::nanoseconds::rep &ns_total_stamp_time_)
 
         auto t0s = Clock::now();
         
-        //txn->set_order(uuidv7());
+        txn->set_order(uuidv7());
 
-        int32_t x = dist(rng);
+        //int32_t x = dist(rng);
         // int64_t stamp = lamport_clock.fetch_add(1) + 1;
-        txn->set_lamport_stamp(x);
+        //txn->set_lamport_stamp(x);
 
         auto t1s = Clock::now();
 
