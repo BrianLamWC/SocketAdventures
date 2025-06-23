@@ -90,7 +90,7 @@ bool isMultiRegion(const std::vector<int> &keys)
 std::vector<int> getRandomKeys()
 {
     int min_keys = std::min(1, static_cast<int>(all_keys.size()));
-    int max_keys = std::min(6, static_cast<int>(all_keys.size()));
+    int max_keys = std::min(3, static_cast<int>(all_keys.size()));
     std::uniform_int_distribution<int> num_dist(min_keys, max_keys);
     int num_keys = num_dist(rng);
 

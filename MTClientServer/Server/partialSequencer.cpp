@@ -6,7 +6,7 @@
 
 namespace {
     // compile-time constant for a 5s window
-    constexpr std::chrono::milliseconds ROUND_PERIOD{100};
+    constexpr std::chrono::milliseconds ROUND_PERIOD{200};
 
 }
 

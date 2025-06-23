@@ -10,7 +10,7 @@
 
 namespace {
     // compile-time constant for a 100ms window
-    constexpr std::chrono::milliseconds ROUND_PERIOD{100};
+    constexpr std::chrono::milliseconds ROUND_PERIOD{200};
 
     static thread_local std::mt19937_64 rng{ std::random_device{}() };
 
