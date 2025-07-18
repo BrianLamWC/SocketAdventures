@@ -14,8 +14,8 @@ void Merger::processLocalRequests()
             });
             req_proto = partial_sequencer_to_merger_queue_.pop();
 
-            processIncomingRequest(req_proto);
-        } // local_lock unlocked here
+            processIncomingRequest2(req_proto);
+        } 
 
     }
 }
@@ -30,16 +30,10 @@ void Merger::processRoundRequests()
 
         for (const auto &txn_proto : txn.transaction())
         {
-            // // set lamport clock to max of current lamport clock and transaction's lamport stamp and increment it but find the max out of all the transactions first so it does not keep locking
-            // int32_t max_lamport_stamp = lamport_clock.load();
-            // if (txn_proto.lamport_stamp() > max_lamport_stamp) {
-            //     max_lamport_stamp = txn_proto.lamport_stamp();
-            // }
-            // lamport_clock.store(max_lamport_stamp + 1);
 
             std::vector<Operation> operations = getOperationsFromProtoTransaction(txn_proto);
             
-            Transaction transaction(txn_proto.lamport_stamp() , txn_proto.order(), txn_proto.client_id(), operations, txn_proto.id());
+            Transaction transaction(txn_proto.order(), txn_proto.client_id(), operations, txn_proto.id());
 
             inner_map->push(transaction);
 
@@ -50,10 +44,7 @@ void Merger::processRoundRequests()
 }
 
 void Merger::processIncomingRequest(const request::Request& req_proto) {
-    if (!req_proto.has_server_id() || !req_proto.has_round()) {
-        // malformed or pre‐time‐based message: ignore
-        return;
-    }
+    if (!req_proto.has_server_id() || !req_proto.has_round()) { return; }
     int32_t sid = req_proto.server_id();
     int32_t rnd = req_proto.round();
 
@@ -81,9 +72,68 @@ void Merger::processIncomingRequest(const request::Request& req_proto) {
           std::lock_guard<std::mutex> g(insert_mutex);
           round_ready = true;
         }
+
         insert_cv.notify_one();
     }
 }
+
+void Merger::processIncomingRequest2(const request::Request& req_proto){
+
+    if (!req_proto.has_server_id() || !req_proto.has_round()) { return; }
+    int32_t sid = req_proto.server_id();
+    int32_t rnd = req_proto.round();
+
+    std::lock_guard<std::mutex> lk(round_mutex);
+    auto &bucket = pending_rounds[rnd];
+    bucket[sid] = req_proto;
+
+
+    if (bucket.size() == expected_server_ids.size())
+    {
+        std::vector<request::Request> batch;
+        batch.reserve(bucket.size());
+        
+        for (const auto &id : expected_server_ids)
+        {
+            batch.push_back(std::move(bucket[id]));
+        }
+        
+        pending_rounds.erase(rnd);
+        ready_rounds.emplace(rnd, std::move(batch));
+
+    }
+    
+    while (!ready_rounds.empty())
+    {
+        auto it = ready_rounds.begin();  // smallest round
+        
+        if(it->first <= last_round) {
+            // stale round
+            ready_rounds.erase(it);
+            continue;
+        }
+
+        last_round = it->first;
+
+        current_batch.clear();
+        current_batch = std::move(it->second);
+
+        ready_rounds.erase(it);
+
+        processRoundRequests();
+        
+        {
+          std::lock_guard<std::mutex> lock(insert_mutex);
+          round_ready = true;
+        }
+
+        insert_cv.notify_one();
+
+    }
+    
+
+}
+
 
 void Merger::insertAlgorithm(){
 
@@ -292,12 +342,10 @@ void Merger::insertAlgorithm(){
 Merger::Merger()
 {
 
-    round_requests .rehash(1);
     partial_sequences.rehash(1);
 
     for (const auto& server : servers)
     {
-        round_requests[server.id] = std::make_unique<Queue_TS<request::Request>>();
         partial_sequences[server.id] = std::make_unique<Queue_TS<Transaction>>();
         expected_server_ids.push_back(server.id);
     }
