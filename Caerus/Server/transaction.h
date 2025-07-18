@@ -34,8 +34,8 @@ private:
     std::unordered_set<int32_t> expected_regions;
     std::unordered_set<int32_t> seen_regions;
 public:
-    Transaction(int32_t lamport_stamp_ , std::string order_, int32_t client_id_, const std::vector<Operation>& ops, const std::string& uuid_ = "")
-        : lamport_stamp(lamport_stamp_), order(order_), uuid(uuid_), client_id(client_id_), operations(ops) {}
+    Transaction(std::string order_, int32_t client_id_, const std::vector<Operation>& ops, const std::string& uuid_ = "")
+        :order(order_), uuid(uuid_), client_id(client_id_), operations(ops) {}
 
     int32_t getLamportStamp() const { return lamport_stamp; }
 
