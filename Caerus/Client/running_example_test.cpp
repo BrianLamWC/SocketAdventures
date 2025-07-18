@@ -39,15 +39,13 @@ static std::atomic<bool> start_flag{false};
 std::vector<double> throughputs;
 std::atomic<bool> stop_monitor{false};
 
-// list of servers
-std::vector<std::string> hostnames = {
-    "leo.sfc.keio.ac.jp",
-    "aries.sfc.keio.ac.jp",
-    "133.27.19.50"};
-
+// list of ports
+std::vector<int> ports = { 7001, 7002, 7003 };
+    
 struct TxnSpec
 {
-    std::string hostname;
+    int id;
+    int port;
     request::Operation::OperationType type;
     std::vector<int> keys;
 };
@@ -164,31 +162,13 @@ TxnSpec generateTxn()
     // pick one of the primary servers for routing
     int server_id = chooseEligibleServer(keys);
 
-    static std::unordered_map<int, std::string> server_to_host = {
-        {1, "leo.sfc.keio.ac.jp"},
-        {2, "aries.sfc.keio.ac.jp"},
-        {3, "133.27.19.50"}};
+    int port = 7000 + server_id;
 
     return {
-        .hostname = server_to_host[server_id],
+        .id = server_id,
+        .port = port,
         .type = request::Operation::WRITE,
         .keys = std::move(keys)};
-}
-
-TxnSpec generateTxnOld()
-{
-    std::vector<int> keys = getRandomKeys();
-    int server_id = chooseEligibleServer(keys);
-
-    std::unordered_map<int, std::string> server_to_host = {
-        {1, "leo.sfc.keio.ac.jp"},
-        {2, "aries.sfc.keio.ac.jp"},
-        {3, "133.27.19.50"}};
-
-    return {
-        .hostname = server_to_host[server_id],
-        .type = request::Operation::WRITE,
-        .keys = keys};
 }
 
 void error(const char *msg)
@@ -247,18 +227,17 @@ int connectOne(const char *host, int port)
 
 void senderThread(int thread_id)
 {
-    thread_local std::unordered_map<std::string, int> my_conns;
-    const int target_port = 7001;
+    thread_local std::unordered_map<int, int> my_conns;
 
-    for (const std::string &host : hostnames)
+    for (const int &port : ports)
     {
-        int fd = connectOne(host.c_str(), target_port);
+        int fd = connectOne("0.0.0.0", port);
         if (fd < 0)
         {
-            fprintf(stderr, "thread %d: can't connect to %s:%d\n", thread_id, host.c_str(), target_port);
+            fprintf(stderr, "thread %d: can't connect to %s:%d\n", thread_id, "0.0.0.0", port);
             exit(1);
         }
-        my_conns[host] = fd;
+        my_conns[port] = fd;
     }
 
     while (!start_flag.load(std::memory_order_acquire))
@@ -269,7 +248,7 @@ void senderThread(int thread_id)
     while (sent_count.load(std::memory_order_relaxed) < 3'500'000)
     {
         TxnSpec txn = generateTxn();
-        int fd = my_conns[txn.hostname];
+        int fd = my_conns[txn.port];
 
         request::Request req;
         req.set_recipient(request::Request::BATCHER);
@@ -390,12 +369,12 @@ int main(int argc, char *argv[])
     sleep(10);
     std::cout << "Sending DUMP requests to servers...\n";
     // send dump request to the servers
-    for (const std::string &host : hostnames)
+    for (const int &port : ports)
     {
-        int fd = connectOne(host.c_str(), 7001);
+        int fd = connectOne("0.0.0.0", port);
         if (fd < 0)
         {
-            fprintf(stderr, "Can't connect to %s:%d\n", host.c_str(), 7001);
+            fprintf(stderr, "Can't connect to %s:%d\n", "0.0.0.0", port);
             continue;
         }
         request::Request req;

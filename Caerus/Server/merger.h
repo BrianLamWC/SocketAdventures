@@ -24,15 +24,19 @@ private:
     pthread_t insert_thread;
     pthread_t remove_thread;
 
-    // queues for round requests and partial sequences 
-    std::unordered_map<int32_t, std::unique_ptr<Queue_TS<request::Request>>> round_requests;
-    std::unordered_map<int32_t, std::unique_ptr<Queue_TS<Transaction>>> partial_sequences;
+    int32_t last_round = INT32_MIN;
 
-    // For each round-ID, map server_id → that server’s Request
-    std::map<int32_t, std::unordered_map<int32_t, request::Request>> pending_rounds;
+    // For each round, map server_id → that server’s Request
+    std::unordered_map<int32_t, std::unordered_map<int32_t, request::Request>> pending_rounds;
 
+    // When a full round is ready, we stash the batch here:
+    std::map<int32_t, std::vector<request::Request>> ready_rounds;
+    
     // Once a full round is ready, we stash the batch here:
     std::vector<request::Request> current_batch;
+
+    // queues for round requests and partial sequences 
+    std::unordered_map<int32_t, std::unique_ptr<Queue_TS<Transaction>>> partial_sequences;
 
     // mutexes 
     std::mutex round_mutex;
@@ -61,6 +65,7 @@ public:
     void insertAlgorithm();
 
     void processIncomingRequest(const request::Request& req_proto);
+    void processIncomingRequest2(const request::Request& req_proto);
 };
 
 

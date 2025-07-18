@@ -19,7 +19,6 @@ message Transaction {
   required string id = 2;
   repeated Operation operations = 3;  // A list of operations that are part of the transaction
   optional int32 client_id = 4; // Client ID requesting the transaction
-  optional int32 lamport_stamp = 5;
 }
 
 message Request {

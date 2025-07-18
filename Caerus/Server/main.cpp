@@ -22,17 +22,10 @@ int main(int argc, char *argv[])
 
     signal(SIGPIPE, SIG_IGN);
 
-    // if id = 1 then peer_port = 8001, if id = 2 then peer_port = 8002, etc.
-    // if id = 1 then client_port = 7001, if id = 2 then client_port = 7002, etc.
-    // this is to avoid port conflicts
+    my_id = std::stoi(argv[1]);
     peer_port = 8000 + my_id;
     int client_port = 7000 + my_id;
-
-    my_id = std::stoi(argv[1]);
- 
-    peer_port = 8001;
-    int client_port = 7001;
-
+    
     // setup mockdb
     setupMockDB();
 
