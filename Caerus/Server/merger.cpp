@@ -170,7 +170,10 @@ void Merger::processIncomingRequest3(const request::Request& req_proto){
           auto s = oss.str();
           // trim trailing space
           if (!s.empty() && s.back()==' ') s.pop_back();
-          printf("%s\n", s.c_str());
+          std::ofstream log_file("./logs/merger_log" + std::to_string(my_id) + ".txt", std::ios::app);
+          if (log_file.is_open()) {
+            log_file << s << std::endl;
+          }
         }
         // now consume it
         current_batch.push_back(std::move(const_cast<request::Request&>(top_req)));
