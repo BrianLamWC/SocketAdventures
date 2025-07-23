@@ -10,7 +10,7 @@
 
 namespace {
     // compile-time constant for a 100ms window
-    constexpr std::chrono::milliseconds ROUND_PERIOD{200};
+    constexpr std::chrono::milliseconds ROUND_PERIOD{100};
 
     static thread_local std::mt19937_64 rng{ std::random_device{}() };
 
@@ -89,15 +89,14 @@ void Batcher::processBatch(std::chrono::nanoseconds::rep &ns_total_stamp_time_)
     for (request::Request &req_proto : batch)
     {
         auto* txn = req_proto.mutable_transaction(0);
-        //req_proto.set_round(current_window);
+        req_proto.set_round(current_window);
 
         auto t0s = Clock::now();
         
         txn->set_order(uuidv7());
 
-        //int32_t x = dist(rng);
-        // int64_t stamp = lamport_clock.fetch_add(1) + 1;
-        //txn->set_lamport_stamp(x);
+        // int32_t x = dist(rng);
+        // txn->set_order(std::to_string(x));
 
         auto t1s = Clock::now();
 
@@ -133,6 +132,7 @@ void Batcher::processBatch(std::chrono::nanoseconds::rep &ns_total_stamp_time_)
             if (target_id == my_id)
             {
                 batch_for_partial_sequencer.push_back(req_proto);
+                req_proto.set_target_server_id(my_id);
             }
             else
             {

@@ -95,7 +95,8 @@ void *handlePeer(void *server_args)
         else if (req_proto.recipient() == request::Request::MERGER)
         {
             //printf("MERGER: received partial sequence from: %d\n", req_proto.server_id());
-            merger->processIncomingRequest(req_proto);
+            partial_sequencer_to_merger_queue_.push(req_proto);
+            //merger->processIncomingRequest3(req_proto);
         }
         else if(req_proto.recipient() == request::Request::START)
         {
