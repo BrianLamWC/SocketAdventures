@@ -132,6 +132,7 @@ void Batcher::processBatch(std::chrono::nanoseconds::rep &ns_total_stamp_time_)
             if (target_id == my_id)
             {
                 batch_for_partial_sequencer.push_back(req_proto);
+                req_proto.set_target_server_id(my_id);
             }
             else
             {

@@ -245,7 +245,7 @@ void senderThread(int thread_id)
         std::this_thread::yield();
     }
 
-    while (sent_count.load(std::memory_order_relaxed) < 3'500'000)
+    while (sent_count.load(std::memory_order_relaxed) < 100)
     {
         TxnSpec txn = generateTxn();
         int fd = my_conns[txn.port];
@@ -278,7 +278,7 @@ void senderThread(int thread_id)
         writeNBytes(fd, serialized.data(), serialized.size());
 
         sent_count.fetch_add(1, std::memory_order_relaxed);
-        usleep(100); // simulate some delay between sends
+        sleep(1); // simulate some delay between sends
     }
 }
 

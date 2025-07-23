@@ -8,12 +8,22 @@
 #include <condition_variable>
 #include <deque>
 #include <vector>
+#include <queue>
 #include<memory>
 
 #include "transaction.h"
 #include "queueTS.h"
 #include "../proto/request.pb.h"
 #include "graph.h"  
+
+// Define a min-heap comparator for rounds
+struct CompareByRound {
+    bool operator()(const request::Request &a,
+                    const request::Request &b) const {
+        // priority_queue is a max-heap by default, so invert
+        return a.round() > b.round();
+    }
+};
 
 class Merger
 {
@@ -28,6 +38,8 @@ private:
 
     // For each round, map server_id → that server’s Request
     std::unordered_map<int32_t, std::unordered_map<int32_t, request::Request>> pending_rounds;
+
+    std::unordered_map<int32_t, std::priority_queue< request::Request, std::vector<request::Request>, CompareByRound>> pending_heaps;
 
     // When a full round is ready, we stash the batch here:
     std::map<int32_t, std::vector<request::Request>> ready_rounds;
@@ -66,6 +78,7 @@ public:
 
     void processIncomingRequest(const request::Request& req_proto);
     void processIncomingRequest2(const request::Request& req_proto);
+    void processIncomingRequest3(const request::Request& req_proto);
 };
 
 

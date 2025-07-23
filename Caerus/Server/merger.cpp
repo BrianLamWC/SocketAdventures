@@ -14,7 +14,7 @@ void Merger::processLocalRequests()
             });
             req_proto = partial_sequencer_to_merger_queue_.pop();
 
-            processIncomingRequest2(req_proto);
+            processIncomingRequest3(req_proto);
         } 
 
     }
@@ -134,6 +134,61 @@ void Merger::processIncomingRequest2(const request::Request& req_proto){
 
 }
 
+void Merger::processIncomingRequest3(const request::Request& req_proto){
+
+    if (!req_proto.has_server_id() || !req_proto.has_round()) return;
+
+    int32_t sid = req_proto.server_id();
+
+    // 1) push into that server's heap
+    {
+      std::lock_guard<std::mutex> lk(round_mutex);
+      pending_heaps[sid].push(req_proto);
+
+      // 2) check if every server has at least one pending request
+      for (auto id : expected_server_ids) {
+        if (pending_heaps[id].empty()) {
+          return;  // still waiting on some server
+        }
+      }
+
+      // 3) all servers ready → build the batch
+      current_batch.clear();
+      current_batch.reserve(expected_server_ids.size());
+      for (auto id : expected_server_ids) {
+        auto &heap = pending_heaps[id];
+        const auto &top_req = heap.top();
+
+        // Only log if this request has transactions
+        if (top_req.transaction_size() > 0) {
+          std::ostringstream oss;
+          oss << "Server " << id
+              << " (round " << top_req.round() << ") txns: ";
+          for (const auto &txn_proto : top_req.transaction()) {
+            oss << txn_proto.id() << " ";
+          }
+          auto s = oss.str();
+          // trim trailing space
+          if (!s.empty() && s.back()==' ') s.pop_back();
+          printf("%s\n", s.c_str());
+        }
+        // now consume it
+        current_batch.push_back(std::move(const_cast<request::Request&>(top_req)));
+        heap.pop();
+      }
+    } // unlock round_mutex
+
+    // 4) now you have one lowest-round request from each server
+    processRoundRequests();
+
+    // 5) signal the inserter
+    {
+      std::lock_guard<std::mutex> g(insert_mutex);
+      round_ready = true;
+    }
+    insert_cv.notify_one();
+
+}
 
 void Merger::insertAlgorithm(){
 
