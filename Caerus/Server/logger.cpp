@@ -13,7 +13,7 @@ std::condition_variable logging_cv;
 void Logger::dumpDB() {
     namespace fs = std::filesystem;
     fs::create_directories("./logs");
-    std::ofstream ofs("./logs/db_state" + std::to_string(my_id) + ".json",
+    std::ofstream ofs("./db_state/db_state" + std::to_string(my_id) + ".json",
                       std::ios::out|std::ios::trunc);
     // give it a big buffer so that each << doesn't flush
     static char buf[1<<20];
