@@ -299,7 +299,7 @@ void senderThread(int thread_id)
         writeNBytes(fd, serialized.data(), serialized.size());
 
         sent_count.fetch_add(1, std::memory_order_relaxed);
-        usleep(1000); // simulate some delay between sends
+        usleep(100); // simulate some delay between sends
     }
 }
 
