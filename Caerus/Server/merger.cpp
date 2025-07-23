@@ -160,21 +160,21 @@ void Merger::processIncomingRequest3(const request::Request& req_proto){
         const auto &top_req = heap.top();
 
         // Only log if this request has transactions
-        // if (top_req.transaction_size() > 0) {
-        //   std::ostringstream oss;
-        //   oss << "Server " << id
-        //       << " (round " << top_req.round() << ") txns: ";
-        //   for (const auto &txn_proto : top_req.transaction()) {
-        //     oss << txn_proto.id() << " ";
-        //   }
-        //   auto s = oss.str();
-        //   // trim trailing space
-        //   if (!s.empty() && s.back()==' ') s.pop_back();
-        //   std::ofstream log_file("./logs/merger_log" + std::to_string(my_id) + ".txt", std::ios::app);
-        //   if (log_file.is_open()) {
-        //     log_file << s << std::endl;
-        //   }
-        // }
+        if (top_req.transaction_size() > 0) {
+          std::ostringstream oss;
+          oss << "Server " << id
+              << " (round " << top_req.round() << ") txns: ";
+          for (const auto &txn_proto : top_req.transaction()) {
+            oss << txn_proto.id() << " ";
+          }
+          auto s = oss.str();
+          // trim trailing space
+          if (!s.empty() && s.back()==' ') s.pop_back();
+          std::ofstream log_file("./logs/merger_log" + std::to_string(my_id) + ".txt", std::ios::app);
+          if (log_file.is_open()) {
+            log_file << s << std::endl;
+          }
+        }
 
         // now consume it
         current_batch.push_back(std::move(const_cast<request::Request&>(top_req)));
