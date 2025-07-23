@@ -266,7 +266,7 @@ void senderThread(int thread_id)
         std::this_thread::yield();
     }
 
-    while (sent_count.load(std::memory_order_relaxed) < 100)
+    while (sent_count.load(std::memory_order_relaxed) < 1000000)
     {
         TxnSpec txn = generateTxn();
         int fd = my_conns[txn.hostname];
@@ -299,7 +299,7 @@ void senderThread(int thread_id)
         writeNBytes(fd, serialized.data(), serialized.size());
 
         sent_count.fetch_add(1, std::memory_order_relaxed);
-        usleep(100); // simulate some delay between sends
+        usleep(1000); // simulate some delay between sends
     }
 }
 
