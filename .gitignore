@@ -11,3 +11,6 @@ build/
 # Ignore log files  
 logs/
 db_state/
+
+# Ignore bash scripts   
+*.sh
