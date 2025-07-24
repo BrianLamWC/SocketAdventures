@@ -51,48 +51,44 @@ void PartialSequencer::processPartialSequence(){
     }
 }
 
-void PartialSequencer::processPartialSequence2(){
-
-    // Wait until logical clock is ready
+// in partialSequencer.cpp:
+void PartialSequencer::processPartialSequence2() {
+    // wait for the logical epoch
     while (!LOGICAL_EPOCH_READY.load()) {
         std::this_thread::sleep_for(std::chrono::milliseconds(1));
     }
 
     while (true)
     {
-        // Block until there is at least one transaction
+        // block until there’s at least one txn to send
         while (batcher_to_partial_sequencer_queue_.empty()) {
             std::this_thread::sleep_for(std::chrono::milliseconds(1));
         }
 
-        // pull whatever we got (guaranteed non-empty)
+        // pull them all out
         transactions_received = batcher_to_partial_sequencer_queue_.popAll();
 
-        auto now = std::chrono::steady_clock::now();
-        auto since_0 = now - LOGICAL_EPOCH;
-        auto elapsed_seconds = std::chrono::duration_cast<std::chrono::milliseconds>(since_0).count();
-
-        int64_t current_window = elapsed_seconds / ROUND_PERIOD.count();
-        auto next_timestamp = LOGICAL_EPOCH + std::chrono::milliseconds((current_window+1) * ROUND_PERIOD.count());
-
-        // build the request
+        // BUILD the request with an incrementing round
+        int32_t rnd = next_round_.fetch_add(1, std::memory_order_relaxed);
         partial_sequence_.Clear();
         partial_sequence_.set_server_id(my_id);
         partial_sequence_.set_recipient(request::Request::MERGER);
-        partial_sequence_.set_round(static_cast<int32_t>(current_window));
+        partial_sequence_.set_round(rnd);
+
         for (const auto& txn : transactions_received) {
             partial_sequence_.add_transaction()->CopyFrom(txn.transaction(0));
         }
 
-        // push & notify (even if empty!)
+        // PUSH & NOTIFY downstream
         partial_sequencer_to_merger_queue_.push(partial_sequence_);
         partial_sequencer_to_merger_queue_cv.notify_one();
 
-        // send to peers (even if empty!)
+        // SEND to peers
         sendPartialSequence();
 
+        // clear for next time
         transactions_received.clear();
-        // No need to sleep until next timestamp, just continue
+        // and loop immediately—no sleeping
     }
 }
 

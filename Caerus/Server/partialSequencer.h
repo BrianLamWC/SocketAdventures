@@ -11,6 +11,8 @@
 class PartialSequencer
 {
 private:
+
+    std::atomic<int32_t> next_round_{0};
     
     std::vector<Transaction> partial_sequence;
     std::vector<request::Request> transactions_received;
