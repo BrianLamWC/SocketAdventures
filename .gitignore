@@ -14,3 +14,6 @@ db_state/
 
 # Ignore bash scripts   
 *.sh
+
+# Ignore ssh directory  
+.ssh/
