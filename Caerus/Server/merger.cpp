@@ -155,26 +155,32 @@ void Merger::processIncomingRequest3(const request::Request& req_proto){
       // 3) all servers have a partial sequence → build the round batch
       current_batch.clear();
       current_batch.reserve(expected_server_ids.size());
+
       for (auto id : expected_server_ids) {
         auto &heap = pending_heaps[id];
         const auto &top_req = heap.top();
 
-        // Only log if this request has transactions
-        // if (top_req.transaction_size() > 0) {
-        //   std::ostringstream oss;
-        //   oss << "Server " << id
-        //       << " (round " << top_req.round() << ") txns: ";
-        //   for (const auto &txn_proto : top_req.transaction()) {
-        //     oss << txn_proto.id() << " ";
-        //   }
-        //   auto s = oss.str();
-        //   // trim trailing space
-        //   if (!s.empty() && s.back()==' ') s.pop_back();
-        //   std::ofstream log_file("./logs/merger_log" + std::to_string(my_id) + ".txt", std::ios::app);
-        //   if (log_file.is_open()) {
-        //     log_file << s << std::endl;
-        //   }
-        // }
+        if (top_req.transaction_size() > 0) {
+          // ——— build a JSON object ———
+          std::ostringstream js;
+          js << "{"
+             << "\"server\":" << id << ","
+             << "\"round\":"  << top_req.round() << ","
+             << "\"txns\":[";
+          for (int i = 0, n = top_req.transaction_size(); i < n; ++i) {
+            js << "\"" << top_req.transaction(i).id() << "\"";
+            if (i + 1 < n) js << ",";
+          }
+          js << "]}\n";
+          // ————————————————————————
+
+          // append it
+          std::ofstream log_file(log_path_,
+                                 std::ios::out | std::ios::app);
+          if (log_file.is_open()) {
+            log_file << js.str();
+          }
+        }
 
         // now consume it
         current_batch.push_back(std::move(const_cast<request::Request&>(top_req)));
@@ -400,6 +406,8 @@ void Merger::insertAlgorithm(){
 
 Merger::Merger()
 {
+
+    std::ofstream init_log(log_path_, std::ios::out | std::ios::trunc);
 
     partial_sequences.rehash(1);
 

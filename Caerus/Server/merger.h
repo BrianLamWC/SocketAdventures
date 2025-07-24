@@ -35,6 +35,7 @@ private:
     pthread_t remove_thread;
 
     int32_t last_round = INT32_MIN;
+    const std::string log_path_ = "./logs/merger_log" + std::to_string(my_id) + ".jsonl";
 
     // For each round, map server_id → that server’s Request
     std::unordered_map<int32_t, std::unordered_map<int32_t, request::Request>> pending_rounds;
