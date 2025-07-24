@@ -7,4 +7,7 @@
 
 # Ignore build directory
 build/
+
+# Ignore log files  
 logs/
+db_state/
