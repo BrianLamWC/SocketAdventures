@@ -15,7 +15,7 @@ RUN apt-get update && apt-get install -y \
     uuid-dev \
     openssh-client \
     rsync \
-    jq
+    jq \
     && rm -rf /var/lib/apt/lists/*
 
 # Set working directory
