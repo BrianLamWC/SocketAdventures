@@ -104,12 +104,6 @@ void Merger::processIncomingRequest2(const request::Request& req_proto) {
       std::unique_lock<std::mutex> ul(round_mutex, std::adopt_lock);
       ul.unlock();
 
-      std::cout << "Processing round " << exp << "\n";
-      for (auto &txn : current_batch) {
-        std::cout << "  server=" << txn.server_id()
-                  << " ops=" << txn.transaction_size() << "\n";
-      }
-
       processRoundRequests();
 
       {
