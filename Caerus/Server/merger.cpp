@@ -43,84 +43,58 @@ void Merger::processRoundRequests()
 
 }
 
-void Merger::processIncomingRequest2(const request::Request& req_proto){
-
-    if (!req_proto.has_server_id() || !req_proto.has_round()) return;
-    int sid = req_proto.server_id();
-    int rnd = req_proto.round();
+void Merger::processIncomingRequest2(const request::Request& req) {
+    if (!req.has_server_id() || !req.has_round()) return;
+    int sid = req.server_id(), r = req.round();
 
     std::lock_guard<std::mutex> lk(round_mutex);
 
-    int expected_round = nextExpectedBatch[sid];
+    // stash it (whether it's old, on-time, or early)
+    batchBuffer[sid][r] = req;
 
-    if (rnd < expected_round)
-    {
-        return;
+    // now try to peel off *all* full rounds, starting from whatever this server next expects
+    while (true) {
+    // pick any server to drive the next-round decision—we use sid,
+    // but since all servers advance in lockstep you'll get the same number
+    int exp = nextExpectedBatch[sid];  
+
+    // check "do we have every server's batch `exp`?"
+    bool haveAll = true;
+    for (int other : expected_server_ids) {
+        if (!batchBuffer[other].count(exp)) {
+        haveAll = false;
+        break;
+        }
     }
-    
-    if (rnd == expected_round) 
-    {
-        // insert into  the batch buffer
-        batchBuffer[sid][rnd] = req_proto;
+    if (!haveAll) break;   // can't advance any further right now
 
-        // check if we have all the batches for this round
-        for (auto &server : expected_server_ids)
-        {
-            if (batchBuffer[server].find(rnd) == batchBuffer[server].end()){
-
-                // print exactly which server is missing
-                std::cout << "Missing batch for server " << server << " in round " << rnd << std::endl;
-                return;
-            }
-        }
-
-        // we have all the batches for this round, so we can process it
-        current_batch.clear();
-        current_batch.reserve(expected_server_ids.size());
-        bool all_batches_empty = true;
-
-        for (auto &server : expected_server_ids)
-        {
-            const auto &batch = batchBuffer[server][rnd];
-            if (!batch.transaction().empty()) {
-                all_batches_empty = false;
-            }
-            current_batch.push_back(std::move(batchBuffer[server][rnd]));
-            batchBuffer[server].erase(rnd); // remove it from the buffer
-        }
-        
-        //  increment the next expected batch for all servers
-        for (int id : expected_server_ids) {
-            nextExpectedBatch[id]++;
-        }
-
-    //    // If all batches are empty, skip processing
-    //     if (all_batches_empty) {
-    //         return;
-    //     }
-
-        // print the round and batch size
-        std::cout << "Processing round " << rnd << std::endl;
-
-        // print all the transactions in the batch
-        for (const auto &txn : current_batch) {
-            std::cout << "  Transaction from server " << txn.server_id() << " with " << txn.transaction_size() << " operations." << std::endl;
-        }
-
-        processRoundRequests();
-        // signal the insert thread
-        {
-            std::lock_guard<std::mutex> g(insert_mutex);
-            round_ready = true;
-        }
-        insert_cv.notify_one();
-        
-    } else if (rnd > expected_round) 
-    {
-        // we have a batch for a future round, so we need to buffer it
-        batchBuffer[sid][rnd] = req_proto;
+    // we do have a complete round `exp`
+    current_batch.clear();
+    current_batch.reserve(expected_server_ids.size());
+    for (int other : expected_server_ids) {
+        current_batch.push_back(std::move(batchBuffer[other][exp]));
+        batchBuffer[other].erase(exp);
     }
 
+    // advance *all* servers' expected counters
+    for (int other : expected_server_ids) {
+        nextExpectedBatch[other]++;
+    }
+
+
+    std::cout << "Processing round " << exp << "\n";
+    for (auto &txn : current_batch) {
+    std::cout << "  server=" << txn.server_id()
+                << " ops=" << txn.transaction_size() << "\n";
+    }
+    processRoundRequests();
+    {
+    std::lock_guard<std::mutex> g(insert_mutex);
+    round_ready = true;
+    }
+    insert_cv.notify_one();
+
+    }
 }
 
 void Merger::insertAlgorithm(){
