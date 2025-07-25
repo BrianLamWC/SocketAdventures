@@ -2,18 +2,21 @@
 #include "partialSequencer.h"
 #include <netinet/in.h>
 #include <thread>
+#include <fstream>
 
-
-namespace {
+namespace
+{
     // compile-time constant for a 5s window
     constexpr std::chrono::milliseconds ROUND_PERIOD{100};
 
 }
 
-void PartialSequencer::processPartialSequence(){
+void PartialSequencer::processPartialSequence()
+{
 
     // Wait until logical clock is ready
-    while (!LOGICAL_EPOCH_READY.load()) {
+    while (!LOGICAL_EPOCH_READY.load())
+    {
         std::this_thread::sleep_for(std::chrono::milliseconds(1));
     }
 
@@ -27,14 +30,15 @@ void PartialSequencer::processPartialSequence(){
         auto elapsed_seconds = std::chrono::duration_cast<std::chrono::milliseconds>(since_0).count();
 
         int64_t current_window = elapsed_seconds / ROUND_PERIOD.count();
-        auto next_timestamp = LOGICAL_EPOCH + std::chrono::milliseconds((current_window+1) * ROUND_PERIOD.count());
+        auto next_timestamp = LOGICAL_EPOCH + std::chrono::milliseconds((current_window + 1) * ROUND_PERIOD.count());
 
         // build the request
         partial_sequence_.Clear();
         partial_sequence_.set_server_id(my_id);
         partial_sequence_.set_recipient(request::Request::MERGER);
         partial_sequence_.set_round(static_cast<int32_t>(current_window));
-        for (const auto& txn : transactions_received) {
+        for (const auto &txn : transactions_received)
+        {
             partial_sequence_.add_transaction()->CopyFrom(txn.transaction(0));
         }
 
@@ -47,21 +51,23 @@ void PartialSequencer::processPartialSequence(){
 
         transactions_received.clear();
         std::this_thread::sleep_until(next_timestamp);
-
     }
 }
 
 // in partialSequencer.cpp:
-void PartialSequencer::processPartialSequence2() {
+void PartialSequencer::processPartialSequence2()
+{
     // wait for the logical epoch
-    while (!LOGICAL_EPOCH_READY.load()) {
+    while (!LOGICAL_EPOCH_READY.load())
+    {
         std::this_thread::sleep_for(std::chrono::milliseconds(1));
     }
 
     while (true)
     {
         // block until there’s at least one txn to send
-        while (batcher_to_partial_sequencer_queue_.empty()) {
+        while (batcher_to_partial_sequencer_queue_.empty())
+        {
             std::this_thread::sleep_for(std::chrono::milliseconds(1));
         }
 
@@ -74,8 +80,39 @@ void PartialSequencer::processPartialSequence2() {
         partial_sequence_.set_recipient(request::Request::MERGER);
         partial_sequence_.set_round(next_round_++);
 
-        for (const auto& txn : transactions_received) {
+        for (const auto &txn : transactions_received)
+        {
             partial_sequence_.add_transaction()->CopyFrom(txn.transaction(0));
+        }
+
+        // Log the partial sequence
+        std::ofstream log_file("partial_sequence_log_" + std::to_string(my_id) + ".log", std::ios::app);
+        if (log_file)
+        {
+            log_file << "Partial Sequence Created:\n";
+            log_file << "  Server ID: " << partial_sequence_.server_id() << "\n";
+            log_file << "  Round: " << partial_sequence_.round() << "\n";
+            log_file << "  Transactions:\n";
+            for (const auto &txn : partial_sequence_.transaction())
+            {
+                log_file << "    Transaction ID: " << txn.id() << "\n";
+                log_file << "    Operations:\n";
+                for (const auto &op : txn.operations())
+                {
+                    log_file << "      - Type: " << (op.type() == request::Operation::WRITE ? "WRITE" : "READ")
+                             << ", Key: " << op.key();
+                    if (op.type() == request::Operation::WRITE)
+                    {
+                        log_file << ", Value: " << op.value();
+                    }
+                    log_file << "\n";
+                }
+            }
+            log_file << "----------------------------------------\n";
+        }
+        else
+        {
+            std::cerr << "Failed to open log file for partial sequencer " << my_id << "\n";
         }
 
         // PUSH & NOTIFY downstream
@@ -91,30 +128,33 @@ void PartialSequencer::processPartialSequence2() {
     }
 }
 
-void PartialSequencer::sendPartialSequence() {
+void PartialSequencer::sendPartialSequence()
+{
     for (auto &target : target_peers)
     {
         int target_id = target.first;
-        int& connfd = merger_fds[target_id];
+        int &connfd = merger_fds[target_id];
 
         partial_sequence_.set_target_server_id(target_id);
 
         // (re)connect on-demand if we lost it
-        if (connfd < 0) {
+        if (connfd < 0)
+        {
 
             server target = target_peers[target_id];
 
-            while ((connfd = setupConnection(target.ip, target.port)) < 0) {
+            while ((connfd = setupConnection(target.ip, target.port)) < 0)
+            {
                 std::cerr << "Partial Sequencer " << my_id << ": reconnect to peer " << target_id << " failed, retrying in 1s…\n";
                 std::this_thread::sleep_for(std::chrono::seconds(1));
             }
 
             merger_fds[target_id] = connfd; // update the fd in the map
-            
         }
 
         std::string serialized_request;
-        if (!partial_sequence_.SerializeToString(&serialized_request)) {
+        if (!partial_sequence_.SerializeToString(&serialized_request))
+        {
             perror("SerializeToString failed");
             close(connfd);
             return;
@@ -129,26 +169,27 @@ void PartialSequencer::sendPartialSequence() {
             close(connfd);
             connfd = -1;
         }
-
     }
-    
 }
 
-void PartialSequencer::pushReceivedTransactionIntoPartialSequence(const request::Request& req_proto){
+void PartialSequencer::pushReceivedTransactionIntoPartialSequence(const request::Request &req_proto)
+{
     // expect one transaction only
     batcher_to_partial_sequencer_queue_.push(req_proto);
-
 }
 
-PartialSequencer::PartialSequencer(){
-    
-    if (pthread_create(&partial_sequencer_thread, NULL, [](void* arg) -> void* {
+PartialSequencer::PartialSequencer()
+{
+
+    std::ofstream init_log("partial_sequence_log_" + std::to_string(my_id) + ".log", std::ios::out | std::ios::trunc);
+
+    if (pthread_create(&partial_sequencer_thread, NULL, [](void *arg) -> void *
+                       {
             static_cast<PartialSequencer*>(arg)->PartialSequencer::processPartialSequence2();
-            return nullptr;
-        }, this) != 0) 
+            return nullptr; }, this) != 0)
     {
         threadError("Error creating batcher thread");
-    }    
+    }
 
     pthread_detach(partial_sequencer_thread);
 
@@ -159,8 +200,5 @@ PartialSequencer::PartialSequencer(){
             target_peers[server.id] = server;
             merger_fds[server.id] = -1;
         }
-        
     }
-
 }
-
