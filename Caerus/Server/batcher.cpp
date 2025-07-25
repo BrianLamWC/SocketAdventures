@@ -128,19 +128,15 @@ void Batcher::processBatch(std::chrono::nanoseconds::rep &ns_total_stamp_time_)
 
         for (auto target_id : target_peers)
         {
-            // clone the original request
-            request::Request req = req_proto;  
-            req.set_recipient(request::Request::PARTIAL);
-            req.set_server_id(my_id);
-            req.set_target_server_id(target_id);
-
+            
             if (target_id == my_id)
             {
                 batch_for_partial_sequencer.push_back(req_proto);
+                req_proto.set_target_server_id(my_id);
             }
             else
             {
-                std::lock_guard<std::mutex> lk(batch_mutex);
+                req_proto.set_target_server_id(target_id);
                 outbound_queue.push(req_proto);
             }
         }
