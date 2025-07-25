@@ -40,5 +40,6 @@ message Request {
   required RequestRecipient recipient = 4; // The recipient of the request
   optional int32 round = 5;  // batch round
   optional int32 target_server_id = 6;  //
+  optional int32 batcher_round = 7;
 
 }

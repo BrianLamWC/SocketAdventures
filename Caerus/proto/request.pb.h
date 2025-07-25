@@ -782,6 +782,7 @@ class Request PROTOBUF_FINAL :
     kRecipientFieldNumber = 4,
     kRoundFieldNumber = 5,
     kTargetServerIdFieldNumber = 6,
+    kBatcherRoundFieldNumber = 7,
   };
   // repeated .request.Transaction transaction = 3;
   int transaction_size() const;
@@ -866,6 +867,19 @@ class Request PROTOBUF_FINAL :
   void _internal_set_target_server_id(::PROTOBUF_NAMESPACE_ID::int32 value);
   public:
 
+  // optional int32 batcher_round = 7;
+  bool has_batcher_round() const;
+  private:
+  bool _internal_has_batcher_round() const;
+  public:
+  void clear_batcher_round();
+  ::PROTOBUF_NAMESPACE_ID::int32 batcher_round() const;
+  void set_batcher_round(::PROTOBUF_NAMESPACE_ID::int32 value);
+  private:
+  ::PROTOBUF_NAMESPACE_ID::int32 _internal_batcher_round() const;
+  void _internal_set_batcher_round(::PROTOBUF_NAMESPACE_ID::int32 value);
+  public:
+
   // @@protoc_insertion_point(class_scope:request.Request)
  private:
   class _Internal;
@@ -881,6 +895,7 @@ class Request PROTOBUF_FINAL :
   int recipient_;
   ::PROTOBUF_NAMESPACE_ID::int32 round_;
   ::PROTOBUF_NAMESPACE_ID::int32 target_server_id_;
+  ::PROTOBUF_NAMESPACE_ID::int32 batcher_round_;
   friend struct ::TableStruct_request_2eproto;
 };
 // ===================================================================
@@ -1576,6 +1591,34 @@ inline void Request::_internal_set_target_server_id(::PROTOBUF_NAMESPACE_ID::int
 inline void Request::set_target_server_id(::PROTOBUF_NAMESPACE_ID::int32 value) {
   _internal_set_target_server_id(value);
   // @@protoc_insertion_point(field_set:request.Request.target_server_id)
+}
+
+// optional int32 batcher_round = 7;
+inline bool Request::_internal_has_batcher_round() const {
+  bool value = (_has_bits_[0] & 0x00000020u) != 0;
+  return value;
+}
+inline bool Request::has_batcher_round() const {
+  return _internal_has_batcher_round();
+}
+inline void Request::clear_batcher_round() {
+  batcher_round_ = 0;
+  _has_bits_[0] &= ~0x00000020u;
+}
+inline ::PROTOBUF_NAMESPACE_ID::int32 Request::_internal_batcher_round() const {
+  return batcher_round_;
+}
+inline ::PROTOBUF_NAMESPACE_ID::int32 Request::batcher_round() const {
+  // @@protoc_insertion_point(field_get:request.Request.batcher_round)
+  return _internal_batcher_round();
+}
+inline void Request::_internal_set_batcher_round(::PROTOBUF_NAMESPACE_ID::int32 value) {
+  _has_bits_[0] |= 0x00000020u;
+  batcher_round_ = value;
+}
+inline void Request::set_batcher_round(::PROTOBUF_NAMESPACE_ID::int32 value) {
+  _internal_set_batcher_round(value);
+  // @@protoc_insertion_point(field_set:request.Request.batcher_round)
 }
 
 #ifdef __GNUC__
