@@ -37,7 +37,7 @@ private:
     int32_t last_round = INT32_MIN;
     const std::string log_path_ = "./logs/merger_log" + std::to_string(my_id) + ".jsonl";
 
-    // For each round, map server_id → that server’s Request
+    // For each round, map server_id → that server’s partial sequence
     std::unordered_map<int32_t, std::unordered_map<int32_t, request::Request>> pending_rounds;
 
     std::unordered_map<int32_t, std::priority_queue< request::Request, std::vector<request::Request>, CompareByRound>> pending_heaps;
@@ -64,6 +64,11 @@ private:
     // Copy of the graph
     Graph graph;
 
+
+    std::unordered_map<int,int> nextExpectedBatch;
+    std::unordered_map<int,std::map<int,request::Request>> batchBuffer;
+
+
 public:
     // Constructor receives the list of expected server ids.
     Merger();
@@ -80,6 +85,8 @@ public:
     void processIncomingRequest(const request::Request& req_proto);
     void processIncomingRequest2(const request::Request& req_proto);
     void processIncomingRequest3(const request::Request& req_proto);
+
+    void handleBatch(const request::Request &req);
 };
 
 

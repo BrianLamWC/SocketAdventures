@@ -69,11 +69,10 @@ void PartialSequencer::processPartialSequence2() {
         transactions_received = batcher_to_partial_sequencer_queue_.popAll();
 
         // BUILD the request with an incrementing round
-        int32_t rnd = next_round_.fetch_add(1, std::memory_order_relaxed);
         partial_sequence_.Clear();
         partial_sequence_.set_server_id(my_id);
         partial_sequence_.set_recipient(request::Request::MERGER);
-        partial_sequence_.set_round(rnd);
+        partial_sequence_.set_round(next_round_++);
 
         for (const auto& txn : transactions_received) {
             partial_sequence_.add_transaction()->CopyFrom(txn.transaction(0));

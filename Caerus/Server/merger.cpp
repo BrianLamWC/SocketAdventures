@@ -14,7 +14,7 @@ void Merger::processLocalRequests()
             });
             req_proto = partial_sequencer_to_merger_queue_.pop();
 
-            processIncomingRequest3(req_proto);
+            processIncomingRequest2(req_proto);
         } 
 
     }
@@ -43,160 +43,59 @@ void Merger::processRoundRequests()
 
 }
 
-void Merger::processIncomingRequest(const request::Request& req_proto) {
-    if (!req_proto.has_server_id() || !req_proto.has_round()) { return; }
-    int32_t sid = req_proto.server_id();
-    int32_t rnd = req_proto.round();
-
-    //printf("MERGER: Received request from server %d for round %d\n", sid, rnd);
-
-    std::lock_guard<std::mutex> lk(round_mutex);
-    auto &bucket = pending_rounds[rnd];
-    bucket[sid] = req_proto;  // overwrite if we already had one
-
-    // if we now have one from *every* server, we can proceed
-    if (bucket.size() == expected_server_ids.size()) {
-        // collect in server‐order
-        current_batch.clear();
-        current_batch.reserve(expected_server_ids.size());
-        for (auto id : expected_server_ids) {
-            current_batch.push_back(std::move(bucket[id]));
-        }
-        // forget this round
-        pending_rounds.erase(rnd);
-
-        processRoundRequests();
-
-        // signal the insert thread
-        {
-          std::lock_guard<std::mutex> g(insert_mutex);
-          round_ready = true;
-        }
-
-        insert_cv.notify_one();
-    }
-}
-
 void Merger::processIncomingRequest2(const request::Request& req_proto){
 
-    if (!req_proto.has_server_id() || !req_proto.has_round()) { return; }
-    int32_t sid = req_proto.server_id();
-    int32_t rnd = req_proto.round();
+    if (!req_proto.has_server_id() || !req_proto.has_round()) return;
+    int sid = req_proto.server_id();
+    int rnd = req_proto.round();
 
     std::lock_guard<std::mutex> lk(round_mutex);
-    auto &bucket = pending_rounds[rnd];
-    bucket[sid] = req_proto;
 
+    int expected_round = nextExpectedBatch[sid];
 
-    if (bucket.size() == expected_server_ids.size())
+    if (rnd < expected_round)
     {
-        std::vector<request::Request> batch;
-        batch.reserve(bucket.size());
-        
-        for (const auto &id : expected_server_ids)
-        {
-            batch.push_back(std::move(bucket[id]));
-        }
-        
-        pending_rounds.erase(rnd);
-        ready_rounds.emplace(rnd, std::move(batch));
-
+        return;
     }
     
-    while (!ready_rounds.empty())
+    if (rnd == expected_round) 
     {
-        auto it = ready_rounds.begin();  // smallest round
-        
-        if(it->first <= last_round) {
-            // stale round
-            ready_rounds.erase(it);
-            continue;
+        // insert into  the batch buffer
+        batchBuffer[sid][rnd] = req_proto;
+
+        // check if we have all the batches for this round
+        for (auto &server : expected_server_ids)
+        {
+            if (batchBuffer[server].find(rnd) == batchBuffer[server].end()) return;
         }
 
-        last_round = it->first;
-
+        // we have all the batches for this round, so we can process it
         current_batch.clear();
-        current_batch = std::move(it->second);
-
-        ready_rounds.erase(it);
+        current_batch.reserve(expected_server_ids.size());
+        for (auto &server : expected_server_ids)
+        {
+            current_batch.push_back(std::move(batchBuffer[server][rnd]));
+            batchBuffer[server].erase(rnd); // remove it from the buffer
+        }
+        
+        //  increment the next expected batch for all servers
+        for (int id : expected_server_ids) {
+            nextExpectedBatch[id]++;
+        }
 
         processRoundRequests();
-        
+        // signal the insert thread
         {
-          std::lock_guard<std::mutex> lock(insert_mutex);
-          round_ready = true;
+            std::lock_guard<std::mutex> g(insert_mutex);
+            round_ready = true;
         }
-
         insert_cv.notify_one();
-
-    }
-    
-
-}
-
-void Merger::processIncomingRequest3(const request::Request& req_proto){
-
-    if (!req_proto.has_server_id() || !req_proto.has_round()) return;
-
-    int32_t sid = req_proto.server_id();
-
-    // 1) push into that server's heap
+        
+    } else if (rnd > expected_round) 
     {
-      std::lock_guard<std::mutex> lk(round_mutex);
-      pending_heaps[sid].push(req_proto);
-
-      // 2) check if every server has at least one pending request
-      for (auto id : expected_server_ids) {
-        if (pending_heaps[id].empty()) {
-          return;  // still waiting on some server
-        }
-      }
-
-      // 3) all servers have a partial sequence → build the round batch
-      current_batch.clear();
-      current_batch.reserve(expected_server_ids.size());
-
-      for (auto id : expected_server_ids) {
-        auto &heap = pending_heaps[id];
-        const auto &top_req = heap.top();
-
-        if (top_req.transaction_size() > 0) {
-          // ——— build a JSON object ———
-          std::ostringstream js;
-          js << "{"
-             << "\"server\":" << id << ","
-             << "\"round\":"  << top_req.round() << ","
-             << "\"txns\":[";
-          for (int i = 0, n = top_req.transaction_size(); i < n; ++i) {
-            js << "\"" << top_req.transaction(i).id() << "\"";
-            if (i + 1 < n) js << ",";
-          }
-          js << "]}\n";
-          // ————————————————————————
-
-          // append it
-          std::ofstream log_file(log_path_,
-                                 std::ios::out | std::ios::app);
-          if (log_file.is_open()) {
-            log_file << js.str();
-          }
-        }
-
-        // now consume it
-        current_batch.push_back(std::move(const_cast<request::Request&>(top_req)));
-        heap.pop();
-      }
-    } // unlock round_mutex
-
-    // 4) now you have one lowest-round request from each server
-    processRoundRequests();
-
-    // 5) signal the inserter
-    {
-      std::lock_guard<std::mutex> g(insert_mutex);
-      round_ready = true;
+        // we have a batch for a future round, so we need to buffer it
+        batchBuffer[sid][rnd] = req_proto;
     }
-    insert_cv.notify_one();
 
 }
 
@@ -415,6 +314,7 @@ Merger::Merger()
     {
         partial_sequences[server.id] = std::make_unique<Queue_TS<Transaction>>();
         expected_server_ids.push_back(server.id);
+        nextExpectedBatch[server.id] = 0;
     }
 
     // Create a local popper thread that calls the processLocalRequests() method.
@@ -440,4 +340,71 @@ Merger::Merger()
     pthread_detach(insert_thread);
 
 }
-    
+
+void Merger::processIncomingRequest(const request::Request& req_proto) {
+    if (!req_proto.has_server_id() || !req_proto.has_round()) { return; }
+    int32_t sid = req_proto.server_id();
+    int32_t rnd = req_proto.round();
+
+    //printf("MERGER: Received request from server %d for round %d\n", sid, rnd);
+
+    std::lock_guard<std::mutex> lk(round_mutex);
+    auto &bucket = pending_rounds[rnd];
+    bucket[sid] = req_proto;  // overwrite if we already had one
+
+    // if we now have one from *every* server, we can proceed
+    if (bucket.size() == expected_server_ids.size()) {
+        // collect in server‐order
+        current_batch.clear();
+        current_batch.reserve(expected_server_ids.size());
+        for (auto id : expected_server_ids) {
+            current_batch.push_back(std::move(bucket[id]));
+        }
+        // forget this round
+        pending_rounds.erase(rnd);
+
+        processRoundRequests();
+
+        // signal the insert thread
+        {
+          std::lock_guard<std::mutex> g(insert_mutex);
+          round_ready = true;
+        }
+
+        insert_cv.notify_one();
+    }
+}
+
+void Merger::processIncomingRequest(const request::Request& req_proto) {
+    if (!req_proto.has_server_id() || !req_proto.has_round()) { return; }
+    int32_t sid = req_proto.server_id();
+    int32_t rnd = req_proto.round();
+
+    //printf("MERGER: Received request from server %d for round %d\n", sid, rnd);
+
+    std::lock_guard<std::mutex> lk(round_mutex);
+    auto &bucket = pending_rounds[rnd];
+    bucket[sid] = req_proto;  // overwrite if we already had one
+
+    // if we now have one from *every* server, we can proceed
+    if (bucket.size() == expected_server_ids.size()) {
+        // collect in server‐order
+        current_batch.clear();
+        current_batch.reserve(expected_server_ids.size());
+        for (auto id : expected_server_ids) {
+            current_batch.push_back(std::move(bucket[id]));
+        }
+        // forget this round
+        pending_rounds.erase(rnd);
+
+        processRoundRequests();
+
+        // signal the insert thread
+        {
+          std::lock_guard<std::mutex> g(insert_mutex);
+          round_ready = true;
+        }
+
+        insert_cv.notify_one();
+    }
+}
