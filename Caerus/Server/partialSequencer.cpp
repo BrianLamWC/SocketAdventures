@@ -178,9 +178,8 @@ void PartialSequencer::pushReceivedTransactionIntoPartialSequence(const request:
     std::ofstream log_file("partial_sequencer_received_log_" + std::to_string(my_id) + ".log", std::ios::app);
     if (log_file)
     {
-        log_file << "Transaction Received by Partial Sequencer:\n";
+        log_file << "Transaction Received by Partial Sequencer from:\n";
         log_file << "  Server ID: " << req_proto.server_id() << "\n";
-        log_file << "  Recipient: " << req_proto.recipient() << "\n";
         log_file << "  Transactions:\n";
 
         for (const auto &txn : req_proto.transaction())

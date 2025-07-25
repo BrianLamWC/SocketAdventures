@@ -140,7 +140,6 @@ void Batcher::processBatch(std::chrono::nanoseconds::rep &ns_total_stamp_time_)
             }
             else
             {
-                std::lock_guard<std::mutex> lk(batch_mutex);
                 outbound_queue.push(req);
             }
         }
