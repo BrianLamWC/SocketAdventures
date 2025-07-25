@@ -115,7 +115,6 @@ void Batcher::batchRequests()
 
 void Batcher::processBatch(std::chrono::nanoseconds::rep &ns_total_stamp_time_)
 {
-    int32_t batcher_round = next_round_++;
 
     std::vector<request::Request> batch_for_partial_sequencer;
     batch_for_partial_sequencer.reserve(batch.size());
@@ -165,7 +164,7 @@ void Batcher::processBatch(std::chrono::nanoseconds::rep &ns_total_stamp_time_)
             req.set_recipient(request::Request::PARTIAL);
             req.set_server_id(my_id);
             req.set_target_server_id(target_id);
-            req.set_batcher_round(batcher_round);
+            req.set_batcher_round(current_window);
 
             if (target_id == my_id)
             {
@@ -180,7 +179,7 @@ void Batcher::processBatch(std::chrono::nanoseconds::rep &ns_total_stamp_time_)
 
     batch_cv.notify_all();
 
-    if (!batch_for_partial_sequencer.empty())
+    if (!batch_for_partial_sequencer.empty()) // has to have at least one transaction because transactions are always sent to nodes that have the primary copy of one of the keys in the transaction
     {
         // Log the local pushes
         std::ofstream log_file("batcher_local_push_log_" + std::to_string(my_id) + ".log", std::ios::app);

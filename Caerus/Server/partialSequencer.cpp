@@ -89,11 +89,11 @@ void PartialSequencer::processPartialSequence2()
 
             for (const auto &req :transactions_received)
             {
-
                 auto &txn = req.transaction(0);
 
+                log_file << "    Server ID: " << req.server_id() << "\n";
                 log_file << "    Transaction ID: " << txn.id() << "\n";
-                log_file << " batcher_round: " << req.batcher_round() << "\n";
+                log_file << "    batcher_round: " << req.batcher_round() << "\n";
                 log_file << "    Operations:\n";
                 for (const auto &op : txn.operations())
                 {
@@ -185,6 +185,58 @@ void PartialSequencer::processPartialSequence2()
     }
 }
 
+void PartialSequencer::processPartialSequence3()
+{
+    // 1) wait until logical epoch is ready
+    while (!LOGICAL_EPOCH_READY.load()) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(1));
+    }
+
+    int64_t window = 0;
+    while (true) {
+        // 2) compute when window “window” ends
+        auto deadline = LOGICAL_EPOCH
+                      + std::chrono::milliseconds((window+1) * ROUND_PERIOD.count());
+
+        // 3) sleep until that moment
+        std::this_thread::sleep_until(deadline);
+
+        // 4) grab *all* Requests for this window (may be empty)
+        auto batch = batcher_to_partial_sequencer_queue_.popAll();
+
+        // 5) build the partial_sequence
+        partial_sequence_.Clear();
+        partial_sequence_.set_server_id(my_id);
+        partial_sequence_.set_recipient(request::Request::MERGER);
+        partial_sequence_.set_round(static_cast<int32_t>(window));
+
+        for (auto &req : batch) {
+            // each req.transaction(0) is a local write for your primaries
+            partial_sequence_.add_transaction()->CopyFrom(req.transaction(0));
+        }
+
+        // 6) log if you like
+        {
+          std::ofstream logf("partial_sequence_log_" + std::to_string(my_id) + ".log",
+                              std::ios::app);
+          if (logf) {
+            logf << "PartialSequence window=" << window
+                 << " txns=" << partial_sequence_.transaction_size() << "\n";
+          }
+        }
+
+        // 7) hand off to the Merger
+        partial_sequencer_to_merger_queue_.push(partial_sequence_);
+        partial_sequencer_to_merger_queue_cv.notify_one();
+
+        // 8) broadcast to other regions
+        sendPartialSequence();
+
+        // 9) advance to next window
+        window++;
+    }
+}
+
 void PartialSequencer::sendPartialSequence()
 {
     for (auto &target : target_peers)
@@ -243,7 +295,7 @@ PartialSequencer::PartialSequencer()
 
     if (pthread_create(&partial_sequencer_thread, NULL, [](void *arg) -> void *
                        {
-            static_cast<PartialSequencer*>(arg)->PartialSequencer::processPartialSequence2();
+            static_cast<PartialSequencer*>(arg)->PartialSequencer::processPartialSequence3();
             return nullptr; }, this) != 0)
     {
         threadError("Error creating batcher thread");

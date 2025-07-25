@@ -26,6 +26,7 @@ public:
     PartialSequencer();
     void processPartialSequence();
     void processPartialSequence2();
+    void processPartialSequence3();
     void pushReceivedTransactionIntoPartialSequence(const request::Request& req_proto);
     void sendPartialSequence();
 };
