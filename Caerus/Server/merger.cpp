@@ -374,37 +374,3 @@ void Merger::processIncomingRequest(const request::Request& req_proto) {
         insert_cv.notify_one();
     }
 }
-
-void Merger::processIncomingRequest(const request::Request& req_proto) {
-    if (!req_proto.has_server_id() || !req_proto.has_round()) { return; }
-    int32_t sid = req_proto.server_id();
-    int32_t rnd = req_proto.round();
-
-    //printf("MERGER: Received request from server %d for round %d\n", sid, rnd);
-
-    std::lock_guard<std::mutex> lk(round_mutex);
-    auto &bucket = pending_rounds[rnd];
-    bucket[sid] = req_proto;  // overwrite if we already had one
-
-    // if we now have one from *every* server, we can proceed
-    if (bucket.size() == expected_server_ids.size()) {
-        // collect in server‐order
-        current_batch.clear();
-        current_batch.reserve(expected_server_ids.size());
-        for (auto id : expected_server_ids) {
-            current_batch.push_back(std::move(bucket[id]));
-        }
-        // forget this round
-        pending_rounds.erase(rnd);
-
-        processRoundRequests();
-
-        // signal the insert thread
-        {
-          std::lock_guard<std::mutex> g(insert_mutex);
-          round_ready = true;
-        }
-
-        insert_cv.notify_one();
-    }
-}
