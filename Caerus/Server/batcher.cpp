@@ -151,7 +151,7 @@ void Batcher::processBatch(std::chrono::nanoseconds::rep &ns_total_stamp_time_)
     if (!batch_for_partial_sequencer.empty())
     {
         // Log the local pushes
-        std::ofstream log_file("batcher_local_push_log_" + std::to_string(my_id) + ".log", std::ios::trunc);
+        std::ofstream log_file("batcher_local_push_log_" + std::to_string(my_id) + ".log", std::ios::app);
         if (log_file)
         {
             log_file << "Pushing local transactions to partial sequencer:\n";
@@ -204,7 +204,7 @@ void Batcher::sendTransaction(request::Request &req_proto)
     req_proto.set_server_id(my_id);
 
     // Log the transaction details
-    std::ofstream log_file("batcher_transaction_log_" + std::to_string(my_id) + ".log", std::ios::trunc);
+    std::ofstream log_file("batcher_transaction_log_" + std::to_string(my_id) + ".log", std::ios::app);
     if (log_file)
     {
         log_file << "Sending transaction to node " << target_id << ":\n";
@@ -312,6 +312,10 @@ std::string Batcher::uuidv7()
 // Constructor
 Batcher::Batcher()
 {
+
+    std::ofstream init_log("batcher_local_push_log_" + std::to_string(my_id) + ".log", std::ios::out | std::ios::trunc);
+    std::ofstream init_log("batcher_transaction_log_" + std::to_string(my_id) + ".log", std::ios::out | std::ios::trunc);
+
     if (pthread_create(&sender_thread, NULL, [](void *arg) -> void *
                        {
             static_cast<Batcher*>(arg)->Batcher::sendTransactions();
