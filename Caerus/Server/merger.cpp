@@ -44,16 +44,16 @@ void Merger::processRoundRequests()
 }
 
 void Merger::processIncomingRequest2(const request::Request& req) {
-    if (!req.has_server_id() || !req.has_round()) return;
-    int sid = req.server_id(), r = req.round();
+  if (!req.has_server_id() || !req.has_round()) return;
+  int sid = req.server_id(), r = req.round();
 
-    std::lock_guard<std::mutex> lk(round_mutex);
+  std::lock_guard<std::mutex> lk(round_mutex);
 
-    // stash it (whether it's old, on-time, or early)
-    batchBuffer[sid][r] = req;
+  // stash it (whether it's old, on-time, or early)
+  batchBuffer[sid][r] = req;
 
-    // now try to peel off *all* full rounds, starting from whatever this server next expects
-    while (true) {
+  // now try to peel off *all* full rounds, starting from whatever this server next expects
+  while (true) {
     // pick any server to drive the next-round decision—we use sid,
     // but since all servers advance in lockstep you'll get the same number
     int exp = nextExpectedBatch[sid];  
@@ -61,10 +61,10 @@ void Merger::processIncomingRequest2(const request::Request& req) {
     // check "do we have every server's batch `exp`?"
     bool haveAll = true;
     for (int other : expected_server_ids) {
-        if (!batchBuffer[other].count(exp)) {
+      if (!batchBuffer[other].count(exp)) {
         haveAll = false;
         break;
-        }
+      }
     }
     if (!haveAll) break;   // can't advance any further right now
 
@@ -72,29 +72,34 @@ void Merger::processIncomingRequest2(const request::Request& req) {
     current_batch.clear();
     current_batch.reserve(expected_server_ids.size());
     for (int other : expected_server_ids) {
-        current_batch.push_back(std::move(batchBuffer[other][exp]));
-        batchBuffer[other].erase(exp);
+      current_batch.push_back(std::move(batchBuffer[other][exp]));
+      batchBuffer[other].erase(exp);
     }
 
     // advance *all* servers' expected counters
     for (int other : expected_server_ids) {
-        nextExpectedBatch[other]++;
+      nextExpectedBatch[other]++;
     }
 
-
-    std::cout << "Processing round " << exp << "\n";
-    for (auto &txn : current_batch) {
-    std::cout << "  server=" << txn.server_id()
-                << " ops=" << txn.transaction_size() << "\n";
-    }
-    processRoundRequests();
+    // *** now you've fully collected round `exp` — process it ***
     {
-    std::lock_guard<std::mutex> g(insert_mutex);
-    round_ready = true;
+      // unlock round_mutex while doing the heavier work
+      std::unique_lock<std::mutex> ul(round_mutex, std::adopt_lock);
+      ul.unlock();
+      std::cout << "Processing round " << exp << "\n";
+      for (auto &txn : current_batch) {
+        std::cout << "  server=" << txn.server_id()
+                  << " ops=" << txn.transaction_size() << "\n";
+      }
+      processRoundRequests();
+      {
+        std::lock_guard<std::mutex> g(insert_mutex);
+        round_ready = true;
+      }
+      insert_cv.notify_one();
+      ul.lock();  // re-acquire for next iteration or exit
     }
-    insert_cv.notify_one();
-
-    }
+  }
 }
 
 void Merger::insertAlgorithm(){
