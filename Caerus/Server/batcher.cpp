@@ -23,7 +23,6 @@ namespace
 
 void Batcher::batchRequests()
 {
-
     // Wait until logical clock is ready
     while (!LOGICAL_EPOCH_READY.load())
     {
@@ -43,11 +42,42 @@ void Batcher::batchRequests()
         auto elapsed_ms = std::chrono::duration_cast<std::chrono::milliseconds>(since_0).count();
 
         current_window = elapsed_ms / ROUND_PERIOD.count();
-        // printf("BATCHER: in round %ld\n", current_window);
 
         auto next_timestamp = LOGICAL_EPOCH + std::chrono::milliseconds((current_window + 1) * ROUND_PERIOD.count());
 
+        // Pull all transactions from the request queue
         batch = request_queue_.popAll();
+
+        // Log the received transactions
+        if (!batch.empty())
+        {
+            std::ofstream log_file("batcher_received_log_" + std::to_string(my_id) + ".log", std::ios::app);
+            if (log_file)
+            {
+                log_file << "Transactions Received by Batcher:\n";
+                for (const auto &req : batch)
+                {
+                    log_file << "  Transaction ID: " << req.transaction(0).id() << "\n";
+                    log_file << "  Client ID: " << req.transaction(0).client_id() << "\n";
+                    log_file << "  Operations:\n";
+                    for (const auto &op : req.transaction(0).operations())
+                    {
+                        log_file << "    - Type: " << (op.type() == request::Operation::WRITE ? "WRITE" : "READ")
+                                 << ", Key: " << op.key();
+                        if (op.type() == request::Operation::WRITE)
+                        {
+                            log_file << ", Value: " << op.value();
+                        }
+                        log_file << "\n";
+                    }
+                }
+                log_file << "----------------------------------------\n";
+            }
+            else
+            {
+                std::cerr << "Failed to open log file for batcher " << my_id << "\n";
+            }
+        }
 
         if (!batch.empty())
         {
@@ -314,6 +344,7 @@ Batcher::Batcher()
 
     std::ofstream init_local_log("batcher_local_push_log_" + std::to_string(my_id) + ".log", std::ios::out | std::ios::trunc);
     std::ofstream init_sent_log("batcher_transaction_log_" + std::to_string(my_id) + ".log", std::ios::out | std::ios::trunc);
+    std::ofstream init_recv_log("batcher_received_log_" + std::to_string(my_id) + ".log", std::ios::out | std::ios::trunc);
 
     if (pthread_create(&sender_thread, NULL, [](void *arg) -> void *
                        {
