@@ -43,22 +43,20 @@ void Merger::processRoundRequests()
 
 }
 
-void Merger::processIncomingRequest2(const request::Request& req) {
-  if (!req.has_server_id() || !req.has_round()) return;
-  int sid = req.server_id(), r = req.round();
+void Merger::processIncomingRequest2(const request::Request& req_proto) {
+  if (!req_proto.has_server_id() || !req_proto.has_round()) return;
+  int sid = req_proto.server_id(), r = req_proto.round();
 
   std::lock_guard<std::mutex> lk(round_mutex);
 
-  // stash it (whether it's old, on-time, or early)
-  batchBuffer[sid][r] = req;
+  // buffer every arrival
+  batchBuffer[sid][r] = req_proto;
 
-  // now try to peel off *all* full rounds, starting from whatever this server next expects
+  // try to drain all complete rounds
   while (true) {
-    // pick any server to drive the next-round decision—we use sid,
-    // but since all servers advance in lockstep you'll get the same number
-    int exp = nextExpectedBatch[sid];  
+    int exp = nextExpectedBatch[sid];
 
-    // check "do we have every server's batch `exp`?"
+    // check if *every* server has batch `exp`
     bool haveAll = true;
     for (int other : expected_server_ids) {
       if (!batchBuffer[other].count(exp)) {
@@ -66,9 +64,9 @@ void Merger::processIncomingRequest2(const request::Request& req) {
         break;
       }
     }
-    if (!haveAll) break;   // can't advance any further right now
+    if (!haveAll) break;
 
-    // we do have a complete round `exp`
+    // assemble this round
     current_batch.clear();
     current_batch.reserve(expected_server_ids.size());
     for (int other : expected_server_ids) {
@@ -76,28 +74,51 @@ void Merger::processIncomingRequest2(const request::Request& req) {
       batchBuffer[other].erase(exp);
     }
 
-    // advance *all* servers' expected counters
+    // bump every server’s expected counter
     for (int other : expected_server_ids) {
       nextExpectedBatch[other]++;
     }
 
-    // *** now you've fully collected round `exp` — process it ***
+    // --- LOG TO JSONL BEFORE PROCESSING ---
     {
-      // unlock round_mutex while doing the heavier work
+      std::ofstream logf(log_path_, std::ios::app);
+      if (!logf) {
+        std::cerr << "Merger: failed to open log file " << log_path_ << "\n";
+      } else {
+        for (auto &batch : current_batch) {
+          // {"server":X,"round":Y,"txns":[a,b,c]}
+          logf << "{\"server\":" << batch.server_id()
+               << ",\"round\":"  << exp
+               << ",\"txns\":[";
+          for (int i = 0; i < batch.transaction_size(); ++i) {
+            logf << batch.transaction(i).id();
+            if (i + 1 < batch.transaction_size()) logf << ",";
+          }
+          logf << "]}\n";
+        }
+      }
+    }
+
+    // now do your normal processing, dropping the lock during heavy work
+    {
       std::unique_lock<std::mutex> ul(round_mutex, std::adopt_lock);
       ul.unlock();
+
       std::cout << "Processing round " << exp << "\n";
       for (auto &txn : current_batch) {
         std::cout << "  server=" << txn.server_id()
                   << " ops=" << txn.transaction_size() << "\n";
       }
+
       processRoundRequests();
+
       {
         std::lock_guard<std::mutex> g(insert_mutex);
         round_ready = true;
       }
       insert_cv.notify_one();
-      ul.lock();  // re-acquire for next iteration or exit
+
+      ul.lock();
     }
   }
 }
