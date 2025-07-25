@@ -250,6 +250,13 @@ void senderThread(int thread_id)
     thread_local std::unordered_map<std::string, int> my_conns;
     const int target_port = 7001;
 
+    // Open a log file for this thread
+    std::ofstream log_file("transaction_log_thread_" + std::to_string(thread_id) + ".log", std::ios::app);
+    if (!log_file) {
+        std::cerr << "Failed to open log file for thread " << thread_id << "\n";
+        exit(1);
+    }
+
     for (const std::string &host : hostnames)
     {
         int fd = connectOne(host.c_str(), target_port);
@@ -279,6 +286,11 @@ void senderThread(int thread_id)
         t->set_id(std::to_string(globalTransactionCounter.fetch_add(1, std::memory_order_relaxed)));
         t->set_client_id(getpid());
 
+        // Log the transaction details
+        log_file << "Transaction ID: " << t->id() << "\n";
+        log_file << "Destination: " << txn.hostname << "\n";
+        log_file << "Operations:\n";
+
         for (int k : txn.keys)
         {
             auto *op = t->add_operations();
@@ -289,7 +301,17 @@ void senderThread(int thread_id)
                 std::uniform_int_distribution<int> value_dist(1000, 9999);
                 op->set_value(std::to_string(value_dist(rng)));
             }
+
+            // Log each operation
+            log_file << "  - Type: " << (op->type() == request::Operation::WRITE ? "WRITE" : "READ")
+                     << ", Key: " << op->key();
+            if (op->type() == request::Operation::WRITE) {
+                log_file << ", Value: " << op->value();
+            }
+            log_file << "\n";
         }
+
+        log_file << "----------------------------------------\n";
 
         std::string serialized;
         req.SerializeToString(&serialized);
@@ -301,6 +323,8 @@ void senderThread(int thread_id)
         sent_count.fetch_add(1, std::memory_order_relaxed);
         usleep(1000); // simulate some delay between sends
     }
+
+    log_file.close();
 }
 
 // a simple monitor that prints every second
