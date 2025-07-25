@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include <thread>
 #include <arpa/inet.h>
+#include <fstream>
 
 #include "batcher.h"
 
@@ -151,13 +152,11 @@ void Batcher::processBatch(std::chrono::nanoseconds::rep &ns_total_stamp_time_)
 
 void Batcher::sendTransaction(request::Request& req_proto)
 {
-
     int target_id = req_proto.target_server_id();
     int& connfd = partial_sequencer_fds[target_id];
 
     // (re)connect on-demand if we lost it
     if (connfd < 0) {
-
         server target = target_peers[target_id];
 
         while ((connfd = setupConnection(target.ip, target.port)) < 0) {
@@ -166,12 +165,36 @@ void Batcher::sendTransaction(request::Request& req_proto)
         }
 
         partial_sequencer_fds[target_id] = connfd; // update the fd in the map
-        
     }
 
     req_proto.set_recipient(request::Request::PARTIAL);
-    req_proto.set_server_id(my_id);  
-    
+    req_proto.set_server_id(my_id);
+
+    // Log the transaction details
+    std::ofstream log_file("batcher_transaction_log_" + std::to_string(my_id) + ".log", std::ios::app);
+    if (log_file) {
+        log_file << "Sending transaction to node " << target_id << ":\n";
+        log_file << "  Server ID: " << req_proto.server_id() << "\n";
+        log_file << "  Target Server ID: " << req_proto.target_server_id() << "\n";
+        log_file << "  Transactions:\n";
+
+        for (const auto& txn : req_proto.transaction()) {
+            log_file << "    Transaction ID: " << txn.id() << "\n";
+            log_file << "    Operations:\n";
+            for (const auto& op : txn.operations()) {
+                log_file << "      - Type: " << (op.type() == request::Operation::WRITE ? "WRITE" : "READ")
+                         << ", Key: " << op.key();
+                if (op.type() == request::Operation::WRITE) {
+                    log_file << ", Value: " << op.value();
+                }
+                log_file << "\n";
+            }
+        }
+        log_file << "----------------------------------------\n";
+    } else {
+        std::cerr << "Failed to open log file for batcher " << my_id << "\n";
+    }
+
     std::string serialized_request;
     if (!req_proto.SerializeToString(&serialized_request)) {
         perror("SerializeToString failed");
@@ -188,7 +211,6 @@ void Batcher::sendTransaction(request::Request& req_proto)
         close(connfd);
         connfd = -1;
     }
-
 }
 
 std::string Batcher::uuidv7() {
