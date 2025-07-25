@@ -89,10 +89,10 @@ void Merger::processIncomingRequest2(const request::Request& req_proto){
             nextExpectedBatch[id]++;
         }
 
-       // If all batches are empty, skip processing
-        if (all_batches_empty) {
-            return;
-        }
+    //    // If all batches are empty, skip processing
+    //     if (all_batches_empty) {
+    //         return;
+    //     }
 
         // print the round and batch size
         std::cout << "Processing round " << rnd << std::endl;
