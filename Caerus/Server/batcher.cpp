@@ -9,23 +9,24 @@
 
 #include "batcher.h"
 
-namespace {
+namespace
+{
     // compile-time constant for a 100ms window
     constexpr std::chrono::milliseconds ROUND_PERIOD{100};
 
-    static thread_local std::mt19937_64 rng{ std::random_device{}() };
+    static thread_local std::mt19937_64 rng{std::random_device{}()};
 
     static thread_local std::uniform_int_distribution<int32_t> dist(
         std::numeric_limits<int32_t>::min(),
-        std::numeric_limits<int32_t>::max()
-    );
+        std::numeric_limits<int32_t>::max());
 }
 
 void Batcher::batchRequests()
 {
 
     // Wait until logical clock is ready
-    while (!LOGICAL_EPOCH_READY.load()) {
+    while (!LOGICAL_EPOCH_READY.load())
+    {
         std::this_thread::sleep_for(std::chrono::milliseconds(1));
     }
 
@@ -42,13 +43,14 @@ void Batcher::batchRequests()
         auto elapsed_ms = std::chrono::duration_cast<std::chrono::milliseconds>(since_0).count();
 
         current_window = elapsed_ms / ROUND_PERIOD.count();
-        //printf("BATCHER: in round %ld\n", current_window);
+        // printf("BATCHER: in round %ld\n", current_window);
 
         auto next_timestamp = LOGICAL_EPOCH + std::chrono::milliseconds((current_window + 1) * ROUND_PERIOD.count());
 
         batch = request_queue_.popAll();
 
-        if (!batch.empty()) {
+        if (!batch.empty())
+        {
             auto t0 = Clock::now();
             processBatch(ns_total_stamp_time);
             auto t1 = Clock::now();
@@ -89,10 +91,10 @@ void Batcher::processBatch(std::chrono::nanoseconds::rep &ns_total_stamp_time_)
 
     for (request::Request &req_proto : batch)
     {
-        auto* txn = req_proto.mutable_transaction(0);
+        auto *txn = req_proto.mutable_transaction(0);
 
         auto t0s = Clock::now();
-        
+
         txn->set_order(uuidv7());
 
         // int32_t x = dist(rng);
@@ -104,25 +106,27 @@ void Batcher::processBatch(std::chrono::nanoseconds::rep &ns_total_stamp_time_)
         ns_total_stamp_time_ += std::chrono::duration_cast<std::chrono::nanoseconds>(t1s - t0s).count();
 
         std::unordered_set<int32_t> target_peers;
-        //printf("BATCHER: Transaction %s for client %d:\n", txn.id().c_str(), txn.client_id());
+        // printf("BATCHER: Transaction %s for client %d:\n", txn.id().c_str(), txn.client_id());
 
         bool validTransaction = true;
-        for (const auto& op : txn->operations())
+        for (const auto &op : txn->operations())
         {
             auto it = mockDB.find(op.key());
-            if (it == mockDB.end()) {
+            if (it == mockDB.end())
+            {
                 printf("  Key %s not found in the mock database\n", op.key().c_str());
                 validTransaction = false;
                 break;
             }
-            
-            const DataItem& data_item = it->second;
+
+            const DataItem &data_item = it->second;
             // Add the primary copy ID to the set.
             target_peers.insert(data_item.primaryCopyID);
         }
-        
-        if (!validTransaction){
-            printf("BATCHER: Transaction %s for client %d is invalid, skipping\n", 
+
+        if (!validTransaction)
+        {
+            printf("BATCHER: Transaction %s for client %d is invalid, skipping\n",
                    txn->id().c_str(), txn->client_id());
             continue;
         }
@@ -137,29 +141,31 @@ void Batcher::processBatch(std::chrono::nanoseconds::rep &ns_total_stamp_time_)
             else
             {
                 req_proto.set_target_server_id(target_id);
-                outbound_queue.push(req_proto);                
+                outbound_queue.push(req_proto);
             }
         }
-
     }
 
     batch_cv.notify_all();
 
-    if (!batch_for_partial_sequencer.empty()) {
+    if (!batch_for_partial_sequencer.empty())
+    {
         batcher_to_partial_sequencer_queue_.pushAll(batch_for_partial_sequencer);
     }
 }
 
-void Batcher::sendTransaction(request::Request& req_proto)
+void Batcher::sendTransaction(request::Request &req_proto)
 {
     int target_id = req_proto.target_server_id();
-    int& connfd = partial_sequencer_fds[target_id];
+    int &connfd = partial_sequencer_fds[target_id];
 
     // (re)connect on-demand if we lost it
-    if (connfd < 0) {
+    if (connfd < 0)
+    {
         server target = target_peers[target_id];
 
-        while ((connfd = setupConnection(target.ip, target.port)) < 0) {
+        while ((connfd = setupConnection(target.ip, target.port)) < 0)
+        {
             std::cerr << "Batcher " << my_id << ": reconnect to peer " << target_id << " failed, retrying in 1s…\n";
             std::this_thread::sleep_for(std::chrono::seconds(1));
         }
@@ -172,31 +178,38 @@ void Batcher::sendTransaction(request::Request& req_proto)
 
     // Log the transaction details
     std::ofstream log_file("batcher_transaction_log_" + std::to_string(my_id) + ".log", std::ios::app);
-    if (log_file) {
+    if (log_file)
+    {
         log_file << "Sending transaction to node " << target_id << ":\n";
         log_file << "  Server ID: " << req_proto.server_id() << "\n";
         log_file << "  Target Server ID: " << req_proto.target_server_id() << "\n";
         log_file << "  Transactions:\n";
 
-        for (const auto& txn : req_proto.transaction()) {
+        for (const auto &txn : req_proto.transaction())
+        {
             log_file << "    Transaction ID: " << txn.id() << "\n";
             log_file << "    Operations:\n";
-            for (const auto& op : txn.operations()) {
+            for (const auto &op : txn.operations())
+            {
                 log_file << "      - Type: " << (op.type() == request::Operation::WRITE ? "WRITE" : "READ")
                          << ", Key: " << op.key();
-                if (op.type() == request::Operation::WRITE) {
+                if (op.type() == request::Operation::WRITE)
+                {
                     log_file << ", Value: " << op.value();
                 }
                 log_file << "\n";
             }
         }
         log_file << "----------------------------------------\n";
-    } else {
+    }
+    else
+    {
         std::cerr << "Failed to open log file for batcher " << my_id << "\n";
     }
 
     std::string serialized_request;
-    if (!req_proto.SerializeToString(&serialized_request)) {
+    if (!req_proto.SerializeToString(&serialized_request))
+    {
         perror("SerializeToString failed");
         close(connfd);
         return;
@@ -213,7 +226,8 @@ void Batcher::sendTransaction(request::Request& req_proto)
     }
 }
 
-std::string Batcher::uuidv7() {
+std::string Batcher::uuidv7()
+{
     static thread_local std::mt19937_64 rng(std::random_device{}());
     static thread_local std::uniform_int_distribution<uint64_t> dist;
 
@@ -222,8 +236,8 @@ std::string Batcher::uuidv7() {
     // current timestamp in milliseconds
     auto now = std::chrono::system_clock::now();
     uint64_t millis = std::chrono::duration_cast<std::chrono::milliseconds>(
-        now.time_since_epoch()
-    ).count();
+                          now.time_since_epoch())
+                          .count();
 
     // UUIDv7 timestamp (first 48 bits)
     value[0] = (millis >> 40) & 0xFF;
@@ -238,7 +252,7 @@ std::string Batcher::uuidv7() {
     uint64_t rand2 = dist(rng);
 
     // rand_a (12 bits) and version (4 bits)
-    value[6] = 0x70 | ((rand1 >> 56) & 0x0F);  // UUIDv7 version = 0111
+    value[6] = 0x70 | ((rand1 >> 56) & 0x0F); // UUIDv7 version = 0111
     value[7] = (rand1 >> 48) & 0xFF;
 
     // Variant bits (2 bits = 10xxxxxx) + rand_b (62 bits)
@@ -254,43 +268,41 @@ std::string Batcher::uuidv7() {
     // Format as string
     char buf[37];
     std::snprintf(buf, sizeof(buf),
-        "%02x%02x%02x%02x-"
-        "%02x%02x-"
-        "%02x%02x-"
-        "%02x%02x-"
-        "%02x%02x%02x%02x%02x%02x",
-        value[0], value[1], value[2], value[3],
-        value[4], value[5],
-        value[6], value[7],
-        value[8], value[9],
-        value[10], value[11], value[12], value[13], value[14], value[15]
-    );
+                  "%02x%02x%02x%02x-"
+                  "%02x%02x-"
+                  "%02x%02x-"
+                  "%02x%02x-"
+                  "%02x%02x%02x%02x%02x%02x",
+                  value[0], value[1], value[2], value[3],
+                  value[4], value[5],
+                  value[6], value[7],
+                  value[8], value[9],
+                  value[10], value[11], value[12], value[13], value[14], value[15]);
 
     return std::string(buf);
 }
 
-
 // Constructor
 Batcher::Batcher()
 {
-    if (pthread_create(&sender_thread, NULL, [](void* arg) -> void* {
+    if (pthread_create(&sender_thread, NULL, [](void *arg) -> void *
+                       {
             static_cast<Batcher*>(arg)->Batcher::sendTransactions();
-            return nullptr;
-        }, this) != 0) 
+            return nullptr; }, this) != 0)
     {
         threadError("Error creating sender thread");
     }
 
     pthread_detach(sender_thread);
 
-    if (pthread_create(&batcher_thread, NULL, [](void* arg) -> void* {
+    if (pthread_create(&batcher_thread, NULL, [](void *arg) -> void *
+                       {
             static_cast<Batcher*>(arg)->Batcher::batchRequests();
-            return nullptr;
-        }, this) != 0) 
+            return nullptr; }, this) != 0)
     {
         threadError("Error creating batcher thread");
     }
-    
+
     pthread_detach(batcher_thread);
 
     for (auto &server : servers)
@@ -300,23 +312,22 @@ Batcher::Batcher()
             target_peers[server.id] = server;
             partial_sequencer_fds[server.id] = -1;
         }
-        
     }
 
     printf("Batcher initialized with %zu target peers\n", target_peers.size());
-    
 }
 
-void Batcher::sendTransactions(){
+void Batcher::sendTransactions()
+{
 
-    while (true) {
+    while (true)
+    {
         std::unique_lock<std::mutex> lk(batch_mutex);
-        batch_cv.wait(lk, [&]{ return !outbound_queue.empty(); });
-        auto req = outbound_queue.pop();   // thread-safe pop
+        batch_cv.wait(lk, [&]
+                      { return !outbound_queue.empty(); });
+        auto req = outbound_queue.pop(); // thread-safe pop
         lk.unlock();
 
         sendTransaction(req);
-
     }
-
 }

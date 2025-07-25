@@ -24,7 +24,7 @@ using json = nlohmann::json;
 
 std::unordered_map<int, int> key_to_primary;
 // every thread sees its own copy, initialized once per thread
-static thread_local std::mt19937 rng{ std::random_device{}() };
+static thread_local std::mt19937 rng{std::random_device{}()};
 std::vector<int> all_keys; // initialized once at startup
 
 // Global atomic counter for transaction orders
@@ -252,7 +252,8 @@ void senderThread(int thread_id)
 
     // Open a log file for this thread
     std::ofstream log_file("transaction_log_thread_" + std::to_string(thread_id) + ".log", std::ios::app);
-    if (!log_file) {
+    if (!log_file)
+    {
         std::cerr << "Failed to open log file for thread " << thread_id << "\n";
         exit(1);
     }
@@ -305,7 +306,8 @@ void senderThread(int thread_id)
             // Log each operation
             log_file << "  - Type: " << (op->type() == request::Operation::WRITE ? "WRITE" : "READ")
                      << ", Key: " << op->key();
-            if (op->type() == request::Operation::WRITE) {
+            if (op->type() == request::Operation::WRITE)
+            {
                 log_file << ", Value: " << op->value();
             }
             log_file << "\n";
