@@ -72,8 +72,14 @@ void Merger::processIncomingRequest2(const request::Request& req_proto){
         // we have all the batches for this round, so we can process it
         current_batch.clear();
         current_batch.reserve(expected_server_ids.size());
+        bool all_batches_empty = true;
+
         for (auto &server : expected_server_ids)
         {
+            const auto &batch = batchBuffer[server][rnd];
+            if (!batch.transaction().empty()) {
+                all_batches_empty = false;
+            }
             current_batch.push_back(std::move(batchBuffer[server][rnd]));
             batchBuffer[server].erase(rnd); // remove it from the buffer
         }
@@ -82,6 +88,14 @@ void Merger::processIncomingRequest2(const request::Request& req_proto){
         for (int id : expected_server_ids) {
             nextExpectedBatch[id]++;
         }
+
+       // If all batches are empty, skip processing
+        if (all_batches_empty) {
+            return;
+        }
+
+        // print the round and batch size
+        std::cout << "Processing round " << rnd << std::endl;
 
         processRoundRequests();
         // signal the insert thread
