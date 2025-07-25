@@ -129,7 +129,7 @@ void Batcher::processBatch(std::chrono::nanoseconds::rep &ns_total_stamp_time_)
         for (auto target_id : target_peers)
         {
             // clone the original request
-            request::Request req = req_proto;  
+            request::Request req = req_proto;
             req.set_recipient(request::Request::PARTIAL);
             req.set_server_id(my_id);
             req.set_target_server_id(target_id);
@@ -151,7 +151,7 @@ void Batcher::processBatch(std::chrono::nanoseconds::rep &ns_total_stamp_time_)
     if (!batch_for_partial_sequencer.empty())
     {
         // Log the local pushes
-        std::ofstream log_file("batcher_local_push_log_" + std::to_string(my_id) + ".log", std::ios::app);
+        std::ofstream log_file("batcher_local_push_log_" + std::to_string(my_id) + ".log", std::ios::trunc);
         if (log_file)
         {
             log_file << "Pushing local transactions to partial sequencer:\n";
@@ -204,7 +204,7 @@ void Batcher::sendTransaction(request::Request &req_proto)
     req_proto.set_server_id(my_id);
 
     // Log the transaction details
-    std::ofstream log_file("batcher_transaction_log_" + std::to_string(my_id) + ".log", std::ios::app);
+    std::ofstream log_file("batcher_transaction_log_" + std::to_string(my_id) + ".log", std::ios::trunc);
     if (log_file)
     {
         log_file << "Sending transaction to node " << target_id << ":\n";
