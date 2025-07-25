@@ -274,7 +274,7 @@ void senderThread(int thread_id)
         std::this_thread::yield();
     }
 
-    while (sent_count.load(std::memory_order_relaxed) < 1000000)
+    while (sent_count.load(std::memory_order_relaxed) < 3500000)
     {
         TxnSpec txn = generateTxn();
         int fd = my_conns[txn.hostname];
@@ -287,10 +287,10 @@ void senderThread(int thread_id)
         t->set_id(std::to_string(globalTransactionCounter.fetch_add(1, std::memory_order_relaxed)));
         t->set_client_id(getpid());
 
-        // Log the transaction details
-        log_file << "Transaction ID: " << t->id() << "\n";
-        log_file << "Destination: " << txn.hostname << "\n";
-        log_file << "Operations:\n";
+        // // Log the transaction details
+        // log_file << "Transaction ID: " << t->id() << "\n";
+        // log_file << "Destination: " << txn.hostname << "\n";
+        // log_file << "Operations:\n";
 
         for (int k : txn.keys)
         {
@@ -303,17 +303,17 @@ void senderThread(int thread_id)
                 op->set_value(std::to_string(value_dist(rng)));
             }
 
-            // Log each operation
-            log_file << "  - Type: " << (op->type() == request::Operation::WRITE ? "WRITE" : "READ")
-                     << ", Key: " << op->key();
-            if (op->type() == request::Operation::WRITE)
-            {
-                log_file << ", Value: " << op->value();
-            }
-            log_file << "\n";
+            // // Log each operation
+            // log_file << "  - Type: " << (op->type() == request::Operation::WRITE ? "WRITE" : "READ")
+            //          << ", Key: " << op->key();
+            // if (op->type() == request::Operation::WRITE)
+            // {
+            //     log_file << ", Value: " << op->value();
+            // }
+            // log_file << "\n";
         }
 
-        log_file << "----------------------------------------\n";
+        // log_file << "----------------------------------------\n";
 
         std::string serialized;
         req.SerializeToString(&serialized);

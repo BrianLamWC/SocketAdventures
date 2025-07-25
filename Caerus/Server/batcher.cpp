@@ -48,36 +48,36 @@ void Batcher::batchRequests()
         // Pull all transactions from the request queue
         batch = request_queue_.popAll();
 
-        // Log the received transactions
-        if (!batch.empty())
-        {
-            std::ofstream log_file("batcher_received_log_" + std::to_string(my_id) + ".log", std::ios::app);
-            if (log_file)
-            {
-                log_file << "Transactions Received by Batcher:\n";
-                for (const auto &req : batch)
-                {
-                    log_file << "  Transaction ID: " << req.transaction(0).id() << "\n";
-                    log_file << "  Client ID: " << req.transaction(0).client_id() << "\n";
-                    log_file << "  Operations:\n";
-                    for (const auto &op : req.transaction(0).operations())
-                    {
-                        log_file << "    - Type: " << (op.type() == request::Operation::WRITE ? "WRITE" : "READ")
-                                 << ", Key: " << op.key();
-                        if (op.type() == request::Operation::WRITE)
-                        {
-                            log_file << ", Value: " << op.value();
-                        }
-                        log_file << "\n";
-                    }
-                }
-                log_file << "----------------------------------------\n";
-            }
-            else
-            {
-                std::cerr << "Failed to open log file for batcher " << my_id << "\n";
-            }
-        }
+        // // Log the received transactions
+        // if (!batch.empty())
+        // {
+        //     std::ofstream log_file("batcher_received_log_" + std::to_string(my_id) + ".log", std::ios::app);
+        //     if (log_file)
+        //     {
+        //         log_file << "Transactions Received by Batcher:\n";
+        //         for (const auto &req : batch)
+        //         {
+        //             log_file << "  Transaction ID: " << req.transaction(0).id() << "\n";
+        //             log_file << "  Client ID: " << req.transaction(0).client_id() << "\n";
+        //             log_file << "  Operations:\n";
+        //             for (const auto &op : req.transaction(0).operations())
+        //             {
+        //                 log_file << "    - Type: " << (op.type() == request::Operation::WRITE ? "WRITE" : "READ")
+        //                          << ", Key: " << op.key();
+        //                 if (op.type() == request::Operation::WRITE)
+        //                 {
+        //                     log_file << ", Value: " << op.value();
+        //                 }
+        //                 log_file << "\n";
+        //             }
+        //         }
+        //         log_file << "----------------------------------------\n";
+        //     }
+        //     else
+        //     {
+        //         std::cerr << "Failed to open log file for batcher " << my_id << "\n";
+        //     }
+        // }
 
         if (!batch.empty())
         {
@@ -181,33 +181,33 @@ void Batcher::processBatch(std::chrono::nanoseconds::rep &ns_total_stamp_time_)
 
     if (!batch_for_partial_sequencer.empty()) // has to have at least one transaction because transactions are always sent to nodes that have the primary copy of one of the keys in
     {
-        // Log the local pushes
-        std::ofstream log_file("batcher_local_push_log_" + std::to_string(my_id) + ".log", std::ios::app);
-        if (log_file)
-        {
-            log_file << "Pushing local transactions to partial sequencer:\n";
-            for (const auto &req : batch_for_partial_sequencer)
-            {
-                log_file << "  Transaction ID: " << req.transaction(0).id() << "\n";
-                log_file << "  batcher_round: " << req.batcher_round() << "\n";
-                log_file << "  Operations:\n";
-                for (const auto &op : req.transaction(0).operations())
-                {
-                    log_file << "    - Type: " << (op.type() == request::Operation::WRITE ? "WRITE" : "READ")
-                             << ", Key: " << op.key();
-                    if (op.type() == request::Operation::WRITE)
-                    {
-                        log_file << ", Value: " << op.value();
-                    }
-                    log_file << "\n";
-                }
-            }
-            log_file << "----------------------------------------\n";
-        }
-        else
-        {
-            std::cerr << "Failed to open log file for batcher " << my_id << "\n";
-        }
+        // // Log the local pushes
+        // std::ofstream log_file("batcher_local_push_log_" + std::to_string(my_id) + ".log", std::ios::app);
+        // if (log_file)
+        // {
+        //     log_file << "Pushing local transactions to partial sequencer:\n";
+        //     for (const auto &req : batch_for_partial_sequencer)
+        //     {
+        //         log_file << "  Transaction ID: " << req.transaction(0).id() << "\n";
+        //         log_file << "  batcher_round: " << req.batcher_round() << "\n";
+        //         log_file << "  Operations:\n";
+        //         for (const auto &op : req.transaction(0).operations())
+        //         {
+        //             log_file << "    - Type: " << (op.type() == request::Operation::WRITE ? "WRITE" : "READ")
+        //                      << ", Key: " << op.key();
+        //             if (op.type() == request::Operation::WRITE)
+        //             {
+        //                 log_file << ", Value: " << op.value();
+        //             }
+        //             log_file << "\n";
+        //         }
+        //     }
+        //     log_file << "----------------------------------------\n";
+        // }
+        // else
+        // {
+        //     std::cerr << "Failed to open log file for batcher " << my_id << "\n";
+        // }
 
         batcher_to_partial_sequencer_queue_.pushAll(batch_for_partial_sequencer);
     }
@@ -235,36 +235,36 @@ void Batcher::sendTransaction(request::Request &req_proto)
     req_proto.set_recipient(request::Request::PARTIAL);
     req_proto.set_server_id(my_id);
 
-    // Log the transaction details
-    std::ofstream log_file("batcher_transaction_log_" + std::to_string(my_id) + ".log", std::ios::app);
-    if (log_file)
-    {
-        log_file << "Sending transaction to node " << target_id << ":\n";
-        log_file << "  Server ID: " << req_proto.server_id() << "\n";
-        log_file << "  Target Server ID: " << req_proto.target_server_id() << "\n";
-        log_file << "  Transactions:\n";
+    // // Log the transaction details
+    // std::ofstream log_file("batcher_transaction_log_" + std::to_string(my_id) + ".log", std::ios::app);
+    // if (log_file)
+    // {
+    //     log_file << "Sending transaction to node " << target_id << ":\n";
+    //     log_file << "  Server ID: " << req_proto.server_id() << "\n";
+    //     log_file << "  Target Server ID: " << req_proto.target_server_id() << "\n";
+    //     log_file << "  Transactions:\n";
 
-        for (const auto &txn : req_proto.transaction())
-        {
-            log_file << "    Transaction ID: " << txn.id() << "\n";
-            log_file << "    Operations:\n";
-            for (const auto &op : txn.operations())
-            {
-                log_file << "      - Type: " << (op.type() == request::Operation::WRITE ? "WRITE" : "READ")
-                         << ", Key: " << op.key();
-                if (op.type() == request::Operation::WRITE)
-                {
-                    log_file << ", Value: " << op.value();
-                }
-                log_file << "\n";
-            }
-        }
-        log_file << "----------------------------------------\n";
-    }
-    else
-    {
-        std::cerr << "Failed to open log file for batcher " << my_id << "\n";
-    }
+    //     for (const auto &txn : req_proto.transaction())
+    //     {
+    //         log_file << "    Transaction ID: " << txn.id() << "\n";
+    //         log_file << "    Operations:\n";
+    //         for (const auto &op : txn.operations())
+    //         {
+    //             log_file << "      - Type: " << (op.type() == request::Operation::WRITE ? "WRITE" : "READ")
+    //                      << ", Key: " << op.key();
+    //             if (op.type() == request::Operation::WRITE)
+    //             {
+    //                 log_file << ", Value: " << op.value();
+    //             }
+    //             log_file << "\n";
+    //         }
+    //     }
+    //     log_file << "----------------------------------------\n";
+    // }
+    // else
+    // {
+    //     std::cerr << "Failed to open log file for batcher " << my_id << "\n";
+    // }
 
     std::string serialized_request;
     if (!req_proto.SerializeToString(&serialized_request))
