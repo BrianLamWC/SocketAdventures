@@ -251,7 +251,7 @@ void senderThread(int thread_id)
     const int target_port = 7001;
 
     // Open a log file for this thread
-    std::ofstream log_file("transaction_log_thread_" + std::to_string(thread_id) + ".log", std::ios::app);
+    std::ofstream log_file("transaction_log_thread_" + std::to_string(thread_id) + ".log", std::ios::trunc);
     if (!log_file)
     {
         std::cerr << "Failed to open log file for thread " << thread_id << "\n";
