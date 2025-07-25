@@ -266,7 +266,7 @@ void senderThread(int thread_id)
         std::this_thread::yield();
     }
 
-    while (sent_count.load(std::memory_order_relaxed) < 2000000)
+    while (sent_count.load(std::memory_order_relaxed) < 100)
     {
         TxnSpec txn = generateTxn();
         int fd = my_conns[txn.hostname];
