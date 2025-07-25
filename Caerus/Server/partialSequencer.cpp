@@ -215,16 +215,16 @@ void PartialSequencer::processPartialSequence3()
             partial_sequence_.add_transaction()->CopyFrom(req.transaction(0));
         }
 
-        // 6) log if partial sequence is not empty
-        if (partial_sequence_.transaction_size() > 0)
-        {
-          std::ofstream logf("partial_sequence_log_" + std::to_string(my_id) + ".log",
-                              std::ios::app);
-          if (logf) {
-            logf << "PartialSequence window=" << window
-                 << " txns=" << partial_sequence_.transaction_size() << "\n";
-          }
-        }
+        // // 6) log if partial sequence is not empty
+        // if (partial_sequence_.transaction_size() > 0)
+        // {
+        //   std::ofstream logf("partial_sequence_log_" + std::to_string(my_id) + ".log",
+        //                       std::ios::app);
+        //   if (logf) {
+        //     logf << "PartialSequence window=" << window
+        //          << " txns=" << partial_sequence_.transaction_size() << "\n";
+        //   }
+        // }
 
         // 7) hand off to the Merger
         partial_sequencer_to_merger_queue_.push(partial_sequence_);
