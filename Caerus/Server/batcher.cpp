@@ -165,7 +165,7 @@ void Batcher::processBatch(std::chrono::nanoseconds::rep &ns_total_stamp_time_)
             req.set_recipient(request::Request::PARTIAL);
             req.set_server_id(my_id);
             req.set_target_server_id(target_id);
-            req.set_batcher_round(next_round_);
+            req.set_batcher_round(batcher_round);
 
             if (target_id == my_id)
             {
