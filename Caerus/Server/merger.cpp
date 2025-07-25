@@ -97,6 +97,11 @@ void Merger::processIncomingRequest2(const request::Request& req_proto){
         // print the round and batch size
         std::cout << "Processing round " << rnd << std::endl;
 
+        // print all the transactions in the batch
+        for (const auto &txn : current_batch) {
+            std::cout << "  Transaction from server " << txn.server_id() << " with " << txn.transaction_size() << " operations." << std::endl;
+        }
+
         processRoundRequests();
         // signal the insert thread
         {
