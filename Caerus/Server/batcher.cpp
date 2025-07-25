@@ -97,16 +97,12 @@ void Batcher::processBatch(std::chrono::nanoseconds::rep &ns_total_stamp_time_)
 
         txn->set_order(uuidv7());
 
-        // int32_t x = dist(rng);
-        // txn->set_order(std::to_string(x));
-
         auto t1s = Clock::now();
 
         // accumulate the stamping time
         ns_total_stamp_time_ += std::chrono::duration_cast<std::chrono::nanoseconds>(t1s - t0s).count();
 
         std::unordered_set<int32_t> target_peers;
-        // printf("BATCHER: Transaction %s for client %d:\n", txn.id().c_str(), txn.client_id());
 
         bool validTransaction = true;
         for (const auto &op : txn->operations())
@@ -120,7 +116,6 @@ void Batcher::processBatch(std::chrono::nanoseconds::rep &ns_total_stamp_time_)
             }
 
             const DataItem &data_item = it->second;
-            // Add the primary copy ID to the set.
             target_peers.insert(data_item.primaryCopyID);
         }
 
@@ -150,6 +145,33 @@ void Batcher::processBatch(std::chrono::nanoseconds::rep &ns_total_stamp_time_)
 
     if (!batch_for_partial_sequencer.empty())
     {
+        // Log the local pushes
+        std::ofstream log_file("batcher_local_push_log_" + std::to_string(my_id) + ".log", std::ios::app);
+        if (log_file)
+        {
+            log_file << "Pushing local transactions to partial sequencer:\n";
+            for (const auto &req : batch_for_partial_sequencer)
+            {
+                log_file << "  Transaction ID: " << req.transaction(0).id() << "\n";
+                log_file << "  Operations:\n";
+                for (const auto &op : req.transaction(0).operations())
+                {
+                    log_file << "    - Type: " << (op.type() == request::Operation::WRITE ? "WRITE" : "READ")
+                             << ", Key: " << op.key();
+                    if (op.type() == request::Operation::WRITE)
+                    {
+                        log_file << ", Value: " << op.value();
+                    }
+                    log_file << "\n";
+                }
+            }
+            log_file << "----------------------------------------\n";
+        }
+        else
+        {
+            std::cerr << "Failed to open log file for batcher " << my_id << "\n";
+        }
+
         batcher_to_partial_sequencer_queue_.pushAll(batch_for_partial_sequencer);
     }
 }
