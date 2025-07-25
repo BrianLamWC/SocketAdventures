@@ -174,7 +174,38 @@ void PartialSequencer::sendPartialSequence()
 
 void PartialSequencer::pushReceivedTransactionIntoPartialSequence(const request::Request &req_proto)
 {
-    // expect one transaction only
+    // Log the received transaction
+    std::ofstream log_file("partial_sequencer_received_log_" + std::to_string(my_id) + ".log", std::ios::app);
+    if (log_file)
+    {
+        log_file << "Transaction Received by Partial Sequencer:\n";
+        log_file << "  Server ID: " << req_proto.server_id() << "\n";
+        log_file << "  Recipient: " << req_proto.recipient() << "\n";
+        log_file << "  Transactions:\n";
+
+        for (const auto &txn : req_proto.transaction())
+        {
+            log_file << "    Transaction ID: " << txn.id() << "\n";
+            log_file << "    Operations:\n";
+            for (const auto &op : txn.operations())
+            {
+                log_file << "      - Type: " << (op.type() == request::Operation::WRITE ? "WRITE" : "READ")
+                         << ", Key: " << op.key();
+                if (op.type() == request::Operation::WRITE)
+                {
+                    log_file << ", Value: " << op.value();
+                }
+                log_file << "\n";
+            }
+        }
+        log_file << "----------------------------------------\n";
+    }
+    else
+    {
+        std::cerr << "Failed to open log file for partial sequencer " << my_id << "\n";
+    }
+
+    // Push the transaction into the queue
     batcher_to_partial_sequencer_queue_.push(req_proto);
 }
 
@@ -182,6 +213,7 @@ PartialSequencer::PartialSequencer()
 {
 
     std::ofstream init_log("partial_sequence_log_" + std::to_string(my_id) + ".log", std::ios::out | std::ios::trunc);
+    std::ofstream init_recv_log("partial_sequencer_received_log_" + std::to_string(my_id) + ".log", std::ios::out | std::ios::trunc);
 
     if (pthread_create(&partial_sequencer_thread, NULL, [](void *arg) -> void *
                        {
