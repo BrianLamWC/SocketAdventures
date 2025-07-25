@@ -115,6 +115,8 @@ void Batcher::batchRequests()
 
 void Batcher::processBatch(std::chrono::nanoseconds::rep &ns_total_stamp_time_)
 {
+    int32_t batcher_round = next_round_++;
+
     std::vector<request::Request> batch_for_partial_sequencer;
     batch_for_partial_sequencer.reserve(batch.size());
 
@@ -163,6 +165,7 @@ void Batcher::processBatch(std::chrono::nanoseconds::rep &ns_total_stamp_time_)
             req.set_recipient(request::Request::PARTIAL);
             req.set_server_id(my_id);
             req.set_target_server_id(target_id);
+            req.set_batcher_round(next_round_);
 
             if (target_id == my_id)
             {
@@ -175,8 +178,6 @@ void Batcher::processBatch(std::chrono::nanoseconds::rep &ns_total_stamp_time_)
         }
     }
 
-    batch_cv.notify_all();
-
     if (!batch_for_partial_sequencer.empty())
     {
         // Log the local pushes
@@ -187,6 +188,7 @@ void Batcher::processBatch(std::chrono::nanoseconds::rep &ns_total_stamp_time_)
             for (const auto &req : batch_for_partial_sequencer)
             {
                 log_file << "  Transaction ID: " << req.transaction(0).id() << "\n";
+                log_file << "  batcher_round: " << req.batcher_round() << "\n";
                 log_file << "  Operations:\n";
                 for (const auto &op : req.transaction(0).operations())
                 {

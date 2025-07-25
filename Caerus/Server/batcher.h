@@ -33,6 +33,8 @@ private:
     std::unordered_map<int, server> target_peers;
     std::unordered_map<int,int> partial_sequencer_fds; // id to fd mapping for partial sequencer connections
 
+    int32_t next_round_{0};
+
 public:
 
     Batcher();

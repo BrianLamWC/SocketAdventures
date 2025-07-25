@@ -63,6 +63,12 @@ void PartialSequencer::processPartialSequence2()
         std::this_thread::sleep_for(std::chrono::milliseconds(1));
     }
 
+    // the next batch_round we want to output
+    int32_t next_output_round_ = 0;  // or 1, whichever matches your Batcher
+
+    // buffer: batcher_round -> list of Request protos
+    std::map<int32_t, std::vector<request::Request>> pending;
+
     while (true)
     {
         // block until there’s at least one txn to send
@@ -72,59 +78,75 @@ void PartialSequencer::processPartialSequence2()
         }
 
         // pull them all out
-        transactions_received = batcher_to_partial_sequencer_queue_.popAll();
-
-        // BUILD the request with an incrementing round
-        partial_sequence_.Clear();
-        partial_sequence_.set_server_id(my_id);
-        partial_sequence_.set_recipient(request::Request::MERGER);
-        partial_sequence_.set_round(next_round_++);
-
-        for (const auto &txn : transactions_received)
-        {
-            partial_sequence_.add_transaction()->CopyFrom(txn.transaction(0));
-        }
-
-        // Log the partial sequence
-        std::ofstream log_file("partial_sequence_log_" + std::to_string(my_id) + ".log", std::ios::app);
-        if (log_file)
-        {
-            log_file << "Partial Sequence Created:\n";
-            log_file << "  Server ID: " << partial_sequence_.server_id() << "\n";
-            log_file << "  Round: " << partial_sequence_.round() << "\n";
-            log_file << "  Transactions:\n";
-            for (const auto &txn : partial_sequence_.transaction())
-            {
-                log_file << "    Transaction ID: " << txn.id() << "\n";
-                log_file << "    Operations:\n";
-                for (const auto &op : txn.operations())
-                {
-                    log_file << "      - Type: " << (op.type() == request::Operation::WRITE ? "WRITE" : "READ")
-                             << ", Key: " << op.key();
-                    if (op.type() == request::Operation::WRITE)
-                    {
-                        log_file << ", Value: " << op.value();
-                    }
-                    log_file << "\n";
-                }
+        auto transactions_received = batcher_to_partial_sequencer_queue_.popAll();
+        for (auto &req_proto : transactions_received) {
+            if (req_proto.has_batcher_round()) {
+                auto br = req_proto.batcher_round();
+                pending[br].push_back(std::move(req_proto));
+            } else {
+                continue;
             }
-            log_file << "----------------------------------------\n";
-        }
-        else
+        }        
+
+        while (true)
         {
-            std::cerr << "Failed to open log file for partial sequencer " << my_id << "\n";
+            // if we have no pending requests for the next output round, break
+            auto it = pending.find(next_output_round_);
+            if (it == pending.end()) break;
+
+            // build one partial sequence for this round
+            partial_sequence_.Clear();
+            partial_sequence_.set_server_id(my_id);
+            partial_sequence_.set_recipient(request::Request::MERGER);
+            partial_sequence_.set_round(next_round_++);
+
+            for (const auto &txn : it->second)
+            {
+                partial_sequence_.add_transaction()->CopyFrom(txn.transaction(0));
+            }        
+            
+            // Log the partial sequence
+            std::ofstream log_file("partial_sequence_log_" + std::to_string(my_id) + ".log", std::ios::app);
+            if (log_file)
+            {
+                log_file << "Partial Sequence Created:\n";
+                log_file << "  Server ID: " << partial_sequence_.server_id() << "\n";
+                log_file << "  Round: " << partial_sequence_.round() << "\n";
+                log_file << "  Transactions:\n";
+                for (const auto &txn : partial_sequence_.transaction())
+                {
+                    log_file << "    Transaction ID: " << txn.id() << "\n";
+                    log_file << "    Operations:\n";
+                    for (const auto &op : txn.operations())
+                    {
+                        log_file << "      - Type: " << (op.type() == request::Operation::WRITE ? "WRITE" : "READ")
+                                << ", Key: " << op.key();
+                        if (op.type() == request::Operation::WRITE)
+                        {
+                            log_file << ", Value: " << op.value();
+                        }
+                        log_file << "\n";
+                    }
+                }
+                log_file << "----------------------------------------\n";
+            }
+            else
+            {
+                std::cerr << "Failed to open log file for partial sequencer " << my_id << "\n";
+            }
+
+            // PUSH & NOTIFY downstream
+            partial_sequencer_to_merger_queue_.push(partial_sequence_);
+            partial_sequencer_to_merger_queue_cv.notify_one();
+
+            // SEND to peers
+            sendPartialSequence();
+
+            // remove and advance
+            pending.erase(it);
+            next_output_round_++;
         }
 
-        // PUSH & NOTIFY downstream
-        partial_sequencer_to_merger_queue_.push(partial_sequence_);
-        partial_sequencer_to_merger_queue_cv.notify_one();
-
-        // SEND to peers
-        sendPartialSequence();
-
-        // clear for next time
-        transactions_received.clear();
-        // and loop immediately—no sleeping
     }
 }
 
@@ -179,6 +201,7 @@ void PartialSequencer::pushReceivedTransactionIntoPartialSequence(const request:
     if (log_file)
     {
         log_file << "Transaction Received by Partial Sequencer from:\n";
+        log_file << "  Batcher round: " << req_proto.batcher_round()<<"\n";
         log_file << "  Server ID: " << req_proto.server_id() << "\n";
         log_file << "  Transactions:\n";
 

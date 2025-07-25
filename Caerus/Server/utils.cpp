@@ -79,6 +79,7 @@ int setupConnection(const std::string &ip, int port)
         // print the address of the peer we tried to connect to
         fprintf(stderr, "setupConnection: error connecting to %s:%d\n", ip.c_str(), port);
     }
+    
     return connfd;
 
 }
