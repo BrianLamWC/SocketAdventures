@@ -313,8 +313,8 @@ std::string Batcher::uuidv7()
 Batcher::Batcher()
 {
 
-    std::ofstream init_log("batcher_local_push_log_" + std::to_string(my_id) + ".log", std::ios::out | std::ios::trunc);
-    std::ofstream init_log("batcher_transaction_log_" + std::to_string(my_id) + ".log", std::ios::out | std::ios::trunc);
+    std::ofstream init_local_log("batcher_local_push_log_" + std::to_string(my_id) + ".log", std::ios::out | std::ios::trunc);
+    std::ofstream init_sent_log("batcher_transaction_log_" + std::to_string(my_id) + ".log", std::ios::out | std::ios::trunc);
 
     if (pthread_create(&sender_thread, NULL, [](void *arg) -> void *
                        {
