@@ -178,6 +178,8 @@ void Batcher::processBatch(std::chrono::nanoseconds::rep &ns_total_stamp_time_)
         }
     }
 
+    batch_cv.notify_all();
+
     if (!batch_for_partial_sequencer.empty())
     {
         // Log the local pushes
