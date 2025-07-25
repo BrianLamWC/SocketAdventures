@@ -98,7 +98,7 @@ void PartialSequencer::processPartialSequence2()
             partial_sequence_.Clear();
             partial_sequence_.set_server_id(my_id);
             partial_sequence_.set_recipient(request::Request::MERGER);
-            partial_sequence_.set_round(next_round_++);
+            partial_sequence_.set_round(next_output_round_);
 
             for (const auto &txn : it->second)
             {
