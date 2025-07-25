@@ -112,6 +112,9 @@ void Merger::processIncomingRequest2(const request::Request& req_proto){
         
     } else if (rnd > expected_round) 
     {
+        // print a message
+        std::cout << "Received out-of-order request from server " << sid << " for round " << rnd << ", expected round " << expected_round << std::endl;
+
         // we have a batch for a future round, so we need to buffer it
         batchBuffer[sid][rnd] = req_proto;
     }
