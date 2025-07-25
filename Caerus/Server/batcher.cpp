@@ -86,15 +86,15 @@ void Batcher::batchRequests()
 void Batcher::processBatch(std::chrono::nanoseconds::rep &ns_total_stamp_time_)
 {
     std::vector<request::Request> batch_for_partial_sequencer;
+    batch_for_partial_sequencer.reserve(batch.size());
 
     using Clock = std::chrono::high_resolution_clock;
 
     for (request::Request &req_proto : batch)
     {
-        auto *txn = req_proto.mutable_transaction(0);
-
         auto t0s = Clock::now();
 
+        auto *txn = req_proto.mutable_transaction(0);
         txn->set_order(uuidv7());
 
         auto t1s = Clock::now();
@@ -102,8 +102,8 @@ void Batcher::processBatch(std::chrono::nanoseconds::rep &ns_total_stamp_time_)
         // accumulate the stamping time
         ns_total_stamp_time_ += std::chrono::duration_cast<std::chrono::nanoseconds>(t1s - t0s).count();
 
+        // figure out which servers to send this transaction to
         std::unordered_set<int32_t> target_peers;
-
         bool validTransaction = true;
         for (const auto &op : txn->operations())
         {
@@ -128,14 +128,19 @@ void Batcher::processBatch(std::chrono::nanoseconds::rep &ns_total_stamp_time_)
 
         for (auto target_id : target_peers)
         {
+            // clone the original request
+            request::Request req = req_proto;  
+            req.set_recipient(request::Request::PARTIAL);
+            req.set_server_id(my_id);
+            req.set_target_server_id(target_id);
+
             if (target_id == my_id)
             {
                 batch_for_partial_sequencer.push_back(req_proto);
-                req_proto.set_target_server_id(my_id);
             }
             else
             {
-                req_proto.set_target_server_id(target_id);
+                std::lock_guard<std::mutex> lk(batch_mutex);
                 outbound_queue.push(req_proto);
             }
         }
