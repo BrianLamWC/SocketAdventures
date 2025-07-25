@@ -66,7 +66,12 @@ void Merger::processIncomingRequest2(const request::Request& req_proto){
         // check if we have all the batches for this round
         for (auto &server : expected_server_ids)
         {
-            if (batchBuffer[server].find(rnd) == batchBuffer[server].end()) return;
+            if (batchBuffer[server].find(rnd) == batchBuffer[server].end()){
+
+                // print exactly which server is missing
+                std::cout << "Missing batch for server " << server << " in round " << rnd << std::endl;
+                return;
+            }
         }
 
         // we have all the batches for this round, so we can process it
@@ -112,9 +117,6 @@ void Merger::processIncomingRequest2(const request::Request& req_proto){
         
     } else if (rnd > expected_round) 
     {
-        // print a message
-        std::cout << "Received out-of-order request from server " << sid << " for round " << rnd << ", expected round " << expected_round << std::endl;
-
         // we have a batch for a future round, so we need to buffer it
         batchBuffer[sid][rnd] = req_proto;
     }
