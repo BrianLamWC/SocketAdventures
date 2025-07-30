@@ -29,8 +29,7 @@ void Graph::printAll() const
         const Transaction *t = kv.second.get();
         // Basic info
         std::cout << "- UUID: " << t->getUUID()
-                  << ", order: " << t->getOrder()
-                  << ", client: " << t->getClientId() << "\n";
+                  << ", order: " << t->getOrder() << "\n";
         // Operations
         const auto &ops = t->getOperations();
         std::cout << "    Operations (" << ops.size() << "):\n";
@@ -399,8 +398,22 @@ void Graph::getMergedOrders()
         {
             // emit entire SCC, in UUID order
             auto &scc = sccs[scc_index];
-            std::sort(scc.begin(), scc.end(), [&](auto *a, auto *b)
-                      { return a->getOrder() < b->getOrder(); });
+
+            std::sort(scc.begin(), scc.end(), 
+                [&](auto *a, auto *b){ 
+                    
+                    int32_t a_rand = a->getOrder();
+                    int32_t b_rand = b->getOrder();
+
+                    if (a_rand != b_rand) {
+                        return a_rand < b_rand; 
+                    }
+
+                    return a->getUUID() < b->getUUID();                    
+                    
+                
+                });
+
             for (auto *txn : scc)
             {
                 auto up = removeTransaction(txn);
@@ -421,7 +434,6 @@ void Graph::getMergedOrders()
     {
         std::cout
             << "- UUID: " << txn->getUUID()
-            << " order: " << txn->getOrder()
-            << ", client: " << txn->getClientId() << "\n";
+            << " order: " << txn->getOrder() << "\n";
     }
 }

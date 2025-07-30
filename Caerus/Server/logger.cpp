@@ -77,13 +77,9 @@ void Logger::logMergedOrders()
                     // write operation
                     auto it = mockDB_logging.find(op.key);
                     if (it != mockDB_logging.end()) {
-                        // printf("Logger: Updating key %s with value %s for client %d\n", 
-                        //        op.key.c_str(), op.value.c_str(), txn.getClientId());
                         it->second.val = op.value; // update value
                     }
-                    else {
-                        mockDB_logging.emplace(op.key,DataItem{op.value, txn.getClientId()});
-                    }
+
                 } else if (op.type == OperationType::READ) {
                     // read operation, we can log or ignore it as needed
                     auto it = mockDB_logging.find(op.key);

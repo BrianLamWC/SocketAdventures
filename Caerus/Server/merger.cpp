@@ -21,17 +21,17 @@ void Merger::processLocalRequests()
 void Merger::processRoundRequests()
 {
     // printf("Processing round of requests:\n");
-    for (const auto &txn : current_batch)
+    for (const auto &partial_sequence : current_batch)
     {
-        auto it = partial_sequences.find(txn.server_id());
+        auto it = partial_sequences.find(partial_sequence.server_id());
         auto &inner_map = it->second; // this is a unique_ptr to an unordered_map<string, Transaction>
 
-        for (const auto &txn_proto : txn.transaction())
+        for (const auto &txn_proto : partial_sequence.transaction())
         {
 
             std::vector<Operation> operations = getOperationsFromProtoTransaction(txn_proto);
 
-            Transaction transaction(txn_proto.random_stamp(), txn_proto.client_id(), operations, txn_proto.id());
+            Transaction transaction(txn_proto.random_stamp(), partial_sequence.server_id(), operations, txn_proto.id());
 
             inner_map->push(transaction);
         }
