@@ -367,12 +367,19 @@ void Merger::calculateThroughput()
         return;
     }
 
-    double throughput = static_cast<double>(total_transactions) / (ns_elapsed_time / 1e9); // transactions per second
-    std::cout << "Throughput: " << throughput << " transactions/second" << std::endl;
+    // double throughput = static_cast<double>(total_transactions) / (ns_elapsed_time / 1e9); // transactions per second
+    // std::cout << "Throughput: " << throughput << " transactions/second" << std::endl;
 
-    // Reset counters for the next round
-    total_transactions = 0;
-    ns_elapsed_time = 0;
+    // // Reset counters for the next round
+    // total_transactions = 0;
+    // ns_elapsed_time = 0;
+
+    // print time elapsed and total transactions
+    double elapsed_seconds = static_cast<double>(ns_elapsed_time) / 1e9;
+
+    printf("MERGER: Processed %d transactions in %.3f seconds\n",
+           total_transactions,
+           elapsed_seconds);
 }
 
 Merger::Merger()
