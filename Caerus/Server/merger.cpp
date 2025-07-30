@@ -361,18 +361,20 @@ void Merger::insertAlgorithm()
 
 void Merger::calculateThroughput()
 {
+    std::lock_guard<std::mutex> lock(total_transactions_mutex); // Protect shared variables
 
-    // double throughput = static_cast<double>(total_transactions) / (ns_elapsed_time / 1e9); // transactions per second
-    // std::cout << "Throughput: " << throughput << " transactions/second" << std::endl;
+    if (ns_elapsed_time == 0) {
+        printf("MERGER: No elapsed time recorded yet.\n");
+        return;
+    }
 
-    // // Reset counters for the next round
-    // total_transactions = 0;
-    // ns_elapsed_time = 0;
+    double throughput = static_cast<double>(total_transactions) / (ns_elapsed_time / 1e9); // transactions per second
+    printf("MERGER: Processed %d transactions, Throughput: %.2f transactions/second\n",
+           total_transactions, throughput);
 
-    // print time elapsed and total transactions
-    // double elapsed_seconds = static_cast<double>(ns_elapsed_time) / 1e9;
-
-    printf("MERGER: Processed ? transactions\n");
+    // Reset counters for the next round
+    total_transactions = 0;
+    ns_elapsed_time = 0;
 }
 
 Merger::Merger()
