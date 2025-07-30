@@ -149,7 +149,8 @@ void Merger::insertAlgorithm()
     std::unique_lock<std::mutex> lock(insert_mutex);
     while (true)
     {
-        insert_cv.wait(lock, [this](){ return round_ready; });
+        insert_cv.wait(lock, [this]()
+                       { return round_ready; });
         round_ready = false;
 
         for (const auto &server : servers)
@@ -346,8 +347,6 @@ void Merger::insertAlgorithm()
             }
         }
 
-
-
         // Time the graph.getMergedOrders_() call
         auto start_time = std::chrono::high_resolution_clock::now();
         total_transactions += graph.getMergedOrders_();
@@ -359,26 +358,39 @@ void Merger::insertAlgorithm()
         // if total transactions more than 1 million, calculate throughput
         if (total_transactions >= 1000000)
         {
-            calculateThroughput(); 
+            calculateThroughput();
         }
-
     }
 }
 
 void Merger::calculateThroughput()
 {
-
-    if (ns_elapsed_time == 0) {
-        printf("MERGER: No elapsed time recorded yet.\n");
+    if (ns_elapsed_time == 0)
+    {
+        std::ofstream log_file("throughput_log_" + std::to_string(my_id) + ".log", std::ios::app);
+        if (log_file)
+        {
+            log_file << "MERGER: No elapsed time recorded yet.\n";
+        }
         return;
     }
 
     double throughput = static_cast<double>(total_transactions) / (ns_elapsed_time / 1e9); // transactions per second
-    printf("MERGER: Processed %d transactions, Throughput: %.2f transactions/second\n",
-           total_transactions, throughput);
+
+    // Open the log file in append mode
+    std::ofstream log_file("throughput_log_" + std::to_string(my_id) + ".log", std::ios::app);
+    if (!log_file)
+    {
+        std::cerr << "Failed to open log file for merger throughput.\n";
+        return;
+    }
+
+    // Log the throughput and transaction details
+    log_file << "MERGER: Processed " << total_transactions << " transactions, "
+             << "Throughput: " << throughput << " transactions/second\n";
 
     // Reset counters for the next round
-    total_transactions = 0 ;
+    total_transactions = 0;
     ns_elapsed_time = 0;
 }
 
@@ -386,6 +398,7 @@ Merger::Merger()
 {
 
     std::ofstream init_log(log_path_, std::ios::out | std::ios::trunc);
+    std::ofstream init_tp("throughput_log_" + std::to_string(my_id) + ".log", std::ios::out | std::ios::trunc);
 
     partial_sequences.rehash(1);
 
