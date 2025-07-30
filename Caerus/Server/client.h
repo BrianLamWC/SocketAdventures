@@ -5,17 +5,20 @@
 #include "utils.h"
 #include "batcher.h"
 #include "logger.h"
+#include "merger.h"
 
 struct ClientListenerThreadsArgs
 {
     int listenfd;
     Logger* logger;
+    Merger* merger; 
 };
 
 struct ClientArgs {
     int connfd;
     struct sockaddr_in client_addr;
     Logger* logger;  // Pointer to logger for DUMP requests
+    Merger* merger; 
 };
 
 // Function prototypes
@@ -28,7 +31,7 @@ private:
     ClientListenerThreadsArgs args;
 public:
 
-    ClientListener(int listenfd, Logger* logger);
+    ClientListener(int listenfd, Logger* logger, Merger* merger);
 
 };
 

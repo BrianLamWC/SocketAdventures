@@ -6,7 +6,7 @@
 
 #include "../proto/request.pb.h"
 
-ClientListener::ClientListener(int listenfd, Logger* logger)
+ClientListener::ClientListener(int listenfd, Logger* logger, Merger* merger)
 {
 
     args =  {listenfd, logger};
@@ -83,6 +83,7 @@ void* handleClient(void *client_args)
     char *client_ip = inet_ntoa(client_addr.sin_addr);
     int client_port = ntohs(client_addr.sin_port);
     Logger* logger = local.logger;
+    Merger* merger = local.merger;
 
     while (true)
     {
@@ -134,6 +135,8 @@ void* handleClient(void *client_args)
             } else {
                 fprintf(stderr, "Logger not initialized, cannot log DUMP request\n");
             }
+
+            merger->calculateThroughput();
 
             break;
 

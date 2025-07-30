@@ -60,7 +60,7 @@ int main(int argc, char *argv[])
 
     // start listeners
     PeerListener peer_listener(peer_listenfd, &partial_sequencer, &merger);
-    ClientListener client_listener(client_listenfd, &logger);
+    ClientListener client_listener(client_listenfd, &logger, &merger);
 
     Coordinator coordinator;
 

@@ -68,6 +68,10 @@ private:
     std::unordered_map<int,int> nextExpectedBatch;
     std::unordered_map<int,std::map<int,request::Request>> batchBuffer;
 
+    // throughput tracking
+    int32_t total_transactions = 0;
+    std::chrono::nanoseconds::rep ns_elapsed_time = 0;
+
 
 public:
     // Constructor receives the list of expected server ids.
@@ -87,6 +91,9 @@ public:
     void processIncomingRequest3(const request::Request& req_proto);
 
     void handleBatch(const request::Request &req);
+
+    void calculateThroughput();
+
 };
 
 

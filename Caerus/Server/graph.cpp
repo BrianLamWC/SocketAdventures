@@ -283,7 +283,7 @@ bool Graph::isSCCComplete(const int &scc_index)
     return true;
 }
 
-void Graph::getMergedOrders_()
+int32_t Graph::getMergedOrders_()
 {
     // 1) SCC + condensation once
     findSCCs();  // one rep per SCC
@@ -308,6 +308,8 @@ void Graph::getMergedOrders_()
         }
     }
 
+    int32_t transaction_count = 0;
+
     while (!Q.empty())
     {
         int c = Q.front(); Q.pop();
@@ -323,6 +325,7 @@ void Graph::getMergedOrders_()
         for (Transaction *T : comp) {
             if (auto up = removeTransaction_(T)) {
                 merged_order.push(*up);
+                transaction_count++;
             }
         }
 
@@ -336,18 +339,7 @@ void Graph::getMergedOrders_()
 
     }
 
-    // print number of nodes left in the graph
-    //std::cout << "Graph now has " << nodes.size() << " node(s) left.\n";
-
-    // std::cout 
-    //   << "Detailed peel+emit breakdown (ms):\n"
-    //   << "  total SCCs processed: " << sccs.size() << "\n"
-    //   << "  sorting   : " << sort_ms   << " ms\n"
-    //   << "  emitting  : " << emit_ms   << " ms\n"
-    //   << "  updating  : " << update_ms << " ms\n"
-    //   << "  total     : " << (sort_ms+emit_ms+update_ms) << " ms\n"
-    //   << "  pushed txns: "  << pushed_count   << "\n";
-
+    return transaction_count;
 }
 
 void Graph::getMergedOrders()

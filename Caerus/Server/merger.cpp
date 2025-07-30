@@ -346,9 +346,33 @@ void Merger::insertAlgorithm()
             }
         }
 
-        // graph.printAll();
-        graph.getMergedOrders_();
+
+
+        // Time the graph.getMergedOrders_() call
+        auto start_time = std::chrono::high_resolution_clock::now();
+        total_transactions += graph.getMergedOrders_();
+        auto end_time = std::chrono::high_resolution_clock::now();
+
+        // Add the elapsed time to ns_elapsed_time
+        ns_elapsed_time += std::chrono::duration_cast<std::chrono::nanoseconds>(end_time - start_time).count();
+
     }
+}
+
+void Merger::calculateThroughput()
+{
+    if (ns_elapsed_time == 0)
+    {
+        std::cout << "No transactions processed yet." << std::endl;
+        return;
+    }
+
+    double throughput = static_cast<double>(total_transactions) / (ns_elapsed_time / 1e9); // transactions per second
+    std::cout << "Throughput: " << throughput << " transactions/second" << std::endl;
+
+    // Reset counters for the next round
+    total_transactions = 0;
+    ns_elapsed_time = 0;
 }
 
 Merger::Merger()
