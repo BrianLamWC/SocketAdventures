@@ -32,7 +32,6 @@ void Batcher::batchRequests()
     using Clock = std::chrono::high_resolution_clock;
 
     uint64_t total_txns = 0;
-    std::chrono::nanoseconds::rep ns_total_stamp_time = 0;
     std::chrono::nanoseconds::rep ns_elapsed_time = 0;
 
     while (true)
@@ -82,7 +81,7 @@ void Batcher::batchRequests()
         if (!batch.empty())
         {
             auto t0 = Clock::now();
-            processBatch(ns_total_stamp_time);
+            processBatch();
             auto t1 = Clock::now();
             ns_elapsed_time += std::chrono::duration_cast<std::chrono::nanoseconds>(t1 - t0).count();
 
@@ -93,27 +92,24 @@ void Batcher::batchRequests()
 
         if (total_txns >= 1000000)
         {
-            double avg_ns = double(ns_total_stamp_time) / double(total_txns);
             double throughput = double(total_txns) * 1e9 / double(ns_elapsed_time);
             double elapsed_ms = double(ns_elapsed_time) / 1e6;
 
             printf(
-                "BATCHER: Stamped %llu txns in %.3f ms: avg stamp = %.1f ns/txn, throughput = %.0f tx/s\n",
+                "BATCHER: Processed %llu txns in %.3f ms — throughput = %.0f tx/s\n",
                 (unsigned long long)total_txns,
                 elapsed_ms,
-                avg_ns,
                 throughput);
 
             total_txns = 0;
             ns_elapsed_time = 0;
-            ns_total_stamp_time = 0;
         }
 
         std::this_thread::sleep_until(next_timestamp);
     }
 }
 
-void Batcher::processBatch(std::chrono::nanoseconds::rep &ns_total_stamp_time_)
+void Batcher::processBatch()
 {
 
     std::vector<request::Request> batch_for_partial_sequencer;
@@ -123,16 +119,9 @@ void Batcher::processBatch(std::chrono::nanoseconds::rep &ns_total_stamp_time_)
 
     for (request::Request &req_proto : batch)
     {
-        auto t0s = Clock::now();
-
         auto *txn = req_proto.mutable_transaction(0);
 
         txn->set_random_stamp(dist(rng));
-
-        auto t1s = Clock::now();
-
-        // accumulate the stamping time
-        ns_total_stamp_time_ += std::chrono::duration_cast<std::chrono::nanoseconds>(t1s - t0s).count();
 
         // figure out which servers to send this transaction to
         std::unordered_set<int32_t> target_peers;
