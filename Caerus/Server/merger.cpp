@@ -31,7 +31,7 @@ void Merger::processRoundRequests()
 
             std::vector<Operation> operations = getOperationsFromProtoTransaction(txn_proto);
 
-            Transaction transaction(txn_proto.order(), txn_proto.client_id(), operations, txn_proto.id());
+            Transaction transaction(txn_proto.random_stamp(), txn_proto.client_id(), operations, txn_proto.id());
 
             inner_map->push(transaction);
         }

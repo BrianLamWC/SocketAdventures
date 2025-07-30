@@ -494,7 +494,7 @@ class Transaction PROTOBUF_FINAL :
     kOrderFieldNumber = 1,
     kIdFieldNumber = 2,
     kClientIdFieldNumber = 4,
-    kLamportStampFieldNumber = 5,
+    kRandomStampFieldNumber = 5,
   };
   // repeated .request.Operation operations = 3;
   int operations_size() const;
@@ -585,17 +585,17 @@ class Transaction PROTOBUF_FINAL :
   void _internal_set_client_id(::PROTOBUF_NAMESPACE_ID::int32 value);
   public:
 
-  // optional int32 lamport_stamp = 5;
-  bool has_lamport_stamp() const;
+  // optional int32 random_stamp = 5;
+  bool has_random_stamp() const;
   private:
-  bool _internal_has_lamport_stamp() const;
+  bool _internal_has_random_stamp() const;
   public:
-  void clear_lamport_stamp();
-  ::PROTOBUF_NAMESPACE_ID::int32 lamport_stamp() const;
-  void set_lamport_stamp(::PROTOBUF_NAMESPACE_ID::int32 value);
+  void clear_random_stamp();
+  ::PROTOBUF_NAMESPACE_ID::int32 random_stamp() const;
+  void set_random_stamp(::PROTOBUF_NAMESPACE_ID::int32 value);
   private:
-  ::PROTOBUF_NAMESPACE_ID::int32 _internal_lamport_stamp() const;
-  void _internal_set_lamport_stamp(::PROTOBUF_NAMESPACE_ID::int32 value);
+  ::PROTOBUF_NAMESPACE_ID::int32 _internal_random_stamp() const;
+  void _internal_set_random_stamp(::PROTOBUF_NAMESPACE_ID::int32 value);
   public:
 
   // @@protoc_insertion_point(class_scope:request.Transaction)
@@ -611,7 +611,7 @@ class Transaction PROTOBUF_FINAL :
   ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr order_;
   ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr id_;
   ::PROTOBUF_NAMESPACE_ID::int32 client_id_;
-  ::PROTOBUF_NAMESPACE_ID::int32 lamport_stamp_;
+  ::PROTOBUF_NAMESPACE_ID::int32 random_stamp_;
   friend struct ::TableStruct_request_2eproto;
 };
 // -------------------------------------------------------------------
@@ -1381,32 +1381,32 @@ inline void Transaction::set_client_id(::PROTOBUF_NAMESPACE_ID::int32 value) {
   // @@protoc_insertion_point(field_set:request.Transaction.client_id)
 }
 
-// optional int32 lamport_stamp = 5;
-inline bool Transaction::_internal_has_lamport_stamp() const {
+// optional int32 random_stamp = 5;
+inline bool Transaction::_internal_has_random_stamp() const {
   bool value = (_has_bits_[0] & 0x00000008u) != 0;
   return value;
 }
-inline bool Transaction::has_lamport_stamp() const {
-  return _internal_has_lamport_stamp();
+inline bool Transaction::has_random_stamp() const {
+  return _internal_has_random_stamp();
 }
-inline void Transaction::clear_lamport_stamp() {
-  lamport_stamp_ = 0;
+inline void Transaction::clear_random_stamp() {
+  random_stamp_ = 0;
   _has_bits_[0] &= ~0x00000008u;
 }
-inline ::PROTOBUF_NAMESPACE_ID::int32 Transaction::_internal_lamport_stamp() const {
-  return lamport_stamp_;
+inline ::PROTOBUF_NAMESPACE_ID::int32 Transaction::_internal_random_stamp() const {
+  return random_stamp_;
 }
-inline ::PROTOBUF_NAMESPACE_ID::int32 Transaction::lamport_stamp() const {
-  // @@protoc_insertion_point(field_get:request.Transaction.lamport_stamp)
-  return _internal_lamport_stamp();
+inline ::PROTOBUF_NAMESPACE_ID::int32 Transaction::random_stamp() const {
+  // @@protoc_insertion_point(field_get:request.Transaction.random_stamp)
+  return _internal_random_stamp();
 }
-inline void Transaction::_internal_set_lamport_stamp(::PROTOBUF_NAMESPACE_ID::int32 value) {
+inline void Transaction::_internal_set_random_stamp(::PROTOBUF_NAMESPACE_ID::int32 value) {
   _has_bits_[0] |= 0x00000008u;
-  lamport_stamp_ = value;
+  random_stamp_ = value;
 }
-inline void Transaction::set_lamport_stamp(::PROTOBUF_NAMESPACE_ID::int32 value) {
-  _internal_set_lamport_stamp(value);
-  // @@protoc_insertion_point(field_set:request.Transaction.lamport_stamp)
+inline void Transaction::set_random_stamp(::PROTOBUF_NAMESPACE_ID::int32 value) {
+  _internal_set_random_stamp(value);
+  // @@protoc_insertion_point(field_set:request.Transaction.random_stamp)
 }
 
 // -------------------------------------------------------------------
