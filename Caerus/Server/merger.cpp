@@ -358,6 +358,8 @@ void Merger::insertAlgorithm()
         // if total transactions more than 1 million, calculate throughput
         if (total_transactions >= 1000000)
         {
+            printf("MERGER: Processed %d transactions in %lld ns\n",
+                   total_transactions, ns_elapsed_time);
             calculateThroughput();
         }
     }
