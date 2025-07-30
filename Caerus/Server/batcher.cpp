@@ -32,7 +32,7 @@ void Batcher::batchRequests()
     using Clock = std::chrono::high_resolution_clock;
 
     uint64_t total_txns = 0;
-    std::chrono::nanoseconds::rep ns_elapsed_time = 0;
+    //std::chrono::nanoseconds::rep ns_elapsed_time = 0;
 
     while (true)
     {
@@ -80,30 +80,30 @@ void Batcher::batchRequests()
 
         if (!batch.empty())
         {
-            auto t0 = Clock::now();
+            //auto t0 = Clock::now();
             processBatch();
-            auto t1 = Clock::now();
-            ns_elapsed_time += std::chrono::duration_cast<std::chrono::nanoseconds>(t1 - t0).count();
+            //auto t1 = Clock::now();
+            //ns_elapsed_time += std::chrono::duration_cast<std::chrono::nanoseconds>(t1 - t0).count();
 
             total_txns += batch.size();
         }
 
         batch.clear();
 
-        if (total_txns >= 1000000)
-        {
-            double throughput = double(total_txns) * 1e9 / double(ns_elapsed_time);
-            double elapsed_ms = double(ns_elapsed_time) / 1e6;
+        // if (total_txns >= 1000000)
+        // {
+        //     double throughput = double(total_txns) * 1e9 / double(ns_elapsed_time);
+        //     double elapsed_ms = double(ns_elapsed_time) / 1e6;
 
-            printf(
-                "BATCHER: Processed %llu txns in %.3f ms — throughput = %.0f tx/s\n",
-                (unsigned long long)total_txns,
-                elapsed_ms,
-                throughput);
+        //     printf(
+        //         "BATCHER: Processed %llu txns in %.3f ms — throughput = %.0f tx/s\n",
+        //         (unsigned long long)total_txns,
+        //         elapsed_ms,
+        //         throughput);
 
-            total_txns = 0;
-            ns_elapsed_time = 0;
-        }
+        //     total_txns = 0;
+        //     ns_elapsed_time = 0;
+        // }
 
         std::this_thread::sleep_until(next_timestamp);
     }
@@ -114,8 +114,6 @@ void Batcher::processBatch()
 
     std::vector<request::Request> batch_for_partial_sequencer;
     batch_for_partial_sequencer.reserve(batch.size());
-
-    using Clock = std::chrono::high_resolution_clock;
 
     for (request::Request &req_proto : batch)
     {

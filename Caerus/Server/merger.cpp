@@ -378,7 +378,7 @@ void Merger::calculateThroughput()
            total_transactions, throughput);
 
     // Reset counters for the next round
-    total_transactions = 0;
+    total_transactions = 0 ;
     ns_elapsed_time = 0;
 }
 

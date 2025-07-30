@@ -316,10 +316,22 @@ int32_t Graph::getMergedOrders_()
         auto &comp = sccs[c];
 
         if (comp.size() > 1) {
-            std::sort(comp.begin(), comp.end(),
-                [&](auto *a, auto *b){
-                    return a->getOrder() < b->getOrder();
+
+            std::sort(comp.begin(), comp.end(), 
+                [&](auto *a, auto *b){ 
+                    
+                    int32_t a_rand = a->getOrder();
+                    int32_t b_rand = b->getOrder();
+
+                    if (a_rand != b_rand) {
+                        return a_rand < b_rand; 
+                    }
+
+                    return a->getServerId() < b->getServerId();              
+                    
+                
                 });
+                
         }
 
         for (Transaction *T : comp) {
