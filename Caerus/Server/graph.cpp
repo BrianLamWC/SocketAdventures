@@ -409,7 +409,7 @@ void Graph::getMergedOrders()
                         return a_rand < b_rand; 
                     }
 
-                    return a->getUUID() < b->getUUID();                    
+                    return a->getServerId() < b->getServerId();              
                     
                 
                 });
