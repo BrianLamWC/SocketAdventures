@@ -351,7 +351,6 @@ void Merger::insertAlgorithm()
         // Time the graph.getMergedOrders_() call
         auto start_time = std::chrono::high_resolution_clock::now();
         total_transactions += graph.getMergedOrders_();
-        printf("MERGER: Processed %d transactions\n", total_transactions);
         auto end_time = std::chrono::high_resolution_clock::now();
 
         // Add the elapsed time to ns_elapsed_time
