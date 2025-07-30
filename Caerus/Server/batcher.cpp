@@ -126,7 +126,8 @@ void Batcher::processBatch(std::chrono::nanoseconds::rep &ns_total_stamp_time_)
         auto t0s = Clock::now();
 
         auto *txn = req_proto.mutable_transaction(0);
-        txn->set_order(uuidv7());
+        // stamp with random number, convert to string
+        txn->set_order(std::to_string(dist(rng)));
 
         auto t1s = Clock::now();
 

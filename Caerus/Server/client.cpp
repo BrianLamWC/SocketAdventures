@@ -139,7 +139,6 @@ void* handleClient(void *client_args)
 
         }
 
-        //lamport_clock.fetch_add(1);
         request_queue_.push(req_proto);
 
     }

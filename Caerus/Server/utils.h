@@ -106,10 +106,6 @@ namespace std
 
 }
 
-// lamport clock
-extern std::atomic<int32_t> lamport_clock;
-
-
 //LEADER INFO
 extern std::string LEADER_IP;
 extern int LEADER_PORT;

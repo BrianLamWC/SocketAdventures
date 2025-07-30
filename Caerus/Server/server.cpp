@@ -41,7 +41,7 @@ void *handlePeer(void *server_args)
     char *server_ip = inet_ntoa(server_addr.sin_addr);
     int server_port = ntohs(server_addr.sin_port);
 
-    while (true)
+    while (true) //maintain a persistent connection
     {
         // read the 4-byte length prefix
         uint32_t netlen;
@@ -102,6 +102,7 @@ void *handlePeer(void *server_args)
         {
             LOGICAL_EPOCH = std::chrono::steady_clock::now();
             LOGICAL_EPOCH_READY.store(true);
+            printf("Received START from server %d, logical epoch set.\n", req_proto.server_id());
             
         }else if (req_proto.recipient() == request::Request::READY) {
             int sender_id = req_proto.server_id();  // whichever ID the other server put

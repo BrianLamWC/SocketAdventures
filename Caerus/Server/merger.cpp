@@ -149,8 +149,7 @@ void Merger::insertAlgorithm()
     std::unique_lock<std::mutex> lock(insert_mutex);
     while (true)
     {
-        insert_cv.wait(lock, [this]()
-                       { return round_ready; });
+        insert_cv.wait(lock, [this](){ return round_ready; });
         round_ready = false;
 
         for (const auto &server : servers)

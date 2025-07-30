@@ -17,7 +17,6 @@ int peer_port;
 int32_t my_id;
 std::vector<server> servers;
 
-std::atomic<int32_t> lamport_clock{0};
 
 std::string LEADER_IP;
 int LEADER_PORT;
