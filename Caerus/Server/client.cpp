@@ -136,6 +136,7 @@ void* handleClient(void *client_args)
                 fprintf(stderr, "Logger not initialized, cannot log DUMP request\n");
             }
 
+            printf("Calculating throughput...\n");
             merger->calculateThroughput();
 
             break;
