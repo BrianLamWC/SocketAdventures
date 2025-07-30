@@ -128,9 +128,6 @@ void* handleClient(void *client_args)
 
         if (req_proto.recipient() == request::Request::DUMP) {
 
-            printf("Calculating throughput...\n");
-            merger->calculateThroughput();
-
             printf("Received DUMP from server %d\n", req_proto.server_id());
             if (logger) {
                 printf("Logging DUMP request from client %d\n", req_proto.client_id());
