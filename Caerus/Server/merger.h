@@ -71,6 +71,7 @@ private:
     // throughput tracking
     int32_t total_transactions = 0;
     std::chrono::nanoseconds::rep ns_elapsed_time = 0;
+    std::mutex total_transactions_mutex;
 
 
 public:
