@@ -372,8 +372,7 @@ void Merger::calculateThroughput()
     // print time elapsed and total transactions
     // double elapsed_seconds = static_cast<double>(ns_elapsed_time) / 1e9;
 
-    printf("MERGER: Processed %d transactions\n",
-           total_transactions);
+    printf("MERGER: Processed ? transactions\n");
 }
 
 Merger::Merger()
