@@ -361,11 +361,6 @@ void Merger::insertAlgorithm()
 
 void Merger::calculateThroughput()
 {
-    if (ns_elapsed_time == 0)
-    {
-        std::cout << "No transactions processed yet." << std::endl;
-        return;
-    }
 
     // double throughput = static_cast<double>(total_transactions) / (ns_elapsed_time / 1e9); // transactions per second
     // std::cout << "Throughput: " << throughput << " transactions/second" << std::endl;
