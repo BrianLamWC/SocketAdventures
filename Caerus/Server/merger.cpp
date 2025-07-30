@@ -350,11 +350,15 @@ void Merger::insertAlgorithm()
 
         // Time the graph.getMergedOrders_() call
         auto start_time = std::chrono::high_resolution_clock::now();
-        total_transactions += graph.getMergedOrders_();
+        int32_t transactions = graph.getMergedOrders_();
         auto end_time = std::chrono::high_resolution_clock::now();
 
-        // Add the elapsed time to ns_elapsed_time
-        ns_elapsed_time += std::chrono::duration_cast<std::chrono::nanoseconds>(end_time - start_time).count();
+        {
+            // Lock the mutex to safely update shared variables
+            std::lock_guard<std::mutex> lock(total_transactions_mutex);
+            total_transactions += transactions;
+            ns_elapsed_time += std::chrono::duration_cast<std::chrono::nanoseconds>(end_time - start_time).count();
+        }
 
     }
 }
