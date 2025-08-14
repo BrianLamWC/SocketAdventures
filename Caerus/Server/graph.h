@@ -50,7 +50,6 @@ public:
 
     bool isSCCComplete(const int &scc_index);
 
-    void getMergedOrders();
     int32_t getMergedOrders_();
 
 };

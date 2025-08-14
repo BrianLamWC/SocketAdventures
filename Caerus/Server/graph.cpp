@@ -115,7 +115,7 @@ std::unique_ptr<Transaction> Graph::removeTransaction_(Transaction* rem)
     auto it = nodes.find(rem->getUUID());
     if (it == nodes.end()) return nullptr;
 
-    // 1) copy the incoming‐neighbor list and break those edges
+    // copy the incoming‐neighbor list and break those edges
     std::vector<Transaction*> preds(
       rem->getIncomingNeighbors().begin(),
       rem->getIncomingNeighbors().end()
@@ -124,14 +124,13 @@ std::unique_ptr<Transaction> Graph::removeTransaction_(Transaction* rem)
         pred->removeOutNeighbor(rem);
     }
 
-    // 2) copy the outgoing‐neighbor list and break those edges
+    // copy the outgoing‐neighbor list and break those edges
     std::vector<Transaction*> succs(
       rem->getOutNeighbors().begin(),
       rem->getOutNeighbors().end()
     );
     for (Transaction* succ : succs) {
         rem->removeOutNeighbor(succ);
-        // or equivalently: succ->removeInNeighbor(rem);
     }
 
     // 3) now it’s safe to steal and erase
@@ -260,26 +259,25 @@ void Graph::buildCondensationGraph()
 
 bool Graph::isSCCComplete(const int &scc_index)
 {
-    // For SCC c to be a sink, *no* member may have an edge out to a txn in a different comp.
+    // For SCC c to be a sink, no member may have an edge out to a txn in a different comp.
     // And for completeness, each txn must return true from isComplete().
     for (auto *T : sccs[scc_index])
     {
-        // 1) SCC‐sink check: scan every outgoing edge of T
+        // SCC‐sink check: scan every outgoing edge of T
         for (auto *nbr : T->getOutNeighbors())
         {
             if (txn_scc_index_map.at(nbr) != scc_index)
             {
-                // there is an outgoing edge from this SCC to another SCC
                 return false;
             }
         }
-        // 2) per‐txn completeness
+
         if (!T->isComplete())
         {
             return false;
         }
     }
-    // if we get here, no crossing edges *and* every T is complete
+    
     return true;
 }
 
@@ -289,18 +287,18 @@ int32_t Graph::getMergedOrders_()
     findSCCs();  // one rep per SCC
     buildTransactionSCCMap();
     buildCondensationGraph();
-    int C = sccs.size();
+    int sccs_count = sccs.size();
 
     // 2) compute out-degrees and seed ready queue
-    std::vector<int> out_degrees(C);
+    std::vector<int> out_degrees(sccs_count);
     std::queue<int> Q;
 
-    for (int c = 0; c < C; ++c)
+    for (int c = 0; c < sccs_count; ++c)
     {
         out_degrees[c] = neighbors_out[c].size();
     }
 
-    for (int c = 0; c < C; ++c)
+    for (int c = 0; c < sccs_count; ++c)
     {
         if (out_degrees[c] == 0 && isSCCComplete(c))
         {
@@ -312,7 +310,8 @@ int32_t Graph::getMergedOrders_()
 
     while (!Q.empty())
     {
-        int c = Q.front(); Q.pop();
+        int c = Q.front(); 
+        Q.pop();
         auto &comp = sccs[c];
 
         if (comp.size() > 1) {
@@ -341,7 +340,7 @@ int32_t Graph::getMergedOrders_()
             }
         }
 
-        logging_cv.notify_all(); // notify logger thread
+        logging_cv.notify_all();
 
         for (int p : neighbors_in[c]) {
             if (--out_degrees[p] == 0 && isSCCComplete(p)) {
@@ -352,92 +351,4 @@ int32_t Graph::getMergedOrders_()
     }
 
     return transaction_count;
-}
-
-void Graph::getMergedOrders()
-{
-
-    // instead of seeding every node, seed one rep per SCC:
-    findSCCs();
-    buildTransactionSCCMap();
-    buildCondensationGraph();
-
-    std::queue<std::string> Q;
-    std::vector<std::unique_ptr<Transaction>> S;
-
-    for (int c = 0; c < (int)sccs.size(); ++c)
-    {
-        // pick the first txn in each SCC as its “rep”
-        Q.push(sccs[c][0]->getUUID());
-    }
-
-    while (!Q.empty())
-    {
-        auto *txn_ptr = getNode(Q.front());
-        Q.pop();
-
-        if (txn_ptr == nullptr)
-        {
-            continue;
-        }
-
-        findSCCs();
-        buildTransactionSCCMap();
-        buildCondensationGraph();
-
-        int scc_index = txn_scc_index_map[txn_ptr];
-
-        // check sink + completeness
-        bool allDone = neighbors_out[scc_index].empty();
-        for (auto *X : sccs[scc_index])
-        {
-            if (!X->isComplete())
-            {
-                allDone = false;
-                break;
-            }
-        }
-
-        if (allDone)
-        {
-            // emit entire SCC, in UUID order
-            auto &scc = sccs[scc_index];
-
-            std::sort(scc.begin(), scc.end(), 
-                [&](auto *a, auto *b){ 
-                    
-                    int32_t a_rand = a->getOrder();
-                    int32_t b_rand = b->getOrder();
-
-                    if (a_rand != b_rand) {
-                        return a_rand < b_rand; 
-                    }
-
-                    return a->getServerId() < b->getServerId();              
-                    
-                
-                });
-
-            for (auto *txn : scc)
-            {
-                auto up = removeTransaction(txn);
-                if (up)
-                    S.push_back(std::move(up));
-            }
-            // re‐enqueue each predecessor SCC’s rep
-            for (int predC : neighbors_in[scc_index])
-            {
-                Q.push(sccs[predC][0]->getUUID());
-            }
-        }
-    }
-
-    // print S
-    std::cout << "Merged orders:\n";
-    for (const auto &txn : S)
-    {
-        std::cout
-            << "- UUID: " << txn->getUUID()
-            << " order: " << txn->getOrder() << "\n";
-    }
 }

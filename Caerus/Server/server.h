@@ -9,6 +9,12 @@
 #include "partialSequencer.h"
 #include "merger.h"
 
+struct PeerListenerThreadsArgs
+{
+    int listenfd;
+    PartialSequencer* partial_sequencer;
+    Merger* merger;
+};
 
 struct ServerArgs
 {
@@ -19,15 +25,9 @@ struct ServerArgs
 
 };
 
+
 void* handlePeer(void *server_args);
 void* peerListener(void *args);
-
-struct PeerListenerThreadsArgs
-{
-    int listenfd;
-    PartialSequencer* partial_sequencer;
-    Merger* merger;
-};
 
 class PeerListener
 {

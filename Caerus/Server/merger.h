@@ -89,9 +89,6 @@ public:
 
     void processIncomingRequest(const request::Request& req_proto);
     void processIncomingRequest2(const request::Request& req_proto);
-    void processIncomingRequest3(const request::Request& req_proto);
-
-    void handleBatch(const request::Request &req);
 
     void calculateThroughput();
 
