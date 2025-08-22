@@ -45,7 +45,7 @@ void Merger::processIncomingRequest2(const request::Request &req_proto)
         return;
     int sid = req_proto.server_id(), r = req_proto.round();
 
-    std::lock_guard<std::mutex> lk(round_mutex);
+    std::unique_lock<std::mutex> lk(round_mutex);
 
     // buffer every arrival
     batchBuffer[sid][r] = req_proto;
@@ -125,21 +125,20 @@ void Merger::processIncomingRequest2(const request::Request &req_proto)
             }
         }
 
-        // now do your normal processing, dropping the lock during heavy work
+
+        // drop the lock during heavy work, then re-acquire
+        lk.unlock();
+
+        processRoundRequests();
+
         {
-            std::unique_lock<std::mutex> ul(round_mutex, std::adopt_lock);
-            ul.unlock();
-
-            processRoundRequests();
-
-            {
-                std::lock_guard<std::mutex> g(insert_mutex);
-                round_ready = true;
-            }
-            insert_cv.notify_one();
-
-            ul.lock();
+            std::lock_guard<std::mutex> g(insert_mutex);
+            round_ready = true;
         }
+        insert_cv.notify_one();
+
+        lk.lock();
+
     }
 }
 
