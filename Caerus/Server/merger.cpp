@@ -57,33 +57,36 @@ void Merger::processIncomingRequest2(const request::Request &req_proto)
 
         // check if *every* server has batch `exp`
         bool haveAll = true;
-        for (int other : expected_server_ids)
+        for (int id : expected_server_ids)
         {
-            if (!batchBuffer[other].count(exp))
+            if (!batchBuffer[id].count(exp))
             {
                 haveAll = false;
                 break;
             }
         }
-        if (!haveAll)
+        
+        if (!haveAll){
+
             break;
+
+        }
 
         // assemble this round
         current_batch.clear();
         current_batch.reserve(expected_server_ids.size());
-        for (int other : expected_server_ids)
+        for (int id : expected_server_ids)
         {
-            current_batch.push_back(std::move(batchBuffer[other][exp]));
-            batchBuffer[other].erase(exp);
+            current_batch.push_back(std::move(batchBuffer[id][exp]));
+            batchBuffer[id].erase(exp);
         }
 
         // bump every server’s expected counter
-        for (int other : expected_server_ids)
+        for (int id : expected_server_ids)
         {
-            nextExpectedBatch[other]++;
+            nextExpectedBatch[id]++;
         }
 
-        // --- LOG TO JSONL BEFORE PROCESSING ---
         {
             bool has_non_empty_batch = false;
 
