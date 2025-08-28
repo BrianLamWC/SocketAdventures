@@ -42,8 +42,7 @@ std::atomic<bool> stop_monitor{false};
 // list of servers
 std::vector<std::string> hostnames = {
     "leo.sfc.keio.ac.jp",
-    "aries.sfc.keio.ac.jp",
-    "cygnus.sfc.keio.ac.jp"};
+    "aries.sfc.keio.ac.jp"};
 
 struct TxnSpec
 {
@@ -166,29 +165,12 @@ TxnSpec generateTxn()
 
     static std::unordered_map<int, std::string> server_to_host = {
         {1, "leo.sfc.keio.ac.jp"},
-        {2, "aries.sfc.keio.ac.jp"},
-        {3, "cygnus.sfc.keio.ac.jp"}};
+        {2, "aries.sfc.keio.ac.jp"}};
 
     return {
         .hostname = server_to_host[server_id],
         .type = request::Operation::WRITE,
         .keys = std::move(keys)};
-}
-
-TxnSpec generateTxnOld()
-{
-    std::vector<int> keys = getRandomKeys();
-    int server_id = chooseEligibleServer(keys);
-
-    std::unordered_map<int, std::string> server_to_host = {
-        {1, "leo.sfc.keio.ac.jp"},
-        {2, "aries.sfc.keio.ac.jp"},
-        {3, "cygnus.sfc.keio.ac.jp"}};
-
-    return {
-        .hostname = server_to_host[server_id],
-        .type = request::Operation::WRITE,
-        .keys = keys};
 }
 
 void error(const char *msg)
