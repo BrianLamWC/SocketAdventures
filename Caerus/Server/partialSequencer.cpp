@@ -112,8 +112,8 @@ void PartialSequencer::pushReceivedTransactionIntoPartialSequence(const request:
 PartialSequencer::PartialSequencer()
 {
 
-    std::ofstream init_log("partial_sequence_log_" + std::to_string(my_id) + ".log", std::ios::out | std::ios::trunc);
-    std::ofstream init_recv_log("partial_sequencer_received_log_" + std::to_string(my_id) + ".log", std::ios::out | std::ios::trunc);
+    // std::ofstream init_log("partial_sequence_log_" + std::to_string(my_id) + ".log", std::ios::out | std::ios::trunc);
+    // std::ofstream init_recv_log("partial_sequencer_received_log_" + std::to_string(my_id) + ".log", std::ios::out | std::ios::trunc);
 
     if (pthread_create(&partial_sequencer_thread, NULL, [](void *arg) -> void *
                        {
