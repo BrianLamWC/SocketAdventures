@@ -1,7 +1,6 @@
 {
   "data_items": [
     {"key": "1", "value": "value1", "primary_server_id": 1},
-    {"key": "2", "value": "value2", "primary_server_id": 2},
-    {"key": "3", "value": "value3", "primary_server_id": 3}
+    {"key": "2", "value": "value2", "primary_server_id": 2}
   ]
 }
