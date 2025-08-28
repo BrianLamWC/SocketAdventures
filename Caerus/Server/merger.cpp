@@ -59,7 +59,7 @@ void Merger::processIncomingRequest2(const request::Request &req_proto)
         bool haveAll = true;
         for (int id : expected_server_ids)
         {
-            if (!batchBuffer[id].count(exp))
+            if (batchBuffer[id].count(exp) == 0)
             {
                 haveAll = false;
                 break;
@@ -87,6 +87,7 @@ void Merger::processIncomingRequest2(const request::Request &req_proto)
             nextExpectedBatch[id]++;
         }
 
+        
         {
             bool has_non_empty_batch = false;
 

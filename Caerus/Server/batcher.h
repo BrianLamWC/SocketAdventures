@@ -42,7 +42,6 @@ public:
     void processBatch();
     void sendTransaction(request::Request& txn);
     void sendTransactions();
-    std::string uuidv7();
 
 };
 
