@@ -355,16 +355,16 @@ void Merger::insertAlgorithm()
         total_transactions += graph.getMergedOrders_();
         auto end_time = std::chrono::high_resolution_clock::now();
 
-        // Add the elapsed time to ns_elapsed_time
-        ns_elapsed_time += std::chrono::duration_cast<std::chrono::nanoseconds>(end_time - start_time).count();
+        // // Add the elapsed time to ns_elapsed_time
+        // ns_elapsed_time += std::chrono::duration_cast<std::chrono::nanoseconds>(end_time - start_time).count();
 
-        // if total transactions more than 1 million, calculate throughput
-        if (total_transactions >= 1000000)
-        {
-            printf("MERGER: Processed %d transactions in %lld ns\n",
-                   total_transactions, ns_elapsed_time);
-            calculateThroughput();
-        }
+        // // if total transactions more than 1 million, calculate throughput
+        // if (total_transactions >= 1000000)
+        // {
+        //     printf("MERGER: Processed %d transactions in %lld ns\n",
+        //            total_transactions, ns_elapsed_time);
+        //     calculateThroughput();
+        // }
     }
 }
 
@@ -403,7 +403,7 @@ Merger::Merger()
 {
 
     std::ofstream init_log(log_path_, std::ios::out | std::ios::trunc);
-    std::ofstream init_tp("throughput_log_" + std::to_string(my_id) + ".log", std::ios::out | std::ios::trunc);
+    // std::ofstream init_tp("throughput_log_" + std::to_string(my_id) + ".log", std::ios::out | std::ios::trunc);
 
     partial_sequences.rehash(1);
 
