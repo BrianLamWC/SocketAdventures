@@ -68,7 +68,6 @@ bool writeNBytes(int fd, const void *buf, size_t n)
     return true;
 }
 
-
 request::Request createRequest(const TxnSpec &spec)
 {
     request::Request req;

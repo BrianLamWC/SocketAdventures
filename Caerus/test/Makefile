@@ -1,42 +1,35 @@
 # Compiler
 CXX = g++
-CXXFLAGS = -Wall -g `pkg-config --cflags protobuf`
-LDFLAGS = `pkg-config --libs protobuf`
 
-# Build directory
-BUILDDIR = build
+# Compiler flags
+CXXFLAGS = -Wall -g
 
-# Proto files
+# Additional protobuf flags and files
 PROTO_SRC = ../proto/request.pb.cc
-PROTO_HDR = ../proto/request.pb.h
-PROTO_OBJ = $(BUILDDIR)/request.pb.o
+PROTO_LIBS = -lprotobuf
 
-# Ensure build dir exists
-$(BUILDDIR):
-	@mkdir -p $(BUILDDIR)
+# All .cpp files in the current directory
+SRC = running_example_test.cpp
 
-# Protobuf object
-$(BUILDDIR)/request.pb.o: $(PROTO_SRC) $(PROTO_HDR) | $(BUILDDIR)
-	$(CXX) $(CXXFLAGS) -c $(PROTO_SRC) -o $@
+# Corresponding .o files
+OBJ = $(SRC:.cpp=.o)
 
-# -----------------------------
-# Test targets
-# -----------------------------
-# "make batcher" -> build/batcher_test
-batcher: $(BUILDDIR)/batcher_test
+# Output executable
+TARGET = main
 
-# "make ps" -> build/partial_sequencer_test
-ps: $(BUILDDIR)/partial_sequencer_test
+# Rule to build the target
+all: $(TARGET)
 
-# Generic rule: "make foo_test" compiles foo_test.cpp into build/foo_test
-%_test: $(BUILDDIR)/%_test
-$(BUILDDIR)/%_test: %_test.cpp $(PROTO_OBJ) | $(BUILDDIR)
-	$(CXX) $(CXXFLAGS) -o $@ $< $(PROTO_OBJ) $(LDFLAGS)
+$(TARGET): $(OBJ)
+	$(CXX) $(CXXFLAGS) -o $@ $^ $(PROTO_SRC) $(PROTO_LIBS) -luuid
 
-# -----------------------------
-# Cleanup
-# -----------------------------
+# Rule to build .o files from .cpp files
+%.o: %.cpp
+	$(CXX) $(CXXFLAGS) -c $< -o $@
+
+# Clean up object files and executable
 clean:
-	rm -rf $(BUILDDIR)
+	rm -f $(OBJ) $(TARGET)
 
-.PHONY: clean batcher ps
+# PHONY to prevent conflicts with files named "clean"
+.PHONY: clean
