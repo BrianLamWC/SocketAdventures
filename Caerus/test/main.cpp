@@ -24,7 +24,6 @@ std::mt19937 rng{std::random_device{}()};
 
 struct TxnSpec
 {
-    std::string target_hostname;
     int target_id;
     request::Operation::OperationType type;
     std::vector<int> keys;
@@ -115,8 +114,9 @@ int main() {
 
     // setup connections to batchers
     std::map<std::string, int> hostnames_to_id = {
-        {"leo.sfc.keio.ac.jp", 1},
-        {"aries.sfc.keio.ac.jp", 2}
+        {"192.168.8.140", 1},
+        {"192.168.8.150", 2},
+        {"192.168.8.160", 3},
     };
 
     int target_port = 7001; 
@@ -138,12 +138,12 @@ int main() {
     // intermediate struct to hold info the transactions before converting to protobuf struct
     std::vector<std::vector<TxnSpec>> batches = {
         {
-            { "leo.sfc.keio.ac.jp", 1, request::Operation::WRITE,  {1,2} },
-            { "aries.sfc.keio.ac.jp", 2, request::Operation::WRITE, {1,2} }
+            { 1, request::Operation::WRITE,  {1,2} },
+            { 2, request::Operation::WRITE, {1,2} }
         }, 
         {
-            { "leo.sfc.keio.ac.jp", 1, request::Operation::WRITE, {1} },
-            { "aries.sfc.keio.ac.jp", 2, request::Operation::WRITE, {2} }
+            { 1, request::Operation::WRITE, {1} },
+            { 2, request::Operation::WRITE, {2} }
         }
     };
 
