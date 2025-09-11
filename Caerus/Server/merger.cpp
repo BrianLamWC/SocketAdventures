@@ -104,10 +104,10 @@ void Merger::processIncomingRequest2(const request::Request &req_proto)
             // Only log if at least one batch is not empty
             if (has_non_empty_batch)
             {
-                std::ofstream logf(log_path_, std::ios::app);
+                std::ofstream logf("./merger_logs/merger_log" + std::to_string(my_id) + ".jsonl", std::ios::app);
                 if (!logf)
                 {
-                    std::cerr << "Merger: failed to open log file " << log_path_ << "\n";
+                    std::cerr << "Merger: failed to open log file " << "./merger_logs/merger_log" + std::to_string(my_id) + ".jsonl" << "\n";
                 }
                 else
                 {
@@ -402,7 +402,7 @@ void Merger::calculateThroughput()
 Merger::Merger()
 {
 
-    std::ofstream init_log(log_path_, std::ios::out | std::ios::trunc);
+    std::ofstream init_log("./merger_logs/merger_log" + std::to_string(my_id) + ".jsonl", std::ios::out | std::ios::trunc);
     // std::ofstream init_tp("throughput_log_" + std::to_string(my_id) + ".log", std::ios::out | std::ios::trunc);
 
     partial_sequences.rehash(1);
