@@ -21,6 +21,7 @@
 std::atomic<int32_t> globalTransactionCounter{1};
 std::mt19937 rng{std::random_device{}()};
 
+
 struct TxnSpec
 {
     std::string target_hostname;
