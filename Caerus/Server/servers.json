@@ -1,6 +1,7 @@
 {
     "servers": [
         { "ip": "192.168.8.140", "port": 8001, "id": 1, "leader": true },
-        { "ip": "192.168.8.150", "port": 8001, "id": 2, "leader": false }
+        { "ip": "192.168.8.150", "port": 8001, "id": 2, "leader": false },
+        { "ip": "192.168.8.160", "port": 8001, "id": 3, "leader": false }
     ]
 }
