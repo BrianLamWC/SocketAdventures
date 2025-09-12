@@ -142,6 +142,12 @@ int main() {
             { 3, request::Operation::WRITE,  {3} }, // T2:W3
             { 3, request::Operation::WRITE,  {1,2,3} }    //T3:W1,W2,W3
         },
+
+        {
+            { 1, request::Operation::WRITE,   {1,2} }, // T1: W1,W2
+            { 1, request::Operation::WRITE,  {1} }, // T5:W1
+            { 2, request::Operation::WRITE,   {1,2} }  // T2:W1,W2
+        }
     };
 
     // struct to hold batches of transactions in protobuf format
@@ -174,6 +180,9 @@ int main() {
                 std::cerr << "Send failed to server_id " << sid << "\n";
             }
         }
+
+        //reset global transaction counter for easier reading of logs
+        globalTransactionCounter.store(1);
 
         std::this_thread::sleep_for(std::chrono::seconds(1)); // gap between batches
     }
