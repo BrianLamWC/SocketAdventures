@@ -352,6 +352,11 @@ void Merger::insertAlgorithm()
 
         if (!graph.isEmpty())
         {
+            //print round complete and space one line
+            std::cout << "INSERT::Round complete. Current graph:\n\n";
+
+
+
             graph.printAll();
         }
         

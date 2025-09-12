@@ -51,7 +51,7 @@ void Graph::printAll() const
         {
             std::cout << " " << n->getUUID();
         }
-        std::cout << "\n";
+        std::cout << "\n\n";
 
         // // Expected regions
         // const auto &expected_regions = t->getExpectedRegions();
@@ -212,7 +212,7 @@ void Graph::findSCCs()
             {
                 std::cout << " " << t->getUUID();
             }
-            std::cout << "\n";
+            std::cout << "\n\n";
         }    
     }
     
