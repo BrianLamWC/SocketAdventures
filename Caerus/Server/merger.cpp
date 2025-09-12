@@ -350,7 +350,11 @@ void Merger::insertAlgorithm()
             }
         }
 
-        graph.printAll();
+        if (!graph.isEmpty())
+        {
+            graph.printAll();
+        }
+        
         graph.getMergedOrders_();
 
     }

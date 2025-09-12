@@ -40,6 +40,7 @@ public:
     Transaction* getNode(const std::string& uuid);
 
     void printAll() const;
+    bool isEmpty() const { return nodes.empty(); }
     void clear();
     std::unique_ptr<Transaction> removeTransaction(Transaction* rem);
     std::unique_ptr<Transaction> removeTransaction_(Transaction* rem);
