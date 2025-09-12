@@ -158,6 +158,7 @@ int main() {
             pb_vec.push_back(createRequest(spec)); 
         }
         batches_pb.push_back(std::move(pb_vec)); 
+        globalTransactionCounter.store(1);
     }
 
     // send transactions in batch, wait for a second between batches
@@ -180,9 +181,6 @@ int main() {
                 std::cerr << "Send failed to server_id " << sid << "\n";
             }
         }
-
-        //reset global transaction counter for easier reading of logs
-        globalTransactionCounter.store(1);
 
         std::this_thread::sleep_for(std::chrono::seconds(1)); // gap between batches
     }
