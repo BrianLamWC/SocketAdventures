@@ -354,6 +354,13 @@ int32_t Graph::getMergedOrders_()
             }
         }
 
+        // print merged orders
+        std::cout << "Merged " << comp.size() << " transactions from SCC "<< c << ":\n";
+        for (Transaction *T : comp) {
+            std::cout << "  " << T->getUUID() << " (Order: " << T->getOrder() << ")\n";
+        }
+        std::cout << "\n\n";       
+
         logging_cv.notify_all();
 
         for (int p : neighbors_in[c]) {
