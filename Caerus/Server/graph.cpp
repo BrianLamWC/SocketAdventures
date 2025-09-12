@@ -28,7 +28,8 @@ void Graph::printAll() const
     {
         const Transaction *t = kv.second.get();
         // Basic info
-        std::cout << "- ID: " << t->getUUID() << "\n";
+        std::cout << "- ID: " << t->getUUID() << "\n"
+                  << "  Order: " << t->getOrder() << "\n";
         // Operations
         // const auto &ops = t->getOperations();
         // std::cout << "    Operations (" << ops.size() << "):\n";

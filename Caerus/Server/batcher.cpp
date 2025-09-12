@@ -12,7 +12,7 @@
 namespace
 {
 
-    constexpr std::chrono::milliseconds ROUND_PERIOD{10};
+    constexpr std::chrono::milliseconds ROUND_PERIOD{100};
 
     static thread_local std::mt19937_64 rng{std::random_device{}()};
 
