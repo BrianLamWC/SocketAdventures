@@ -201,6 +201,17 @@ void Graph::findSCCs()
         }
     }
 
+    // Print the SCCs
+    std::cout << "Strongly Connected Components (SCCs):\n";
+    for (size_t i = 0; i < sccs.size(); ++i)
+    {
+        std::cout << "Component " << i << ":";
+        for (Transaction *t : sccs[i])
+        {
+            std::cout << " " << t->getUUID();
+        }
+        std::cout << "\n";
+    }    
 
 }
 
