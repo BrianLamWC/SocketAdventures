@@ -209,24 +209,22 @@ void Batcher::sendTransaction(request::Request &req_proto) // send batch actuall
     if (log_file)
     {
         log_file << "Sending transaction to node " << target_id << ":\n";
-        log_file << "  Server ID: " << req_proto.server_id() << "\n";
-        log_file << "  Target Server ID: " << req_proto.target_server_id() << "\n";
         log_file << "  Transactions:\n";
 
         for (const auto &txn : req_proto.transaction())
         {
             log_file << "    Transaction ID: " << txn.id() << "\n";
-            log_file << "    Operations:\n";
-            for (const auto &op : txn.operations())
-            {
-                log_file << "      - Type: " << (op.type() == request::Operation::WRITE ? "WRITE" : "READ")
-                         << ", Key: " << op.key();
-                if (op.type() == request::Operation::WRITE)
-                {
-                    log_file << ", Value: " << op.value();
-                }
-                log_file << "\n";
-            }
+            // log_file << "    Operations:\n";
+            // for (const auto &op : txn.operations())
+            // {
+            //     log_file << "      - Type: " << (op.type() == request::Operation::WRITE ? "WRITE" : "READ")
+            //              << ", Key: " << op.key();
+            //     if (op.type() == request::Operation::WRITE)
+            //     {
+            //         log_file << ", Value: " << op.value();
+            //     }
+            //     log_file << "\n";
+            // }
         }
         log_file << "----------------------------------------\n";
     }
