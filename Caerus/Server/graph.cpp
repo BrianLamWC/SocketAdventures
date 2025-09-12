@@ -28,23 +28,22 @@ void Graph::printAll() const
     {
         const Transaction *t = kv.second.get();
         // Basic info
-        std::cout << "- ID: " << t->getUUID()
-                  << ", order: " << t->getOrder() << "\n";
+        std::cout << "- ID: " << t->getUUID() << "\n";
         // Operations
-        const auto &ops = t->getOperations();
-        std::cout << "    Operations (" << ops.size() << "):\n";
-        for (size_t i = 0; i < ops.size(); ++i)
-        {
-            const auto &op = ops[i];
-            std::cout << "      [" << i << "] "
-                      << (op.type == OperationType::READ ? "READ" : "WRITE")
-                      << " key=" << op.key;
-            if (op.type == OperationType::WRITE)
-            {
-                std::cout << ", value=" << op.value;
-            }
-            std::cout << "\n";
-        }
+        // const auto &ops = t->getOperations();
+        // std::cout << "    Operations (" << ops.size() << "):\n";
+        // for (size_t i = 0; i < ops.size(); ++i)
+        // {
+        //     const auto &op = ops[i];
+        //     std::cout << "      [" << i << "] "
+        //               << (op.type == OperationType::READ ? "READ" : "WRITE")
+        //               << " key=" << op.key;
+        //     if (op.type == OperationType::WRITE)
+        //     {
+        //         std::cout << ", value=" << op.value;
+        //     }
+        //     std::cout << "\n";
+        // }
         // Neighbors
         const auto &nbr = t->getOutNeighbors();
         std::cout << "    Neighbors (" << nbr.size() << "):";
@@ -54,23 +53,23 @@ void Graph::printAll() const
         }
         std::cout << "\n";
 
-        // Expected regions
-        const auto &expected_regions = t->getExpectedRegions();
-        std::cout << "    Expected regions (" << expected_regions.size() << "):";
-        for (auto region : expected_regions)
-        {
-            std::cout << " " << region;
-        }
-        std::cout << "\n";
+        // // Expected regions
+        // const auto &expected_regions = t->getExpectedRegions();
+        // std::cout << "    Expected regions (" << expected_regions.size() << "):";
+        // for (auto region : expected_regions)
+        // {
+        //     std::cout << " " << region;
+        // }
+        // std::cout << "\n";
 
-        // Seen regions
-        const auto &seen_regions = t->getSeenRegions();
-        std::cout << "    Seen regions (" << seen_regions.size() << "):";
-        for (auto region : seen_regions)
-        {
-            std::cout << " " << region;
-        }
-        std::cout << "\n";
+        // // Seen regions
+        // const auto &seen_regions = t->getSeenRegions();
+        // std::cout << "    Seen regions (" << seen_regions.size() << "):";
+        // for (auto region : seen_regions)
+        // {
+        //     std::cout << " " << region;
+        // }
+        // std::cout << "\n";
     }
 }
 
