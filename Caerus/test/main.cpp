@@ -144,8 +144,9 @@ int main() {
         // },
         {
             { 1, request::Operation::WRITE,   {1,2} }, // T1: W1,W2
-            { 1, request::Operation::WRITE,  {1} }, // T5:W1
-            { 2, request::Operation::WRITE,   {1,2} }  // T2:W1,W2
+            { 2, request::Operation::WRITE,   {1,2} },  // T2:W1,W2
+            { 1, request::Operation::WRITE,  {1} } // T3:W1
+            
         }
     };
 
