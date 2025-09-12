@@ -28,7 +28,7 @@ void Graph::printAll() const
     {
         const Transaction *t = kv.second.get();
         // Basic info
-        std::cout << "- UUID: " << t->getUUID()
+        std::cout << "- ID: " << t->getUUID()
                   << ", order: " << t->getOrder() << "\n";
         // Operations
         const auto &ops = t->getOperations();
