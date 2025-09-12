@@ -181,7 +181,6 @@ int main() {
                 std::cerr << "Send failed to server_id " << sid << "\n";
             }
 
-            std::this_thread::sleep_for(std::chrono::milliseconds(50)); // gap between transactions
         }
 
         std::this_thread::sleep_for(std::chrono::seconds(1)); // gap between batches
