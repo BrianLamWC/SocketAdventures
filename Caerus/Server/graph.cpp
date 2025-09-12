@@ -139,7 +139,6 @@ std::unique_ptr<Transaction> Graph::removeTransaction_(Transaction* rem)
     return up;
 }
 
-
 void Graph::strongConnect(Transaction *v)
 {
     // 1. Set the depth index for v
