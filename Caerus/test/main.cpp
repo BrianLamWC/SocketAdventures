@@ -190,7 +190,7 @@ int main() {
 
         }
 
-        // std::this_thread::sleep_for(std::chrono::seconds(1)); // gap between batches
+        std::this_thread::sleep_for(std::chrono::seconds(1)); // gap between batches
     }
 
     for (auto &kv : server_id_to_fd) close(kv.second);
