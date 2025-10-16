@@ -52,13 +52,7 @@ std::ostream& operator<<(std::ostream& os, const Transaction& t) {
 }
 
 void Merger::dumpPartialSequences() const {
-    for (const auto& [sid, qptr] : partial_sequences) {
-        auto items = qptr->snapshot();
-        std::cout << "Server " << sid << " (" << items.size() << " txns)\n";
-        for (const auto& txn : items) {
-            std::cout << "  " << txn << "\n";
-        }
-    }
+    graph.printAll();
 }
 
 
@@ -266,12 +260,12 @@ void Merger::insertAlgorithm()
             }
         }
 
-        if (!graph.isEmpty())
-        {
-            //print round complete and space one line
-            std::cout << "INSERT::Round complete. Current graph:\n\n";
-            graph.printAll();
-        }
+        // if (!graph.isEmpty())
+        // {
+        //     //print round complete and space one line
+        //     std::cout << "INSERT::Round complete. Current graph:\n\n";
+        //     graph.printAll();
+        // }
         
         //graph.getMergedOrders_();
 
