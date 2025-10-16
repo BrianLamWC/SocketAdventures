@@ -84,6 +84,8 @@ public:
     // Process a single incoming request
     void processRequest(const request::Request &req_proto);
 
+    void processIncomingRequest(const request::Request &req_proto);
+
     void dumpPartialSequences() const;
 
     // Insert algorithm
