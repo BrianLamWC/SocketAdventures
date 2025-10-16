@@ -21,6 +21,23 @@ void Merger::popFromQueue()
 
 void Merger::processRequest(const request::Request &req_proto){
 
+    // Log the request
+    std::ofstream logf("./merger_logs/merger_log.jsonl", std::ios::app);
+    if (logf) {
+        logf << "{\"server\":" << req_proto.server_id()
+             << ",\"round\":" << req_proto.round()
+             << ",\"txns\":[";
+        for (int i = 0; i < req_proto.transaction_size(); ++i) {
+            logf << "\"" << req_proto.transaction(i).id() << "\"";
+            if (i + 1 < req_proto.transaction_size()) {
+                logf << ",";
+            }
+        }
+        logf << "]}\n";
+    } else {
+        std::cerr << "MERGER: failed to open log file ./merger_logs/merger_log.jsonl\n";
+    }
+
     auto it = partial_sequences.find(req_proto.server_id());
 
     if (it == partial_sequences.end())

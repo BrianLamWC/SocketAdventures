@@ -6,7 +6,6 @@
 
 #include "graph.h"
 
-
 Transaction *Graph::addNode(std::unique_ptr<Transaction> uptr)
 {
     const std::string &key = uptr->getUUID();
@@ -111,26 +110,27 @@ std::unique_ptr<Transaction> Graph::removeTransaction(Transaction *rem)
     return up;
 }
 
-std::unique_ptr<Transaction> Graph::removeTransaction_(Transaction* rem)
+std::unique_ptr<Transaction> Graph::removeTransaction_(Transaction *rem)
 {
     auto it = nodes.find(rem->getUUID());
-    if (it == nodes.end()) return nullptr;
+    if (it == nodes.end())
+        return nullptr;
 
     // copy the incoming‐neighbor list and break those edges
-    std::vector<Transaction*> preds(
-      rem->getIncomingNeighbors().begin(),
-      rem->getIncomingNeighbors().end()
-    );
-    for (Transaction* pred : preds) {
+    std::vector<Transaction *> preds(
+        rem->getIncomingNeighbors().begin(),
+        rem->getIncomingNeighbors().end());
+    for (Transaction *pred : preds)
+    {
         pred->removeOutNeighbor(rem);
     }
 
     // copy the outgoing‐neighbor list and break those edges
-    std::vector<Transaction*> succs(
-      rem->getOutNeighbors().begin(),
-      rem->getOutNeighbors().end()
-    );
-    for (Transaction* succ : succs) {
+    std::vector<Transaction *> succs(
+        rem->getOutNeighbors().begin(),
+        rem->getOutNeighbors().end());
+    for (Transaction *succ : succs)
+    {
         rem->removeOutNeighbor(succ);
     }
 
@@ -215,10 +215,8 @@ void Graph::findSCCs()
                 std::cout << " " << t->getUUID();
             }
             std::cout << "\n\n";
-        }    
+        }
     }
-    
-
 }
 
 void Graph::buildTransactionSCCMap()
@@ -292,14 +290,14 @@ bool Graph::isSCCComplete(const int &scc_index)
             return false;
         }
     }
-    
+
     return true;
 }
 
 int32_t Graph::getMergedOrders_()
 {
     // 1) SCC + condensation once
-    findSCCs();  // one rep per SCC
+    findSCCs(); // one rep per SCC
     buildTransactionSCCMap();
     buildCondensationGraph();
     int sccs_count = sccs.size();
@@ -325,31 +323,32 @@ int32_t Graph::getMergedOrders_()
 
     while (!Q.empty())
     {
-        int c = Q.front(); 
+        int c = Q.front();
         Q.pop();
         auto &comp = sccs[c];
 
-        if (comp.size() > 1) {
+        if (comp.size() > 1)
+        {
 
-            std::sort(comp.begin(), comp.end(), 
-                [&](auto *a, auto *b){ 
-                    
-                    int32_t a_rand = a->getOrder();
-                    int32_t b_rand = b->getOrder();
+            std::sort(comp.begin(), comp.end(),
+                      [&](auto *a, auto *b)
+                      {
+                          int32_t a_rand = a->getOrder();
+                          int32_t b_rand = b->getOrder();
 
-                    if (a_rand != b_rand) {
-                        return a_rand < b_rand; 
-                    }
+                          if (a_rand != b_rand)
+                          {
+                              return a_rand < b_rand;
+                          }
 
-                    return a->getServerId() < b->getServerId();              
-                    
-                
-                });
-                
+                          return a->getServerId() < b->getServerId();
+                      });
         }
 
-        for (Transaction *T : comp) {
-            if (auto up = removeTransaction_(T)) {
+        for (Transaction *T : comp)
+        {
+            if (auto up = removeTransaction_(T))
+            {
                 merged_order.push(*up);
                 transaction_count++;
             }
@@ -360,16 +359,17 @@ int32_t Graph::getMergedOrders_()
         // for (Transaction *T : comp) {
         //     std::cout << "  " << T->getUUID() << " (Order: " << T->getOrder() << ")\n";
         // }
-        // std::cout << "\n\n";       
+        // std::cout << "\n\n";
 
         logging_cv.notify_all();
 
-        for (int p : neighbors_in[c]) {
-            if (--out_degrees[p] == 0 && isSCCComplete(p)) {
+        for (int p : neighbors_in[c])
+        {
+            if (--out_degrees[p] == 0 && isSCCComplete(p))
+            {
                 Q.push(p);
             }
         }
-
     }
 
     return transaction_count;
