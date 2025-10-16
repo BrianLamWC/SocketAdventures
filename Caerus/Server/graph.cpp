@@ -23,6 +23,7 @@ Transaction *Graph::getNode(const std::string &uuid)
 
 void Graph::printAll() const
 {
+    std::cout << "\033[2J\033[1;1H";
     std::cout << "Graph contains " << nodes.size() << " node(s):\n";
     for (const auto &kv : nodes)
     {
