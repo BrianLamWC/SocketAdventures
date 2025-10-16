@@ -32,7 +32,7 @@ private:
     pthread_t merger_thread;
     pthread_t popper;
     pthread_t insert_thread;
-    pthread_t remove_thread;
+    pthread_t dump_thread;
 
     int32_t last_round = INT32_MIN;
 
