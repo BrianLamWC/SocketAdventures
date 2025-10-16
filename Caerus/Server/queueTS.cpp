@@ -55,7 +55,7 @@ T Queue_TS<T>::pop() {
 
 template <typename T>
 std::vector<T> Queue_TS<T>::snapshot() const {
-    std::lock_guard<std::mutex> lk(mtx_);            // your queue's mutex
+    std::lock_guard<std::mutex> lk(mtx);            // your queue's mutex
     return std::vector<T>(q.begin(), q.end()); // your container
 }
 
