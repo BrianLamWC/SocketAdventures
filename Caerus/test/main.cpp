@@ -137,17 +137,17 @@ int main() {
 
     // intermediate struct to hold info the transactions before converting to protobuf struct
     std::vector<std::vector<TxnSpec>> batches = {
-        {
-            { 1, request::Operation::WRITE, {1,2} }, // T1:W1,W2
-            { 3, request::Operation::WRITE, {3} }, // T2:W3
-            { 3, request::Operation::WRITE, {1,2,3} }    //T3:W1,W2,W3
-        },
-        {
-            { 1, request::Operation::WRITE, {1,2} }, // T1: W1,W2
-            { 2, request::Operation::WRITE, {1,2} },  // T2:W1,W2
-            { 1, request::Operation::WRITE, {1} } // T3:W1
+        // {
+        //     { 1, request::Operation::WRITE, {1,2} }, // T1:W1,W2
+        //     { 3, request::Operation::WRITE, {3} }, // T2:W3
+        //     { 3, request::Operation::WRITE, {1,2,3} }    //T3:W1,W2,W3
+        // },
+        // {
+        //     { 1, request::Operation::WRITE, {1,2} }, // T1: W1,W2
+        //     { 2, request::Operation::WRITE, {1,2} },  // T2:W1,W2
+        //     { 1, request::Operation::WRITE, {1} } // T3:W1
             
-        },
+        // },
         {
             { 1, request::Operation::WRITE, {1} }, // T1: W1,W2
             { 1, request::Operation::READ, {1} },  // T2:W1,W2
