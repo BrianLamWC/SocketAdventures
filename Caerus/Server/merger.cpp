@@ -270,13 +270,10 @@ void Merger::insertAlgorithm()
         {
             //print round complete and space one line
             std::cout << "INSERT::Round complete. Current graph:\n\n";
-
-
-
             graph.printAll();
         }
         
-        graph.getMergedOrders_();
+        //graph.getMergedOrders_();
 
     }
 }
