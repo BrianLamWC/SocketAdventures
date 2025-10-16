@@ -95,8 +95,14 @@ void *handlePeer(void *server_args)
         else if (req_proto.recipient() == request::Request::MERGER)
         {
             //printf("MERGER: received partial sequence from: %d\n", req_proto.server_id());
-            partial_sequencer_to_merger_queue_.push(req_proto);
-            //merger->processIncomingRequest3(req_proto);
+            
+            {
+                std::lock_guard<std::mutex> lk(partial_sequencer_to_merger_queue_mtx);
+                partial_sequencer_to_merger_queue_.push(req_proto);
+            } // unlock first
+            
+            partial_sequencer_to_merger_queue_cv.notify_one();
+
         }
         else if(req_proto.recipient() == request::Request::START)
         {

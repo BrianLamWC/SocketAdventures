@@ -1,7 +1,7 @@
 #include "merger.h"
 #include "utils.h"
 
-void Merger::processLocalRequests()
+void Merger::popFromQueue()
 {
     while (true)
     {
@@ -9,152 +9,68 @@ void Merger::processLocalRequests()
         request::Request req_proto;
         {
             std::unique_lock<std::mutex> local_lock(partial_sequencer_to_merger_queue_mtx);
-            partial_sequencer_to_merger_queue_cv.wait(local_lock, []
-                                                      { return !partial_sequencer_to_merger_queue_.empty(); });
+            partial_sequencer_to_merger_queue_cv.wait(local_lock, [] { return !partial_sequencer_to_merger_queue_.empty(); });
             req_proto = partial_sequencer_to_merger_queue_.pop();
-
-            processIncomingRequest2(req_proto);
         }
+
+        processRequest(req_proto);
+
     }
 }
 
-void Merger::processRoundRequests()
-{
-    // printf("Processing round of requests:\n");
-    for (const auto &partial_sequence : current_batch)
+
+void Merger::processRequest(const request::Request &req_proto){
+
+    auto it = partial_sequences.find(req_proto.server_id());
+
+    if (it == partial_sequences.end())
     {
-        auto it = partial_sequences.find(partial_sequence.server_id());
-        auto &inner_map = it->second; // this is a unique_ptr to an unordered_map<string, Transaction>
-
-        for (const auto &txn_proto : partial_sequence.transaction())
-        {
-
-            std::vector<Operation> operations = getOperationsFromProtoTransaction(txn_proto);
-
-            Transaction transaction(txn_proto.random_stamp(), partial_sequence.server_id(), operations, txn_proto.id());
-
-            inner_map->push(transaction);
-        }
-        // printf("  Server %d: %ld transactions queued\n", txn.server_id(), inner_map->size());
-    }
-}
-
-void Merger::processIncomingRequest2(const request::Request &req_proto)
-{
-    if (!req_proto.has_server_id() || !req_proto.has_round())
+        // unknown server id
+        std::cerr << "MERGER: Unknown server ID " << req_proto.server_id() << " in processRequest" << std::endl;
         return;
-    int sid = req_proto.server_id(), r = req_proto.round();
+    } 
+    
+    auto &inner_map = it->second; // get the Queue_TS<Transaction> for this server
 
-    std::unique_lock<std::mutex> lk(round_mutex);
-
-    // buffer every arrival
-    batchBuffer[sid][r] = req_proto;
-
-    // try to drain all complete rounds
-    while (true)
+    for (const auto &txn_proto : req_proto.transaction())
     {
-        int exp = nextExpectedBatch[sid];
+        std::vector<Operation> operations = getOperationsFromProtoTransaction(txn_proto);
 
-        // check if *every* server has batch `exp`
-        bool haveAll = true;
-        for (int id : expected_server_ids)
-        {
-            if (batchBuffer[id].count(exp) == 0)
-            {
-                haveAll = false;
-                break;
-            }
-        }
-        
-        if (!haveAll){
+        Transaction txn(txn_proto.random_stamp(), req_proto.server_id(), operations, txn_proto.id());
 
-            break;
-
-        }
-
-        // assemble this round
-        current_batch.clear();
-        current_batch.reserve(expected_server_ids.size());
-        for (int id : expected_server_ids)
-        {
-            current_batch.push_back(std::move(batchBuffer[id][exp]));
-            batchBuffer[id].erase(exp);
-        }
-
-        // bump every server’s expected counter
-        for (int id : expected_server_ids)
-        {
-            nextExpectedBatch[id]++;
-        }
-
-        
-        {
-            bool has_non_empty_batch = false;
-
-            // Check if any batch in the current round is not empty
-            for (const auto &batch : current_batch)
-            {
-                if (batch.transaction_size() > 0)
-                {
-                    has_non_empty_batch = true;
-                    break;
-                }
-            }
-
-            // Only log if at least one batch is not empty
-            if (has_non_empty_batch)
-            {
-                std::ofstream logf("./merger_logs/merger_log" + std::to_string(my_id) + ".jsonl", std::ios::app);
-                if (!logf)
-                {
-                    std::cerr << "Merger: failed to open log file " << "./merger_logs/merger_log" + std::to_string(my_id) + ".jsonl" << "\n";
-                }
-                else
-                {
-                    for (auto &batch : current_batch)
-                    {
-                        // {"server":X,"round":Y,"txns":[a,b,c]}
-                        logf << "{\"server\":" << batch.server_id()
-                             << ",\"round\":" << exp
-                             << ",\"txns\":[";
-                        for (int i = 0; i < batch.transaction_size(); ++i)
-                        {
-                            logf << batch.transaction(i).id();
-                            if (i + 1 < batch.transaction_size())
-                                logf << ",";
-                        }
-                        logf << "]}\n";
-                    }
-                }
-            }
-        }
-
-
-        // drop the lock during heavy work, then re-acquire
-        lk.unlock();
-
-        processRoundRequests();
-
-        {
-            std::lock_guard<std::mutex> g(insert_mutex);
-            round_ready = true;
-        }
-        insert_cv.notify_one();
-
-        lk.lock();
+        inner_map->push(txn); // push the transaction into the queue
 
     }
+
 }
+
+std::ostream& operator<<(std::ostream& os, const Transaction& t) {
+    return os << "Txn{id=" << t.getUUID()
+              << ", stamp=" << t.getOrder()
+              << ", origin=" << t.getServerId()
+              << ", ops=" << t.getOperations().size() << "}";
+}
+
+void Merger::dumpPartialSequences() const {
+    for (const auto& [sid, qptr] : partial_sequences) {
+        auto items = qptr->snapshot();
+        std::cout << "Server " << sid << " (" << items.size() << " txns)\n";
+        for (const auto& txn : items) {
+            std::cout << "  " << txn << "\n";
+        }
+    }
+}
+
 
 void Merger::insertAlgorithm()
 {
 
-    std::unique_lock<std::mutex> lock(insert_mutex);
+    // std::unique_lock<std::mutex> lock(insert_mutex);
+
     while (true)
     {
-        insert_cv.wait(lock, [this]()
-                       { return round_ready; });
-        round_ready = false;
+        // insert_cv.wait(lock, [this]() { return round_ready; });
+        // round_ready = false;
 
         for (const auto &server : servers)
         {
@@ -365,36 +281,7 @@ void Merger::insertAlgorithm()
     }
 }
 
-void Merger::calculateThroughput()
-{
-    if (ns_elapsed_time == 0)
-    {
-        std::ofstream log_file("throughput_log_" + std::to_string(my_id) + ".log", std::ios::app);
-        if (log_file)
-        {
-            log_file << "MERGER: No elapsed time recorded yet.\n";
-        }
-        return;
-    }
 
-    double throughput = static_cast<double>(total_transactions) / (ns_elapsed_time / 1e9); // transactions per second
-
-    // Open the log file in append mode
-    std::ofstream log_file("throughput_log_" + std::to_string(my_id) + ".log", std::ios::app);
-    if (!log_file)
-    {
-        std::cerr << "Failed to open log file for merger throughput.\n";
-        return;
-    }
-
-    // Log the throughput and transaction details
-    log_file << "MERGER: Processed " << total_transactions << " transactions, "
-             << "Throughput: " << throughput << " transactions/second\n";
-
-    // Reset counters for the next round
-    total_transactions = 0;
-    ns_elapsed_time = 0;
-}
 
 Merger::Merger()
 {
@@ -411,10 +298,10 @@ Merger::Merger()
         nextExpectedBatch[server.id] = 0;
     }
 
-    // Create a local popper thread that calls the processLocalRequests() method.
+    // Create a popper thread that calls the popFromQueue() method.
     if (pthread_create(&popper, nullptr, [](void *arg) -> void *
                        {
-            static_cast<Merger*>(arg)->processLocalRequests();
+            static_cast<Merger*>(arg)->popFromQueue();
             return nullptr; }, this) != 0)
     {
         threadError("Error creating merger thread");
@@ -434,42 +321,172 @@ Merger::Merger()
     pthread_detach(insert_thread);
 }
 
-void Merger::processIncomingRequest(const request::Request &req_proto)
+// junk 
+
+void Merger::processRoundRequests()
 {
-    if (!req_proto.has_server_id() || !req_proto.has_round())
+    // printf("Processing round of requests:\n");
+    for (const auto &partial_sequence : current_batch)
     {
-        return;
-    }
-    int32_t sid = req_proto.server_id();
-    int32_t rnd = req_proto.round();
+        auto it = partial_sequences.find(partial_sequence.server_id());
+        auto &inner_map = it->second; // this is a unique_ptr to a Queue_TS<Transaction>
 
-    // printf("MERGER: Received request from server %d for round %d\n", sid, rnd);
-
-    std::lock_guard<std::mutex> lk(round_mutex);
-    auto &bucket = pending_rounds[rnd];
-    bucket[sid] = req_proto; // overwrite if we already had one
-
-    // if we now have one from *every* server, we can proceed
-    if (bucket.size() == expected_server_ids.size())
-    {
-        // collect in server‐order
-        current_batch.clear();
-        current_batch.reserve(expected_server_ids.size());
-        for (auto id : expected_server_ids)
+        for (const auto &txn_proto : partial_sequence.transaction())
         {
-            current_batch.push_back(std::move(bucket[id]));
+
+            std::vector<Operation> operations = getOperationsFromProtoTransaction(txn_proto);
+
+            Transaction transaction(txn_proto.random_stamp(), partial_sequence.server_id(), operations, txn_proto.id());
+
+            inner_map->push(transaction);
         }
-        // forget this round
-        pending_rounds.erase(rnd);
-
-        processRoundRequests();
-
-        // signal the insert thread
-        {
-            std::lock_guard<std::mutex> g(insert_mutex);
-            round_ready = true;
-        }
-
-        insert_cv.notify_one();
+        // printf("  Server %d: %ld transactions queued\n", txn.server_id(), inner_map->size());
     }
 }
+
+// void Merger::processIncomingRequest(const request::Request &req_proto)
+// {
+//     if (!req_proto.has_server_id() || !req_proto.has_round())
+//     {
+//         return;
+//     }
+//     int32_t sid = req_proto.server_id();
+//     int32_t rnd = req_proto.round();
+
+//     // printf("MERGER: Received request from server %d for round %d\n", sid, rnd);
+
+//     std::lock_guard<std::mutex> lk(round_mutex);
+//     auto &bucket = pending_rounds[rnd];
+//     bucket[sid] = req_proto; // overwrite if we already had one
+
+//     // if we now have one from *every* server, we can proceed
+//     if (bucket.size() == expected_server_ids.size())
+//     {
+//         // collect in server‐order
+//         current_batch.clear();
+//         current_batch.reserve(expected_server_ids.size());
+//         for (auto id : expected_server_ids)
+//         {
+//             current_batch.push_back(std::move(bucket[id]));
+//         }
+//         // forget this round
+//         pending_rounds.erase(rnd);
+
+//         processRoundRequests();
+
+//         // signal the insert thread
+//         {
+//             std::lock_guard<std::mutex> g(insert_mutex);
+//             round_ready = true;
+//         }
+
+//         insert_cv.notify_one();
+//     }
+// }
+
+// void Merger::processIncomingRequest2(const request::Request &req_proto)
+// {
+//     if (!req_proto.has_server_id() || !req_proto.has_round())
+//         return;
+//     int sid = req_proto.server_id(), r = req_proto.round();
+
+//     std::unique_lock<std::mutex> lk(round_mutex);
+
+//     // buffer every arrival
+//     batchBuffer[sid][r] = req_proto;
+
+//     // try to drain all complete rounds
+//     while (true)
+//     {
+//         int exp = nextExpectedBatch[sid];
+
+//         // check if *every* server has batch `exp`
+//         bool haveAll = true;
+//         for (int id : expected_server_ids)
+//         {
+//             if (batchBuffer[id].count(exp) == 0)
+//             {
+//                 haveAll = false;
+//                 break;
+//             }
+//         }
+        
+//         if (!haveAll){
+
+//             break;
+
+//         }
+
+//         // assemble this round
+//         current_batch.clear();
+//         current_batch.reserve(expected_server_ids.size());
+//         for (int id : expected_server_ids)
+//         {
+//             current_batch.push_back(std::move(batchBuffer[id][exp]));
+//             batchBuffer[id].erase(exp);
+//         }
+
+//         // bump every server’s expected counter
+//         for (int id : expected_server_ids)
+//         {
+//             nextExpectedBatch[id]++;
+//         }
+
+        
+//         {
+//             bool has_non_empty_batch = false;
+
+//             // Check if any batch in the current round is not empty
+//             for (const auto &batch : current_batch)
+//             {
+//                 if (batch.transaction_size() > 0)
+//                 {
+//                     has_non_empty_batch = true;
+//                     break;
+//                 }
+//             }
+
+//             // Only log if at least one batch is not empty
+//             if (has_non_empty_batch)
+//             {
+//                 std::ofstream logf("./merger_logs/merger_log" + std::to_string(my_id) + ".jsonl", std::ios::app);
+//                 if (!logf)
+//                 {
+//                     std::cerr << "Merger: failed to open log file " << "./merger_logs/merger_log" + std::to_string(my_id) + ".jsonl" << "\n";
+//                 }
+//                 else
+//                 {
+//                     for (auto &batch : current_batch)
+//                     {
+//                         // {"server":X,"round":Y,"txns":[a,b,c]}
+//                         logf << "{\"server\":" << batch.server_id()
+//                              << ",\"round\":" << exp
+//                              << ",\"txns\":[";
+//                         for (int i = 0; i < batch.transaction_size(); ++i)
+//                         {
+//                             logf << batch.transaction(i).id();
+//                             if (i + 1 < batch.transaction_size())
+//                                 logf << ",";
+//                         }
+//                         logf << "]}\n";
+//                     }
+//                 }
+//             }
+//         }
+
+
+//         // drop the lock during heavy work, then re-acquire
+//         lk.unlock();
+
+//         processRoundRequests();
+
+//         {
+//             std::lock_guard<std::mutex> g(insert_mutex);
+//             round_ready = true;
+//         }
+//         insert_cv.notify_one();
+
+//         lk.lock();
+
+//     }
+// }

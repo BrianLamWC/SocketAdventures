@@ -24,6 +24,7 @@ public:
     bool empty();
     std::vector<T> popAll(); 
     T pop(); 
+    std::vector<T> snapshot() const;
     size_t size() {
         std::lock_guard<std::mutex> lock(mtx);
         return q.size();

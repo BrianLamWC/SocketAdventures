@@ -53,6 +53,12 @@ T Queue_TS<T>::pop() {
 }
 
 
+template <typename T>
+std::vector<T> Queue_TS<T>::snapshot() const {
+    std::lock_guard<std::mutex> lk(mtx_);            // your queue's mutex
+    return std::vector<T>(deq_.begin(), deq_.end()); // your container
+}
+
 // Explicit template instantiations:
 template class Queue_TS<request::Transaction>;
 template class Queue_TS<Transaction>;
