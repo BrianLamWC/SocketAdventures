@@ -90,6 +90,23 @@ void Merger::insertAlgorithm()
         // insert_cv.wait(lock, [this]() { return round_ready; });
         // // round_ready = false;
 
+
+
+        bool all_ready = true;
+        for (const auto &server : servers)
+        {
+            if (partial_sequences[server.id]->empty())
+            {
+                all_ready = false;
+                break;
+            }
+        }
+
+        if (!all_ready)
+        {
+            continue;
+        }
+
         for (const auto &server : servers)
         {
             // printf("INSERT::Server %d\n", server.id);
@@ -104,7 +121,6 @@ void Merger::insertAlgorithm()
             {
                 std::cout << "  " << txn << std::endl;
             }
-
 
             std::unordered_set<DataItem> primary_set;
             std::unordered_map<DataItem, Transaction *> most_recent_writers;
