@@ -311,7 +311,6 @@ Merger::Merger()
 
     // pthread_detach(insert_thread);
 
-
     // Create an dump thread that calls the dumpPartialSequences() method every 10 seconds.
     if (pthread_create(&dump_thread, nullptr, [](void *arg) -> void *
                        {
