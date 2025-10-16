@@ -142,19 +142,19 @@ int main() {
             { 3, request::Operation::WRITE, {3} }, // T2:W3
             { 3, request::Operation::WRITE, {1,2,3} }    //T3:W1,W2,W3
         },
-        // {
-        //     { 1, request::Operation::WRITE, {1,2} }, // T1: W1,W2
-        //     { 2, request::Operation::WRITE, {1,2} },  // T2:W1,W2
-        //     { 1, request::Operation::WRITE, {1} } // T3:W1
+        {
+            { 1, request::Operation::WRITE, {1,2} }, // T1: W1,W2
+            { 2, request::Operation::WRITE, {1,2} },  // T2:W1,W2
+            { 1, request::Operation::WRITE, {1} } // T3:W1
             
-        // },
-        // {
-        //     { 1, request::Operation::WRITE, {1} }, // T1: W1,W2
-        //     { 1, request::Operation::READ, {1} },  // T2:W1,W2
-        //     { 1, request::Operation::READ, {1} }, // T3:W1
-        //     { 1, request::Operation::WRITE, {1} } // T4:W3
+        },
+        {
+            { 1, request::Operation::WRITE, {1} }, // T1: W1,W2
+            { 1, request::Operation::READ, {1} },  // T2:W1,W2
+            { 1, request::Operation::READ, {1} }, // T3:W1
+            { 1, request::Operation::WRITE, {1} } // T4:W3
 
-        // }
+        }
     };
 
     // struct to hold batches of transactions in protobuf format
@@ -190,7 +190,7 @@ int main() {
 
         }
 
-        std::this_thread::sleep_for(std::chrono::seconds(1)); // gap between batches
+        // std::this_thread::sleep_for(std::chrono::seconds(1)); // gap between batches
     }
 
     for (auto &kv : server_id_to_fd) close(kv.second);
