@@ -15,7 +15,7 @@ class Queue_TS
 private:
 
     std::deque<T> q;
-    std::mutex mtx;
+    mutable std::mutex mtx;
 
 public:
 
