@@ -90,8 +90,6 @@ void Merger::insertAlgorithm()
         // insert_cv.wait(lock, [this]() { return round_ready; });
         // // round_ready = false;
 
-
-
         bool all_ready = true;
         for (const auto &server : servers)
         {
