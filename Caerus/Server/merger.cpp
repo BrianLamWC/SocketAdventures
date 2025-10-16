@@ -24,7 +24,7 @@ void Merger::processRequest(const request::Request &req_proto)
     if (req_proto.transaction_size() > 0)
     {
         // Log the request
-        std::ofstream logf("./merger_logs/merger_log.jsonl", std::ios::app);
+        std::ofstream logf("./merger_logs/merger_log" + std::to_string(my_id) + ".jsonl", std::ios::app);
         if (logf)
         {
             logf << "{\"server\":" << req_proto.server_id()
