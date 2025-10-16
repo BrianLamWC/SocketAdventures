@@ -139,7 +139,7 @@ int main() {
     std::vector<std::vector<TxnSpec>> batches = {
         {
             { 1, request::Operation::WRITE, {1,2} }, // T1: W1,W2
-            { 3, request::Operation::WRITE, {3} },  // T2:W1,W2
+            { 2, request::Operation::WRITE, {1,2} },  // T2:W1,W2
             { 1, request::Operation::WRITE, {1} } // T3:W1
         },
         // {
