@@ -9,33 +9,41 @@ void Merger::popFromQueue()
         request::Request req_proto;
         {
             std::unique_lock<std::mutex> local_lock(partial_sequencer_to_merger_queue_mtx);
-            partial_sequencer_to_merger_queue_cv.wait(local_lock, [] { return !partial_sequencer_to_merger_queue_.empty(); });
+            partial_sequencer_to_merger_queue_cv.wait(local_lock, []
+                                                      { return !partial_sequencer_to_merger_queue_.empty(); });
             req_proto = partial_sequencer_to_merger_queue_.pop();
         }
 
         processRequest(req_proto);
-
     }
 }
 
+void Merger::processRequest(const request::Request &req_proto)
+{
 
-void Merger::processRequest(const request::Request &req_proto){
-
-    // Log the request
-    std::ofstream logf("./merger_logs/merger_log.jsonl", std::ios::app);
-    if (logf) {
-        logf << "{\"server\":" << req_proto.server_id()
-             << ",\"round\":" << req_proto.round()
-             << ",\"txns\":[";
-        for (int i = 0; i < req_proto.transaction_size(); ++i) {
-            logf << "\"" << req_proto.transaction(i).id() << "\"";
-            if (i + 1 < req_proto.transaction_size()) {
-                logf << ",";
+    if (req_proto.transaction_size() > 0)
+    {
+        // Log the request
+        std::ofstream logf("./merger_logs/merger_log.jsonl", std::ios::app);
+        if (logf)
+        {
+            logf << "{\"server\":" << req_proto.server_id()
+                 << ",\"round\":" << req_proto.round()
+                 << ",\"txns\":[";
+            for (int i = 0; i < req_proto.transaction_size(); ++i)
+            {
+                logf << "\"" << req_proto.transaction(i).id() << "\"";
+                if (i + 1 < req_proto.transaction_size())
+                {
+                    logf << ",";
+                }
             }
+            logf << "]}\n";
         }
-        logf << "]}\n";
-    } else {
-        std::cerr << "MERGER: failed to open log file ./merger_logs/merger_log.jsonl\n";
+        else
+        {
+            std::cerr << "MERGER: failed to open log file ./merger_logs/merger_log.jsonl\n";
+        }
     }
 
     auto it = partial_sequences.find(req_proto.server_id());
@@ -45,8 +53,8 @@ void Merger::processRequest(const request::Request &req_proto){
         // unknown server id
         std::cerr << "MERGER: Unknown server ID " << req_proto.server_id() << " in processRequest" << std::endl;
         return;
-    } 
-    
+    }
+
     auto &inner_map = it->second; // get the Queue_TS<Transaction> for this server
 
     for (const auto &txn_proto : req_proto.transaction())
@@ -57,20 +65,20 @@ void Merger::processRequest(const request::Request &req_proto){
 
         inner_map->push(txn); // push the transaction into the queue
     }
-
 }
 
-std::ostream& operator<<(std::ostream& os, const Transaction& t) {
+std::ostream &operator<<(std::ostream &os, const Transaction &t)
+{
     return os << "Txn{id=" << t.getUUID()
               << ", stamp=" << t.getOrder()
               << ", origin=" << t.getServerId()
               << ", ops=" << t.getOperations().size() << "}";
 }
 
-void Merger::dumpPartialSequences() const {
+void Merger::dumpPartialSequences() const
+{
     graph.printAll();
 }
-
 
 void Merger::insertAlgorithm()
 {
@@ -282,13 +290,10 @@ void Merger::insertAlgorithm()
         //     std::cout << "INSERT::Round complete. Current graph:\n\n";
         //     graph.printAll();
         // }
-        
-        //graph.getMergedOrders_();
 
+        // graph.getMergedOrders_();
     }
 }
-
-
 
 Merger::Merger()
 {
@@ -297,12 +302,12 @@ Merger::Merger()
     // std::ofstream init_tp("throughput_log_" + std::to_string(my_id) + ".log", std::ios::out | std::ios::trunc);
 
     partial_sequences.reserve(servers.size());
-    for (const auto& server : servers) {
+    for (const auto &server : servers)
+    {
         partial_sequences.emplace(server.id, std::make_unique<Queue_TS<Transaction>>());
         expected_server_ids.push_back(server.id);
         nextExpectedBatch[server.id] = 0;
     }
-
 
     // Create a popper thread that calls the popFromQueue() method.
     if (pthread_create(&popper, nullptr, [](void *arg) -> void *
@@ -339,10 +344,9 @@ Merger::Merger()
         threadError("Error creating dump thread");
     }
     pthread_detach(dump_thread);
-
 }
 
-// junk 
+// junk
 
 void Merger::processRoundRequests()
 {
@@ -431,7 +435,7 @@ void Merger::processIncomingRequest(const request::Request &req_proto)
 //                 break;
 //             }
 //         }
-        
+
 //         if (!haveAll){
 
 //             break;
@@ -453,7 +457,6 @@ void Merger::processIncomingRequest(const request::Request &req_proto)
 //             nextExpectedBatch[id]++;
 //         }
 
-        
 //         {
 //             bool has_non_empty_batch = false;
 
@@ -494,7 +497,6 @@ void Merger::processIncomingRequest(const request::Request &req_proto)
 //                 }
 //             }
 //         }
-
 
 //         // drop the lock during heavy work, then re-acquire
 //         lk.unlock();
