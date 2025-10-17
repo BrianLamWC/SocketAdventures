@@ -149,13 +149,14 @@ int main()
             {1, request::Operation::WRITE, {1}}     // T3:W1,W2,W3
 
         },
-        {
-            {1, request::Operation::WRITE, {1}}, // T1: W1,W2
-            {1, request::Operation::READ, {1}},  // T2:W1,W2
-            {1, request::Operation::READ, {1}},  // T3:W1
-            {1, request::Operation::WRITE, {1}}  // T4:W3
+        // {
+        //     {1, request::Operation::WRITE, {1}}, // T1: W1,W2
+        //     {1, request::Operation::READ, {1}},  // T2:W1,W2
+        //     {1, request::Operation::READ, {1}},  // T3:W1
+        //     {1, request::Operation::WRITE, {1}}  // T4:W3
 
-        }};
+        // }
+    };
 
     // struct to hold batches of transactions in protobuf format
     std::vector<std::vector<request::Request>> batches_pb;
