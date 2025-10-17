@@ -157,7 +157,7 @@ void Merger::insertAlgorithm()
 
         for (auto &txn : transactions)
         {
-            // std::cout << "INSERT::Transaction: " << txn.getUUID() << std::endl;
+            std::cout << "INSERT::Transaction: " << txn.getUUID() << std::endl;
 
             std::unordered_set<DataItem> write_set;
             std::unordered_set<DataItem> read_set;
@@ -171,7 +171,7 @@ void Merger::insertAlgorithm()
 
                 if (it == mockDB.end())
                 {
-                    // std::cout << "INSERT::ReadWriteSet: key " << op.key << " not found" << std::endl;
+                    std::cout << "INSERT::ReadWriteSet: key " << op.key << " not found" << std::endl;
                     continue;
                 }
 
@@ -189,7 +189,7 @@ void Merger::insertAlgorithm()
                 expected_regions.insert(data_item.primaryCopyID); // add primary copy id to expected regions
 
                 // pritn read and write set
-                // std::cout << "INSERT::ReadWriteSet: key " << op.key << " type " << (op.type == OperationType::READ ? "READ" : "WRITE") << std::endl;
+                std::cout << "INSERT::ReadWriteSet: key " << op.key << " type " << (op.type == OperationType::READ ? "READ" : "WRITE") << std::endl;
             }
 
             auto curr_txn = graph.getNode(txn.getUUID());
@@ -251,7 +251,7 @@ void Merger::insertAlgorithm()
                 if (write_set.find(data_item) != write_set.end())
                 {
 
-                    // std::cout << "INSERT::WRITESET:" <<data_item.val << " is in write and primary set" << std::endl;
+                    std::cout << "INSERT::WRITESET:" <<data_item.val << " is in write and primary set" << std::endl;
 
                     auto mrw_it = most_recent_writers.find(data_item); // get mrw for data item
 
@@ -265,19 +265,19 @@ void Merger::insertAlgorithm()
                     { // data item has mrw , check if mrw is in graph
 
                         // print transaction id
-                        // std::cout << "INSERT::WRITESET: key " << data_item.val << " has mrw " << mrw_it->second->getUUID() << std::endl;
+                        std::cout << "INSERT::WRITESET: key " << data_item.val << " has mrw " << mrw_it->second->getUUID() << std::endl;
 
                         if (graph.getNode(mrw_it->second->getUUID()) != nullptr)
                         { // if mrw in graph
-                            // std::cout << "INSERT::WRITESET:" << mrw_it->second->getUUID() << " in graph" << std::endl;
+                            std::cout << "INSERT::WRITESET:" << mrw_it->second->getUUID() << " in graph" << std::endl;
                             auto current_txn = graph.getNode(txn.getUUID());
                             current_txn->addNeighborOut(mrw_it->second);
-                            // std::cout << "INSERT::WRITESET: adding edge from " << txn.getUUID() << " to " << mrw_it->second->getUUID() << std::endl;
+                            std::cout << "INSERT::WRITESET: adding edge from " << txn.getUUID() << " to " << mrw_it->second->getUUID() << std::endl;
                         }
                     }
                     else
                     {
-                        // std::cout << "INSERT::WRITESET: key " << data_item.val << " has no mrw" << std::endl;
+                        std::cout << "INSERT::WRITESET: key " << data_item.val << " has no mrw" << std::endl;
                     }
 
                     mrw_it->second = graph.getNode(txn.getUUID()); // set mrw to current transaction
@@ -288,14 +288,14 @@ void Merger::insertAlgorithm()
                     if (readers_it != most_recent_readers.end())
                     {
 
-                        // std::cout << "INSERT::READERS: key " << data_item.val << " has readers" << std::endl;
+                        std::cout << "INSERT::READERS: key " << data_item.val << " has readers" << std::endl;
 
                         auto readers = readers_it->second;
 
                         for (const auto &reader_id : readers)
                         {
 
-                            // std::cout << "INSERT::READERS: key " << data_item.val << " has reader " << reader_id << std::endl;
+                            std::cout << "INSERT::READERS: key " << data_item.val << " has reader " << reader_id << std::endl;
 
                             auto read_txn = graph.getNode(reader_id);
 
@@ -303,7 +303,7 @@ void Merger::insertAlgorithm()
                             {
                                 auto current_txn = graph.getNode(txn.getUUID());
                                 current_txn->addNeighborOut(read_txn); // add reader to current transaction
-                                // std::cout << "INSERT::READERS: adding edge from " << txn.getUUID() << " to " << read_txn->getUUID() << std::endl;
+                                std::cout << "INSERT::READERS: adding edge from " << txn.getUUID() << " to " << read_txn->getUUID() << std::endl;
                             }
                         }
                     }
