@@ -317,7 +317,7 @@ Merger::Merger()
     partial_sequences.reserve(servers.size());
     for (const auto &server : servers)
     {
-        partial_sequences.emplace(server.id, std::make_unique<Queue_TS<Transaction>>());
+        partial_sequences.emplace(server.id, std::make_unique<Queue_TS<std::vector<Transaction>>>());
         expected_server_ids.push_back(server.id);
     }
 
