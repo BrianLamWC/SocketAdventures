@@ -46,7 +46,8 @@ void Merger::processRequest(const request::Request &req_proto)
         }
     }
 
-    auto it = partial_sequences.find(req_proto.server_id());
+    const int sid = req_proto.server_id();
+    auto it = partial_sequences.find(sid);
 
     if (it == partial_sequences.end())
     {
@@ -55,7 +56,8 @@ void Merger::processRequest(const request::Request &req_proto)
         return;
     }
 
-    auto &inner_map = it->second; // get the Queue_TS<Transaction> for this server
+    auto &q = it->second; // get the Queue_TS<Transaction> for this server
+    std::vector<Transaction> transactions;
 
     for (const auto &txn_proto : req_proto.transaction())
     {
@@ -63,8 +65,20 @@ void Merger::processRequest(const request::Request &req_proto)
 
         Transaction txn(txn_proto.random_stamp(), req_proto.server_id(), operations, txn_proto.id());
 
-        inner_map->push(txn); // push the transaction into the queue
+        transactions.push_back(txn);
+
+        q->push(transactions);
     }
+
+    {
+        std::lock_guard<std::mutex> g(ready_mtx);
+        if (!enqueued_sids_.count(sid)) {
+            enqueued_sids_.insert(sid);
+            ready_q_.push_back(sid);
+            ready_cv.notify_one();
+        }
+    }
+
 }
 
 std::ostream &operator<<(std::ostream &os, const Transaction &t)
@@ -82,238 +96,215 @@ void Merger::dumpPartialSequences() const
 
 void Merger::insertAlgorithm()
 {
-
-    // std::unique_lock<std::mutex> lock(insert_mutex);
+    std::unique_lock<std::mutex> lk(ready_mtx);
 
     while (true)
     {
-        // insert_cv.wait(lock, [this]() { return round_ready; });
-        // // round_ready = false;
+        ready_cv.wait(lk, [this]() { return !ready_q_.empty(); });
 
-        bool all_ready = true;
-        for (const auto &server : servers)
-        {
-            if (partial_sequences[server.id]->empty())
-            {
-                all_ready = false;
-                break;
-            }
-        }
+        int sid = ready_q_.front();
+        ready_q_.pop_front();
+        enqueued_sids_.erase(sid);
+        lk.unlock();
+        
+        // printf("INSERT::Server %d\n", server.id);
 
-        if (!all_ready)
-        {
-            continue;
-        }
+        auto it = partial_sequences.find(sid);
+        auto &inner_map = it->second;
+        auto transactions = inner_map->pop();
 
-        for (const auto &server : servers)
-        {
-            // printf("INSERT::Server %d\n", server.id);
-
-            auto it = partial_sequences.find(server.id);
-            auto &inner_map = it->second;
-            auto transactions = inner_map->popAll();
-
-            // print size and transction ids
-            std::cout << "INSERT::Popped " << transactions.size() << " transactions from server " << server.id << std::endl;
-            for (const auto &txn : transactions)
-            {
-                std::cout << "  " << txn << std::endl;
-            }
-
-            std::unordered_set<DataItem> primary_set;
-            std::unordered_map<DataItem, Transaction *> most_recent_writers;
-            std::unordered_map<DataItem, std::unordered_set<std::string>> most_recent_readers;
-
-            // setup the primary set for current server
-            for (const auto &txn : transactions)
-            {
-                for (const auto &op : txn.getOperations())
-                {
-                    auto db_it = mockDB.find(op.key);
-
-                    if (db_it == mockDB.end())
-                    {
-                        std::cout << "INSERT::PrimarySet: key " << op.key << " not found" << std::endl;
-                        continue;
-                    }
-
-                    auto data_item = db_it->second;
-
-                    if (data_item.primaryCopyID == server.id)
-                    {
-                        primary_set.insert(data_item);
-                    }
-
-                    // ensure the key exists in the MRW map (value initialized to nullptr)
-                    most_recent_writers.emplace(data_item, nullptr);
-                }
-            }
-
-            for (auto &txn : transactions)
-            {
-                // std::cout << "INSERT::Transaction: " << txn.getUUID() << std::endl;
-
-                std::unordered_set<DataItem> write_set;
-                std::unordered_set<DataItem> read_set;
-                std::unordered_set<int32_t> expected_regions;
-
-                // setup the read and write set for the current transaction
-                for (const auto &op : txn.getOperations())
-                {
-
-                    auto it = mockDB.find(op.key);
-
-                    if (it == mockDB.end())
-                    {
-                        // std::cout << "INSERT::ReadWriteSet: key " << op.key << " not found" << std::endl;
-                        continue;
-                    }
-
-                    DataItem data_item = it->second;
-
-                    if (op.type == OperationType::WRITE)
-                    {
-                        write_set.insert(data_item); // dont use nullptr, need to be valid pointer or just ""
-                    }
-                    else if (op.type == OperationType::READ)
-                    {
-                        read_set.insert(data_item);
-                    }
-
-                    expected_regions.insert(data_item.primaryCopyID); // add primary copy id to expected regions
-
-                    // pritn read and write set
-                    // std::cout << "INSERT::ReadWriteSet: key " << op.key << " type " << (op.type == OperationType::READ ? "READ" : "WRITE") << std::endl;
-                }
-
-                auto curr_txn = graph.getNode(txn.getUUID());
-
-                if (curr_txn == nullptr)
-                {
-                    txn.setExpectedRegions(expected_regions);
-                    txn.addSeenRegion(server.id);
-                    graph.addNode(std::make_unique<Transaction>(txn));
-                }
-                else
-                {
-                    curr_txn->addSeenRegion(server.id);
-                }
-
-                // Read Set ∩ Primary Set
-                for (const auto &data_item : primary_set)
-                {
-                    if (read_set.find(data_item) != read_set.end())
-                    {
-
-                        // std::cout << "INSERT::READSET:" << data_item.val << " is in read and primary set" << std::endl;
-
-                        auto mrw_it = most_recent_writers.find(data_item); // get mrw for data item
-
-                        if (mrw_it == most_recent_writers.end())
-                        { // data item not found
-                            // std::cout << "INSERT::READSET: key " << data_item.val << " not found" << std::endl;
-                            continue;
-                        }
-
-                        // auto &mrw_txn = mrw_it->second;
-
-                        if (mrw_it->second != nullptr)
-                        { // data item has mrw
-                            // print transaction id
-                            // std::cout << "INSERT::READSET: key " << data_item.val << " has mrw " << mrw_it->second->getUUID() << std::endl;
-
-                            if (graph.getNode(mrw_it->second->getUUID()) != nullptr)
-                            { // if mrw in graph
-                                // std::cout << "INSERT::READSET:" << mrw_it->second->getUUID() << " in graph" << std::endl;
-                                auto current_txn = graph.getNode(txn.getUUID());
-                                current_txn->addNeighborOut(mrw_it->second);
-                                // std::cout << "INSERT::READSET: adding edge from " << txn.getUUID() << " to " << mrw_it->second->getUUID() << std::endl;
-                            }
-                        }
-                        else
-                        {
-                            // std::cout << "INSERT::READSET: key " << data_item.val << " has no mrw" << std::endl;
-                        }
-
-                        most_recent_readers[data_item].emplace(txn.getUUID()); // add current transaction to readers
-                    }
-                }
-
-                // Write Set ∩ Primary Set
-                for (const auto &data_item : primary_set)
-                {
-                    if (write_set.find(data_item) != write_set.end())
-                    {
-
-                        // std::cout << "INSERT::WRITESET:" <<data_item.val << " is in write and primary set" << std::endl;
-
-                        auto mrw_it = most_recent_writers.find(data_item); // get mrw for data item
-
-                        if (mrw_it == most_recent_writers.end())
-                        { // data item not found
-                            // std::cout << "INSERT::WRITESET: key " << data_item.val << " not found" << std::endl;
-                            continue;
-                        }
-
-                        if (mrw_it->second != nullptr)
-                        { // data item has mrw , check if mrw is in graph
-
-                            // print transaction id
-                            // std::cout << "INSERT::WRITESET: key " << data_item.val << " has mrw " << mrw_it->second->getUUID() << std::endl;
-
-                            if (graph.getNode(mrw_it->second->getUUID()) != nullptr)
-                            { // if mrw in graph
-                                // std::cout << "INSERT::WRITESET:" << mrw_it->second->getUUID() << " in graph" << std::endl;
-                                auto current_txn = graph.getNode(txn.getUUID());
-                                current_txn->addNeighborOut(mrw_it->second);
-                                // std::cout << "INSERT::WRITESET: adding edge from " << txn.getUUID() << " to " << mrw_it->second->getUUID() << std::endl;
-                            }
-                        }
-                        else
-                        {
-                            // std::cout << "INSERT::WRITESET: key " << data_item.val << " has no mrw" << std::endl;
-                        }
-
-                        mrw_it->second = graph.getNode(txn.getUUID()); // set mrw to current transaction
-
-                        // readers ∩ Primary Set
-                        auto readers_it = most_recent_readers.find(data_item);
-
-                        if (readers_it != most_recent_readers.end())
-                        {
-
-                            // std::cout << "INSERT::READERS: key " << data_item.val << " has readers" << std::endl;
-
-                            auto readers = readers_it->second;
-
-                            for (const auto &reader_id : readers)
-                            {
-
-                                // std::cout << "INSERT::READERS: key " << data_item.val << " has reader " << reader_id << std::endl;
-
-                                auto read_txn = graph.getNode(reader_id);
-
-                                if (read_txn != nullptr) // if reader in graph
-                                {
-                                    auto current_txn = graph.getNode(txn.getUUID());
-                                    current_txn->addNeighborOut(read_txn); // add reader to current transaction
-                                    // std::cout << "INSERT::READERS: adding edge from " << txn.getUUID() << " to " << read_txn->getUUID() << std::endl;
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        // if (!graph.isEmpty())
+        // print size and transction ids
+        // std::cout << "INSERT::Popped " << transactions.size() << " transactions from server " << sid << std::endl;
+        // for (const auto &txn : transactions)
         // {
-        //     //print round complete and space one line
-        //     std::cout << "INSERT::Round complete. Current graph:\n\n";
-        //     graph.printAll();
+        //     std::cout << "  " << txn << std::endl;
         // }
 
-        // graph.getMergedOrders_();
+        std::unordered_set<DataItem> primary_set;
+        std::unordered_map<DataItem, Transaction *> most_recent_writers;
+        std::unordered_map<DataItem, std::unordered_set<std::string>> most_recent_readers;
+
+        // setup the primary set for current server
+        for (const auto &txn : transactions)
+        {
+            for (const auto &op : txn.getOperations())
+            {
+                auto db_it = mockDB.find(op.key);
+
+                if (db_it == mockDB.end())
+                {
+                    std::cout << "INSERT::PrimarySet: key " << op.key << " not found" << std::endl;
+                    continue;
+                }
+
+                auto data_item = db_it->second;
+
+                if (data_item.primaryCopyID == sid)
+                {
+                    primary_set.insert(data_item);
+                }
+
+                // ensure the key exists in the MRW map (value initialized to nullptr)
+                most_recent_writers.emplace(data_item, nullptr);
+            }
+        }
+
+        for (auto &txn : transactions)
+        {
+            // std::cout << "INSERT::Transaction: " << txn.getUUID() << std::endl;
+
+            std::unordered_set<DataItem> write_set;
+            std::unordered_set<DataItem> read_set;
+            std::unordered_set<int32_t> expected_regions;
+
+            // setup the read and write set for the current transaction
+            for (const auto &op : txn.getOperations())
+            {
+
+                auto it = mockDB.find(op.key);
+
+                if (it == mockDB.end())
+                {
+                    // std::cout << "INSERT::ReadWriteSet: key " << op.key << " not found" << std::endl;
+                    continue;
+                }
+
+                DataItem data_item = it->second;
+
+                if (op.type == OperationType::WRITE)
+                {
+                    write_set.insert(data_item); // dont use nullptr, need to be valid pointer or just ""
+                }
+                else if (op.type == OperationType::READ)
+                {
+                    read_set.insert(data_item);
+                }
+
+                expected_regions.insert(data_item.primaryCopyID); // add primary copy id to expected regions
+
+                // pritn read and write set
+                // std::cout << "INSERT::ReadWriteSet: key " << op.key << " type " << (op.type == OperationType::READ ? "READ" : "WRITE") << std::endl;
+            }
+
+            auto curr_txn = graph.getNode(txn.getUUID());
+
+            if (curr_txn == nullptr)
+            {
+                txn.setExpectedRegions(expected_regions);
+                txn.addSeenRegion(sid);
+                graph.addNode(std::make_unique<Transaction>(txn));
+            }
+            else
+            {
+                curr_txn->addSeenRegion(sid);
+            }
+
+            // Read Set ∩ Primary Set
+            for (const auto &data_item : primary_set)
+            {
+                if (read_set.find(data_item) != read_set.end())
+                {
+
+                    // std::cout << "INSERT::READSET:" << data_item.val << " is in read and primary set" << std::endl;
+
+                    auto mrw_it = most_recent_writers.find(data_item); // get mrw for data item
+
+                    if (mrw_it == most_recent_writers.end())
+                    { // data item not found
+                        // std::cout << "INSERT::READSET: key " << data_item.val << " not found" << std::endl;
+                        continue;
+                    }
+
+                    // auto &mrw_txn = mrw_it->second;
+
+                    if (mrw_it->second != nullptr)
+                    { // data item has mrw
+                        // print transaction id
+                        // std::cout << "INSERT::READSET: key " << data_item.val << " has mrw " << mrw_it->second->getUUID() << std::endl;
+
+                        if (graph.getNode(mrw_it->second->getUUID()) != nullptr)
+                        { // if mrw in graph
+                            // std::cout << "INSERT::READSET:" << mrw_it->second->getUUID() << " in graph" << std::endl;
+                            auto current_txn = graph.getNode(txn.getUUID());
+                            current_txn->addNeighborOut(mrw_it->second);
+                            // std::cout << "INSERT::READSET: adding edge from " << txn.getUUID() << " to " << mrw_it->second->getUUID() << std::endl;
+                        }
+                    }
+                    else
+                    {
+                        // std::cout << "INSERT::READSET: key " << data_item.val << " has no mrw" << std::endl;
+                    }
+
+                    most_recent_readers[data_item].emplace(txn.getUUID()); // add current transaction to readers
+                }
+            }
+
+            // Write Set ∩ Primary Set
+            for (const auto &data_item : primary_set)
+            {
+                if (write_set.find(data_item) != write_set.end())
+                {
+
+                    // std::cout << "INSERT::WRITESET:" <<data_item.val << " is in write and primary set" << std::endl;
+
+                    auto mrw_it = most_recent_writers.find(data_item); // get mrw for data item
+
+                    if (mrw_it == most_recent_writers.end())
+                    { // data item not found
+                        // std::cout << "INSERT::WRITESET: key " << data_item.val << " not found" << std::endl;
+                        continue;
+                    }
+
+                    if (mrw_it->second != nullptr)
+                    { // data item has mrw , check if mrw is in graph
+
+                        // print transaction id
+                        // std::cout << "INSERT::WRITESET: key " << data_item.val << " has mrw " << mrw_it->second->getUUID() << std::endl;
+
+                        if (graph.getNode(mrw_it->second->getUUID()) != nullptr)
+                        { // if mrw in graph
+                            // std::cout << "INSERT::WRITESET:" << mrw_it->second->getUUID() << " in graph" << std::endl;
+                            auto current_txn = graph.getNode(txn.getUUID());
+                            current_txn->addNeighborOut(mrw_it->second);
+                            // std::cout << "INSERT::WRITESET: adding edge from " << txn.getUUID() << " to " << mrw_it->second->getUUID() << std::endl;
+                        }
+                    }
+                    else
+                    {
+                        // std::cout << "INSERT::WRITESET: key " << data_item.val << " has no mrw" << std::endl;
+                    }
+
+                    mrw_it->second = graph.getNode(txn.getUUID()); // set mrw to current transaction
+
+                    // readers ∩ Primary Set
+                    auto readers_it = most_recent_readers.find(data_item);
+
+                    if (readers_it != most_recent_readers.end())
+                    {
+
+                        // std::cout << "INSERT::READERS: key " << data_item.val << " has readers" << std::endl;
+
+                        auto readers = readers_it->second;
+
+                        for (const auto &reader_id : readers)
+                        {
+
+                            // std::cout << "INSERT::READERS: key " << data_item.val << " has reader " << reader_id << std::endl;
+
+                            auto read_txn = graph.getNode(reader_id);
+
+                            if (read_txn != nullptr) // if reader in graph
+                            {
+                                auto current_txn = graph.getNode(txn.getUUID());
+                                current_txn->addNeighborOut(read_txn); // add reader to current transaction
+                                // std::cout << "INSERT::READERS: adding edge from " << txn.getUUID() << " to " << read_txn->getUUID() << std::endl;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
     }
 }
 
@@ -328,7 +319,6 @@ Merger::Merger()
     {
         partial_sequences.emplace(server.id, std::make_unique<Queue_TS<Transaction>>());
         expected_server_ids.push_back(server.id);
-        nextExpectedBatch[server.id] = 0;
     }
 
     // Create a popper thread that calls the popFromQueue() method.
@@ -367,171 +357,3 @@ Merger::Merger()
     }
     pthread_detach(dump_thread);
 }
-
-// junk
-
-void Merger::processRoundRequests()
-{
-    // printf("Processing round of requests:\n");
-    for (const auto &partial_sequence : current_batch)
-    {
-        auto it = partial_sequences.find(partial_sequence.server_id());
-        auto &inner_map = it->second; // this is a unique_ptr to a Queue_TS<Transaction>
-
-        for (const auto &txn_proto : partial_sequence.transaction())
-        {
-
-            std::vector<Operation> operations = getOperationsFromProtoTransaction(txn_proto);
-
-            Transaction transaction(txn_proto.random_stamp(), partial_sequence.server_id(), operations, txn_proto.id());
-
-            inner_map->push(transaction);
-        }
-        // printf("  Server %d: %ld transactions queued\n", txn.server_id(), inner_map->size());
-    }
-}
-
-void Merger::processIncomingRequest(const request::Request &req_proto)
-{
-    if (!req_proto.has_server_id() || !req_proto.has_round())
-    {
-        return;
-    }
-    int32_t sid = req_proto.server_id();
-    int32_t rnd = req_proto.round();
-
-    // printf("MERGER: Received request from server %d for round %d\n", sid, rnd);
-
-    std::lock_guard<std::mutex> lk(round_mutex);
-    auto &bucket = pending_rounds[rnd];
-    bucket[sid] = req_proto; // overwrite if we already had one
-
-    // if we now have one from *every* server, we can proceed
-    if (bucket.size() == expected_server_ids.size())
-    {
-        // collect in server‐order
-        current_batch.clear();
-        current_batch.reserve(expected_server_ids.size());
-        for (auto id : expected_server_ids)
-        {
-            current_batch.push_back(std::move(bucket[id]));
-        }
-        // forget this round
-        pending_rounds.erase(rnd);
-
-        processRoundRequests();
-
-        // signal the insert thread
-        {
-            std::lock_guard<std::mutex> g(insert_mutex);
-            round_ready = true;
-        }
-
-        insert_cv.notify_one();
-    }
-}
-
-// void Merger::processIncomingRequest2(const request::Request &req_proto)
-// {
-//     if (!req_proto.has_server_id() || !req_proto.has_round())
-//         return;
-//     int sid = req_proto.server_id(), r = req_proto.round();
-
-//     std::unique_lock<std::mutex> lk(round_mutex);
-
-//     // buffer every arrival
-//     batchBuffer[sid][r] = req_proto;
-
-//     // try to drain all complete rounds
-//     while (true)
-//     {
-//         int exp = nextExpectedBatch[sid];
-
-//         // check if *every* server has batch `exp`
-//         bool haveAll = true;
-//         for (int id : expected_server_ids)
-//         {
-//             if (batchBuffer[id].count(exp) == 0)
-//             {
-//                 haveAll = false;
-//                 break;
-//             }
-//         }
-
-//         if (!haveAll){
-
-//             break;
-
-//         }
-
-//         // assemble this round
-//         current_batch.clear();
-//         current_batch.reserve(expected_server_ids.size());
-//         for (int id : expected_server_ids)
-//         {
-//             current_batch.push_back(std::move(batchBuffer[id][exp]));
-//             batchBuffer[id].erase(exp);
-//         }
-
-//         // bump every server’s expected counter
-//         for (int id : expected_server_ids)
-//         {
-//             nextExpectedBatch[id]++;
-//         }
-
-//         {
-//             bool has_non_empty_batch = false;
-
-//             // Check if any batch in the current round is not empty
-//             for (const auto &batch : current_batch)
-//             {
-//                 if (batch.transaction_size() > 0)
-//                 {
-//                     has_non_empty_batch = true;
-//                     break;
-//                 }
-//             }
-
-//             // Only log if at least one batch is not empty
-//             if (has_non_empty_batch)
-//             {
-//                 std::ofstream logf("./merger_logs/merger_log" + std::to_string(my_id) + ".jsonl", std::ios::app);
-//                 if (!logf)
-//                 {
-//                     std::cerr << "Merger: failed to open log file " << "./merger_logs/merger_log" + std::to_string(my_id) + ".jsonl" << "\n";
-//                 }
-//                 else
-//                 {
-//                     for (auto &batch : current_batch)
-//                     {
-//                         // {"server":X,"round":Y,"txns":[a,b,c]}
-//                         logf << "{\"server\":" << batch.server_id()
-//                              << ",\"round\":" << exp
-//                              << ",\"txns\":[";
-//                         for (int i = 0; i < batch.transaction_size(); ++i)
-//                         {
-//                             logf << batch.transaction(i).id();
-//                             if (i + 1 < batch.transaction_size())
-//                                 logf << ",";
-//                         }
-//                         logf << "]}\n";
-//                     }
-//                 }
-//             }
-//         }
-
-//         // drop the lock during heavy work, then re-acquire
-//         lk.unlock();
-
-//         processRoundRequests();
-
-//         {
-//             std::lock_guard<std::mutex> g(insert_mutex);
-//             round_ready = true;
-//         }
-//         insert_cv.notify_one();
-
-//         lk.lock();
-
-//     }
-// }

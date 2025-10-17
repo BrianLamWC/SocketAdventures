@@ -34,41 +34,21 @@ private:
     pthread_t insert_thread;
     pthread_t dump_thread;
 
-    int32_t last_round = INT32_MIN;
-
-    // For each round, map server_id → that server’s partial sequence
-    std::unordered_map<int32_t, std::unordered_map<int32_t, request::Request>> pending_rounds;
-
-    // When a full round is ready, we stash the batch here:
-    std::map<int32_t, std::vector<request::Request>> ready_rounds;
-    
-    // Once a full round is ready, we stash the batch here:
-    std::vector<request::Request> current_batch;
-
     // map server_id → queue of Transactions 
-    std::unordered_map<int32_t, std::unique_ptr<Queue_TS<Transaction>>> partial_sequences;
+    std::unordered_map<int32_t, std::unique_ptr<Queue_TS<std::vector<Transaction>>>> partial_sequences;
 
     // mutexes 
-    std::mutex round_mutex;
-    std::condition_variable round_cv;
-    std::mutex insert_mutex;
-    std::condition_variable insert_cv;
-    bool round_ready = false;
+    std::mutex ready_mtx;
+    std::condition_variable ready_cv;
 
     // List of expected server IDs.
     std::vector<int32_t> expected_server_ids;
+    std::deque<int> ready_q_;                 // which server ids need processing
+    std::unordered_set<int> enqueued_sids_;   // coalesce: sid is already in ready_q_
+
 
     // Copy of the graph
     Graph graph;
-
-
-    std::unordered_map<int,int> nextExpectedBatch;
-    std::unordered_map<int,std::map<int,request::Request>> batchBuffer;
-
-    // throughput tracking
-    int32_t total_transactions = 0;
-    std::chrono::nanoseconds::rep ns_elapsed_time = 0;
-    std::mutex total_transactions_mutex;
 
 
 public:
