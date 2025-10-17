@@ -186,6 +186,8 @@ int main() {
 
             if (!sendProtoFramed(fd, req)) {
                 std::cerr << "Send failed to server_id " << sid << "\n";
+            } else {
+                std::cout << "  Sent txn " << req.transaction(0).id() << " to server " << sid << "\n";
             }
 
         }
