@@ -21,7 +21,6 @@
 std::atomic<int32_t> globalTransactionCounter{1};
 std::mt19937 rng{std::random_device{}()};
 
-
 struct TxnSpec
 {
     int target_id;
@@ -89,27 +88,29 @@ request::Request createRequest(const TxnSpec &spec)
             std::uniform_int_distribution<int> value_dist(1000, 9999);
             op->set_value(std::to_string(value_dist(rng)));
         }
-
     }
 
     return req;
-
 }
 
-bool sendProtoFramed(int fd, const google::protobuf::Message &msg) {
+bool sendProtoFramed(int fd, const google::protobuf::Message &msg)
+{
     std::string bytes;
-    if (!msg.SerializeToString(&bytes)) return false;
+    if (!msg.SerializeToString(&bytes))
+        return false;
 
     uint32_t n = static_cast<uint32_t>(bytes.size());
-    uint32_t be = htonl(n);                 // 4-byte big-endian length prefix
-    if (!writeNBytes(fd, &be, sizeof(be)))  return false;
-    if (!writeNBytes(fd, bytes.data(), bytes.size())) return false;
+    uint32_t be = htonl(n); // 4-byte big-endian length prefix
+    if (!writeNBytes(fd, &be, sizeof(be)))
+        return false;
+    if (!writeNBytes(fd, bytes.data(), bytes.size()))
+        return false;
     return true;
 }
 
+int main()
+{
 
-int main() {
-    
     GOOGLE_PROTOBUF_VERIFY_VERSION;
 
     // setup connections to batchers
@@ -119,7 +120,7 @@ int main() {
         {"192.168.8.160", 3},
     };
 
-    int target_port = 7001; 
+    int target_port = 7001;
 
     std::unordered_map<int, int> server_id_to_fd;
 
@@ -138,64 +139,71 @@ int main() {
     // intermediate struct to hold info the transactions before converting to protobuf struct
     std::vector<std::vector<TxnSpec>> batches = {
         {
-            { 1, request::Operation::WRITE, {1,2} }, // T1: W1,W2
-            { 2, request::Operation::WRITE, {2} },  // T2:W1,W2
-            { 1, request::Operation::WRITE, {1,2,3} } // T3:W1
+            {1, request::Operation::WRITE, {1, 2}},   // T1: W1,W2
+            {2, request::Operation::WRITE, {2}},      // T2:W1,W2
+            {1, request::Operation::WRITE, {1, 2, 3}} // T3:W1
         },
         {
-            { 1, request::Operation::WRITE, {1,2} }, // T1:W1,W2
-            { 2, request::Operation::WRITE, {1,2} }, // T2:W3
-            { 1, request::Operation::WRITE, {1} }    //T3:W1,W2,W3
-            
-        },
-        {
-            { 1, request::Operation::WRITE, {1} }, // T1: W1,W2
-            { 1, request::Operation::READ, {1} },  // T2:W1,W2
-            { 1, request::Operation::READ, {1} }, // T3:W1
-            { 1, request::Operation::WRITE, {1} } // T4:W3
+            {1, request::Operation::WRITE, {1, 2}}, // T1:W1,W2
+            {2, request::Operation::WRITE, {1, 2}}, // T2:W3
+            {1, request::Operation::WRITE, {1}}     // T3:W1,W2,W3
 
-        }
-    };
+        },
+        {
+            {1, request::Operation::WRITE, {1}}, // T1: W1,W2
+            {1, request::Operation::READ, {1}},  // T2:W1,W2
+            {1, request::Operation::READ, {1}},  // T3:W1
+            {1, request::Operation::WRITE, {1}}  // T4:W3
+
+        }};
 
     // struct to hold batches of transactions in protobuf format
     std::vector<std::vector<request::Request>> batches_pb;
-    for (const auto &batch : batches) {
+    for (const auto &batch : batches)
+    {
         std::vector<request::Request> pb_vec;
-        for (const auto &spec : batch) {
-            pb_vec.push_back(createRequest(spec)); 
+        for (const auto &spec : batch)
+        {
+            pb_vec.push_back(createRequest(spec));
         }
-        batches_pb.push_back(std::move(pb_vec)); 
+        batches_pb.push_back(std::move(pb_vec));
         globalTransactionCounter.store(1);
     }
 
     // send transactions in batch, wait for a second between batches
 
-    for (size_t i = 0; i < batches_pb.size(); ++i) {
+    for (size_t i = 0; i < batches_pb.size(); ++i)
+    {
         const auto &batch = batches_pb[i];
         std::cout << "Sending batch " << i << " (" << batch.size() << " txns)\n";
 
-        for (const auto &req : batch) {
+        for (const auto &req : batch)
+        {
             // we set target_server_id() in createRequest(...)
             int sid = req.target_server_id();
             auto it = server_id_to_fd.find(sid);
-            if (it == server_id_to_fd.end()) {
+            if (it == server_id_to_fd.end())
+            {
                 std::cerr << "No fd for server_id " << sid << "\n";
                 continue;
             }
             int fd = it->second;
 
-            if (!sendProtoFramed(fd, req)) {
+            if (!sendProtoFramed(fd, req))
+            {
                 std::cerr << "Send failed to server_id " << sid << "\n";
-            } else {
+            }
+            else
+            {
                 std::cout << "  Sent txn " << req.transaction(0).id() << " to server " << sid << "\n";
             }
-
         }
 
         std::this_thread::sleep_for(std::chrono::seconds(1)); // gap between batches
     }
 
-    for (auto &kv : server_id_to_fd) close(kv.second);
+    for (auto &kv : server_id_to_fd)
+        close(kv.second);
     google::protobuf::ShutdownProtobufLibrary();
 
     return 0;
