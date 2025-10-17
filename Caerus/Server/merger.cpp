@@ -311,6 +311,23 @@ void Merger::insertAlgorithm()
             }
         }
 
+        // If more arrived for this sid while we were working, re-enqueue it
+        {
+            std::lock_guard<std::mutex> g(ready_mtx);
+            // If queue isn’t empty, schedule another turn for this sid.
+            // (Assumes Queue_TS::empty() is thread-safe; if not, track counts yourself.)
+            auto it2 = partial_sequences.find(sid);
+            if (it2 != partial_sequences.end() && !it2->second->empty()) {
+                if (!enqueued_sids_.count(sid)) {
+                    enqueued_sids_.insert(sid);
+                    ready_q_.push_back(sid);
+                    ready_cv.notify_one();
+                }
+            }
+        }
+
+        lk.lock();
+
     }
 }
 
