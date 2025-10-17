@@ -167,7 +167,6 @@ int main()
             pb_vec.push_back(createRequest(spec));
         }
         batches_pb.push_back(std::move(pb_vec));
-        globalTransactionCounter.store(1);
     }
 
     // send transactions in batch, wait for a second between batches
