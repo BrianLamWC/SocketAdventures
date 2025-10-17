@@ -111,6 +111,12 @@ void Merger::insertAlgorithm()
 
         auto it = partial_sequences.find(sid);
         auto &inner_map = it->second;
+
+        if (inner_map->empty()) {
+            lk.lock(); // lock before going back to wait
+            continue;
+        }
+
         auto transactions = inner_map->pop();
 
         // print size and transction ids
@@ -332,16 +338,16 @@ Merger::Merger()
 
     pthread_detach(popper);
 
-    // Create an insert thread that calls the insertAlgorithm() method.
-    if (pthread_create(&insert_thread, nullptr, [](void *arg) -> void *
-                       {
-            static_cast<Merger*>(arg)->insertAlgorithm();
-            return nullptr; }, this) != 0)
-    {
-        threadError("Error creating insert thread");
-    }
+    // // Create an insert thread that calls the insertAlgorithm() method.
+    // if (pthread_create(&insert_thread, nullptr, [](void *arg) -> void *
+    //                    {
+    //         static_cast<Merger*>(arg)->insertAlgorithm();
+    //         return nullptr; }, this) != 0)
+    // {
+    //     threadError("Error creating insert thread");
+    // }
 
-    pthread_detach(insert_thread);
+    // pthread_detach(insert_thread);
 
     // Create an dump thread that calls the dumpPartialSequences() method every 10 seconds.
     if (pthread_create(&dump_thread, nullptr, [](void *arg) -> void *
