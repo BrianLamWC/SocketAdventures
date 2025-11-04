@@ -1,0 +1,13 @@
+syntax = "proto2";
+
+package request;
+
+message VertexAdj {
+  required string tx_id = 1;
+  repeated string out = 2; // neighbor IDs
+}
+
+message GraphSnapshot {
+  required string node_id = 1;
+  repeated VertexAdj adj = 2;
+}

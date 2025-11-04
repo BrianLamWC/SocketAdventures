@@ -8,7 +8,7 @@
 
 Transaction *Graph::addNode(std::unique_ptr<Transaction> uptr)
 {
-    const std::string &key = uptr->getUUID();
+    const std::string &key = uptr->getID();
     Transaction *ptr = uptr.get();
     nodes[key] = std::move(uptr);
     return ptr;
@@ -28,7 +28,7 @@ void Graph::printAll() const
     {
         const Transaction *t = kv.second.get();
         // Basic info
-        std::cout << "- ID: " << t->getUUID() << "\n"
+        std::cout << "- ID: " << t->getID() << "\n"
                   << "  Order: " << t->getOrder() << "\n";
         // Operations
         // const auto &ops = t->getOperations();
@@ -50,7 +50,7 @@ void Graph::printAll() const
         std::cout << "    Neighbors (" << nbr.size() << "):";
         for (auto *n : nbr)
         {
-            std::cout << " " << n->getUUID();
+            std::cout << " " << n->getID();
         }
         std::cout << "\n\n";
 
@@ -88,7 +88,7 @@ void Graph::clear()
 std::unique_ptr<Transaction> Graph::removeTransaction(Transaction *rem)
 {
     // 1) Find the map entry
-    auto it = nodes.find(rem->getUUID());
+    auto it = nodes.find(rem->getID());
     if (it == nodes.end())
     {
         return nullptr; // no such node
@@ -112,7 +112,7 @@ std::unique_ptr<Transaction> Graph::removeTransaction(Transaction *rem)
 
 std::unique_ptr<Transaction> Graph::removeTransaction_(Transaction *rem)
 {
-    auto it = nodes.find(rem->getUUID());
+    auto it = nodes.find(rem->getID());
     if (it == nodes.end())
         return nullptr;
 
@@ -212,7 +212,7 @@ void Graph::findSCCs()
             std::cout << "Component " << i << ":";
             for (Transaction *t : sccs[i])
             {
-                std::cout << " " << t->getUUID();
+                std::cout << " " << t->getID();
             }
             std::cout << "\n\n";
         }
@@ -235,7 +235,7 @@ void Graph::buildTransactionSCCMap()
     // // Print the mapping
     // std::cout << "Transaction to SCC mapping:\n";
     // for (const auto& pair : txn_scc_index_map) {
-    //     std::cout << "Transaction UUID: " << pair.first->getUUID()
+    //     std::cout << "Transaction UUID: " << pair.first->getID()
     //               << " is in SCC: " << pair.second << "\n";
     // }
 }
@@ -357,7 +357,7 @@ int32_t Graph::getMergedOrders_()
         // // print merged orders
         // std::cout << "Merged " << comp.size() << " transactions from SCC "<< c << ":\n";
         // for (Transaction *T : comp) {
-        //     std::cout << "  " << T->getUUID() << " (Order: " << T->getOrder() << ")\n";
+        //     std::cout << "  " << T->getID() << " (Order: " << T->getOrder() << ")\n";
         // }
         // std::cout << "\n\n";
 
@@ -373,4 +373,11 @@ int32_t Graph::getMergedOrders_()
     }
 
     return transaction_count;
+}
+
+void Graph::sendGraphSnapshot()
+{
+
+    
+
 }

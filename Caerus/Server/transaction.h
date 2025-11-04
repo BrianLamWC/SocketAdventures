@@ -22,7 +22,7 @@ class Transaction
 {
 private:
     int32_t order;
-    std::string uuid;
+    std::string id;
     int32_t server_id;
     std::vector<Operation> operations;
 
@@ -33,13 +33,13 @@ private:
     std::unordered_set<int32_t> expected_regions;
     std::unordered_set<int32_t> seen_regions;
 public:
-    Transaction(int32_t order_, int32_t server_id_, const std::vector<Operation>& ops, const std::string& uuid_ = "")
-        :order(order_), uuid(uuid_), server_id(server_id_), operations(ops) {}
+    Transaction(int32_t order_, int32_t server_id_, const std::vector<Operation>& ops, const std::string& id_ = "")
+        :order(order_), id(id_), server_id(server_id_), operations(ops) {}
 
 
     int32_t getOrder() const { return order; }
 
-    const std::string& getUUID() const { return uuid; }
+    const std::string& getID() const { return id; }
 
     int32_t getServerId() const { return server_id; }
 

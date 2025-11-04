@@ -53,6 +53,8 @@ public:
 
     int32_t getMergedOrders_();
 
+    void sendGraphSnapshot();
+
 };
 
 #endif // GRAPH_H
