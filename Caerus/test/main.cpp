@@ -8,6 +8,10 @@
 #include <netdb.h>
 #include <iostream>
 #include <string>
+#include <sstream>
+#include <map>
+#include <set>
+#include <unordered_map>
 #include <atomic>
 #include <uuid/uuid.h>
 #include <unistd.h>
@@ -24,6 +28,27 @@ using json = nlohmann::json;
 
 std::atomic<int32_t> globalTransactionCounter{1};
 std::mt19937 rng{std::random_device{}()};
+
+// Record for a transaction and its neighbors
+struct TxnNeighbors
+{
+    std::string tx_id;
+    std::set<std::string> neighbors; // neighbor tx ids
+
+    bool operator<(TxnNeighbors const &o) const noexcept
+    {
+        return tx_id < o.tx_id;
+    }
+    // equality compares both id and neighbor set so that two records are equal
+    // only when both tx_id and neighbors match
+    bool operator==(TxnNeighbors const &o) const noexcept
+    {
+        return tx_id == o.tx_id && neighbors == o.neighbors;
+    }
+};
+
+// Global map: server_id -> set of (txn id + neighbors)
+std::map<int32_t, std::set<TxnNeighbors>> host_txn_neighbors_map;
 
 struct TxnSpec
 {
@@ -183,6 +208,92 @@ void requestSnapshotFromHost(const std::string &host);
 
 void handleCommand(const std::string &command)
 {
+    // compare command: compare stored snapshots
+    if (command == "compare")
+    {
+        if (host_txn_neighbors_map.size() < 2)
+        {
+            std::cout << "Not enough snapshots to compare (need >=2).\n";
+            return;
+        }
+
+        auto it = host_txn_neighbors_map.begin();
+        const auto host = it->first;
+        const auto &set = it->second;
+        ++it;
+
+        bool all_equal = true;
+        for (; it != host_txn_neighbors_map.end(); ++it)
+        {
+            int32_t other_host = it->first;
+            const auto &other_set = it->second;
+            if (!(set == other_set))
+            {
+                std::cout << "Snapshots differ: host " << host << " != host " << other_host << "\n";
+                all_equal = false;
+            }
+            else
+            {
+                std::cout << "Snapshots identical: host " << host << " == host " << other_host << "\n";
+            }
+        }
+
+        if (all_equal)
+            std::cout << "All snapshots are identical.\n";
+
+        return;
+    }
+
+    if (command.rfind("compare ", 0) == 0)
+    {
+        // compare <hostA> <hostB>
+        std::string args = command.substr(8);
+        std::istringstream iss(args);
+        std::string a, b;
+        if (!(iss >> a >> b))
+        {
+            std::cout << "Usage: compare <hostA> <hostB>\n";
+            return;
+        }
+
+        auto find_id = [&](const std::string &s) -> int32_t
+        {
+            auto it = hostnames_to_id.find(s);
+            if (it != hostnames_to_id.end())
+                return it->second;
+            try
+            {
+                return std::stoi(s);
+            }
+            catch (...)
+            {
+                return -1;
+            }
+        };
+
+        int32_t ida = find_id(a);
+        int32_t idb = find_id(b);
+        if (ida == -1 || idb == -1)
+        {
+            std::cout << "Unknown host(s) or id(s).\n";
+            return;
+        }
+
+        auto ita = host_txn_neighbors_map.find(ida);
+        auto itb = host_txn_neighbors_map.find(idb);
+        if (ita == host_txn_neighbors_map.end() || itb == host_txn_neighbors_map.end())
+        {
+            std::cout << "Snapshot missing for one or both hosts.\n";
+            return;
+        }
+
+        if (ita->second == itb->second)
+            std::cout << "Snapshots for " << a << " and " << b << " are IDENTICAL.\n";
+        else
+            std::cout << "Snapshots for " << a << " and " << b << " DIFFER.\n";
+
+        return;
+    }
     // snap with no args -> request from all known servers
     if (command == "snap")
     {
@@ -298,13 +409,50 @@ void requestSnapshotFromHost(const std::string &host)
         return;
     }
 
-    std::cout << "GraphSnapshot from " << host << ": node_id=" << snap.node_id() << "\n";
+    std::cout << "GraphSnapshot from " << host << ": server_id=" << snap.node_id() << "\n";
+    // Populate global map for this host id with the snapshot contents.
+    int32_t server_id = -1;
+    auto hit = hostnames_to_id.find(host);
+    if (hit != hostnames_to_id.end())
+    {
+        server_id = hit->second;
+    }
+    else
+    {
+        // fallback: try to parse node_id from snapshot
+        try
+        {
+            server_id = std::stoi(snap.node_id());
+        }
+        catch (...)
+        {
+            server_id = -1;
+        }
+    }
+
+    std::set<TxnNeighbors> tmp_set;
     for (int i = 0; i < snap.adj_size(); ++i)
     {
         const auto &va = snap.adj(i);
-        std::cout << "  tx=" << va.tx_id() << " ->";
+        TxnNeighbors rec;
+        rec.tx_id = va.tx_id();
         for (int j = 0; j < va.out_size(); ++j)
-            std::cout << " " << va.out(j);
+            rec.neighbors.insert(va.out(j));
+        tmp_set.insert(std::move(rec));
+    }
+
+    if (server_id != -1)
+    {
+        // single-threaded test program: directly assign without locking
+        host_txn_neighbors_map[server_id] = std::move(tmp_set);
+    }
+
+    // Also print to stdout for the user
+    for (const auto &rec : tmp_set)
+    {
+        std::cout << "  tx=" << rec.tx_id << " ->";
+        for (const auto &n : rec.neighbors)
+            std::cout << " " << n;
         std::cout << "\n";
     }
 
