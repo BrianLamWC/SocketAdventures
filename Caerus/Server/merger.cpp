@@ -1,6 +1,9 @@
 #include "merger.h"
 #include "utils.h"
 
+#include <arpa/inet.h>
+#include <string>
+
 void Merger::popFromQueue()
 {
     while (true)
@@ -72,13 +75,13 @@ void Merger::processRequest(const request::Request &req_proto)
 
     {
         std::lock_guard<std::mutex> g(ready_mtx);
-        if (!enqueued_sids_.count(sid)) {
+        if (!enqueued_sids_.count(sid))
+        {
             enqueued_sids_.insert(sid);
             ready_q_.push_back(sid);
             ready_cv.notify_one();
         }
     }
-
 }
 
 std::ostream &operator<<(std::ostream &os, const Transaction &t)
@@ -100,19 +103,21 @@ void Merger::insertAlgorithm()
 
     while (true)
     {
-        ready_cv.wait(lk, [this]() { return !ready_q_.empty(); });
+        ready_cv.wait(lk, [this]()
+                      { return !ready_q_.empty(); });
 
         int sid = ready_q_.front();
         ready_q_.pop_front();
         enqueued_sids_.erase(sid);
         lk.unlock();
-        
+
         // printf("INSERT::Server %d\n", server.id);
 
         auto it = partial_sequences.find(sid);
         auto &inner_map = it->second;
 
-        if (inner_map->empty()) {
+        if (inner_map->empty())
+        {
             lk.lock(); // lock before going back to
             continue;
         }
@@ -157,7 +162,7 @@ void Merger::insertAlgorithm()
 
         for (auto &txn : transactions)
         {
-            //std::cout << "INSERT::Transaction: " << txn.getID() << std::endl;
+            // std::cout << "INSERT::Transaction: " << txn.getID() << std::endl;
 
             std::unordered_set<DataItem> write_set;
             std::unordered_set<DataItem> read_set;
@@ -189,7 +194,7 @@ void Merger::insertAlgorithm()
                 expected_regions.insert(data_item.primaryCopyID); // add primary copy id to expected regions
 
                 // pritn read and write set
-                //std::cout << "INSERT::ReadWriteSet: key " << op.key << " type " << (op.type == OperationType::READ ? "READ" : "WRITE") << std::endl;
+                // std::cout << "INSERT::ReadWriteSet: key " << op.key << " type " << (op.type == OperationType::READ ? "READ" : "WRITE") << std::endl;
             }
 
             auto curr_txn = graph.getNode(txn.getID());
@@ -251,7 +256,7 @@ void Merger::insertAlgorithm()
                 if (write_set.find(data_item) != write_set.end())
                 {
 
-                    //std::cout << "INSERT::WRITESET:" <<data_item.val << " is in write and primary set" << std::endl;
+                    // std::cout << "INSERT::WRITESET:" <<data_item.val << " is in write and primary set" << std::endl;
 
                     auto mrw_it = most_recent_writers.find(data_item); // get mrw for data item
 
@@ -269,15 +274,15 @@ void Merger::insertAlgorithm()
 
                         if (graph.getNode(mrw_it->second->getID()) != nullptr)
                         { // if mrw in graph
-                            //std::cout << "INSERT::WRITESET:" << mrw_it->second->getID() << " in graph" << std::endl;
+                            // std::cout << "INSERT::WRITESET:" << mrw_it->second->getID() << " in graph" << std::endl;
                             auto current_txn = graph.getNode(txn.getID());
                             current_txn->addNeighborOut(mrw_it->second);
-                            //std::cout << "INSERT::WRITESET: adding edge from " << txn.getID() << " to " << mrw_it->second->getID() << std::endl;
+                            // std::cout << "INSERT::WRITESET: adding edge from " << txn.getID() << " to " << mrw_it->second->getID() << std::endl;
                         }
                     }
                     else
                     {
-                        //std::cout << "INSERT::WRITESET: key " << data_item.val << " has no mrw" << std::endl;
+                        // std::cout << "INSERT::WRITESET: key " << data_item.val << " has no mrw" << std::endl;
                     }
 
                     mrw_it->second = graph.getNode(txn.getID()); // set mrw to current transaction
@@ -288,14 +293,14 @@ void Merger::insertAlgorithm()
                     if (readers_it != most_recent_readers.end())
                     {
 
-                        //std::cout << "INSERT::READERS: key " << data_item.val << " has readers" << std::endl;
+                        // std::cout << "INSERT::READERS: key " << data_item.val << " has readers" << std::endl;
 
                         auto readers = readers_it->second;
 
                         for (const auto &reader_id : readers)
                         {
 
-                            //std::cout << "INSERT::READERS: key " << data_item.val << " has reader " << reader_id << std::endl;
+                            // std::cout << "INSERT::READERS: key " << data_item.val << " has reader " << reader_id << std::endl;
 
                             auto read_txn = graph.getNode(reader_id);
 
@@ -303,7 +308,7 @@ void Merger::insertAlgorithm()
                             {
                                 auto current_txn = graph.getNode(txn.getID());
                                 current_txn->addNeighborOut(read_txn); // add reader to current transaction
-                                //std::cout << "INSERT::READERS: adding edge from " << txn.getID() << " to " << read_txn->getID() << std::endl;
+                                // std::cout << "INSERT::READERS: adding edge from " << txn.getID() << " to " << read_txn->getID() << std::endl;
                             }
                         }
                     }
@@ -317,8 +322,10 @@ void Merger::insertAlgorithm()
             // If queue isn’t empty, schedule another turn for this sid.
             // (Assumes Queue_TS::empty() is thread-safe; if not, track counts yourself.)
             auto it2 = partial_sequences.find(sid);
-            if (it2 != partial_sequences.end() && !it2->second->empty()) {
-                if (!enqueued_sids_.count(sid)) {
+            if (it2 != partial_sequences.end() && !it2->second->empty())
+            {
+                if (!enqueued_sids_.count(sid))
+                {
                     enqueued_sids_.insert(sid);
                     ready_q_.push_back(sid);
                     ready_cv.notify_one();
@@ -327,7 +334,6 @@ void Merger::insertAlgorithm()
         }
 
         lk.lock();
-
     }
 }
 
@@ -379,4 +385,36 @@ Merger::Merger()
     //     threadError("Error creating dump thread");
     // }
     // pthread_detach(dump_thread);
+}
+
+void Merger::sendGraphSnapshotOnFd(int fd)
+{
+    request::GraphSnapshot snap;
+
+    // build snapshot (Graph::buildSnapshotProto is thread-safe and locks its own mutex)
+    graph.buildSnapshotProto(snap);
+
+    std::string payload;
+    if (!snap.SerializeToString(&payload))
+    {
+        std::cerr << "MERGER: failed to serialize GraphSnapshot" << std::endl;
+        return;
+    }
+
+    uint32_t len = static_cast<uint32_t>(payload.size());
+    uint32_t netlen = htonl(len);
+
+    // write length prefix
+    if (!writeNBytes(fd, &netlen, sizeof(netlen)))
+    {
+        std::cerr << "MERGER: failed to write snapshot length to fd " << fd << std::endl;
+        return;
+    }
+
+    // write payload
+    if (!writeNBytes(fd, payload.data(), payload.size()))
+    {
+        std::cerr << "MERGER: failed to write snapshot payload to fd " << fd << std::endl;
+        return;
+    }
 }

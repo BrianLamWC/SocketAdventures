@@ -375,9 +375,26 @@ int32_t Graph::getMergedOrders_()
     return transaction_count;
 }
 
-void Graph::sendGraphSnapshot()
+void Graph::buildSnapshotProto(request::GraphSnapshot &out) const
 {
+    // Lock while we iterate the internal nodes map and copy the adjacency
+    std::lock_guard<std::mutex> guard(mtx);
 
-    
+    out.Clear();
+    // Use the process/server id if available, fallback to PID
+    out.set_node_id(std::to_string(my_id));
 
+    for (const auto &kv : nodes)
+    {
+        const std::string &tx_id = kv.first;
+        Transaction *tx = kv.second.get();
+
+        request::VertexAdj *va = out.add_adj();
+        va->set_tx_id(tx_id);
+
+        for (Transaction *nbr : tx->getOutNeighbors())
+        {
+            va->add_out(nbr->getID());
+        }
+    }
 }

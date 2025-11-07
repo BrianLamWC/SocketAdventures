@@ -290,23 +290,23 @@ void requestSnapshotFromHost(const std::string &host)
         return;
     }
 
-    // request::GraphSnapshot snap;
-    // if (!recvProtoFramed(fd, snap))
-    // {
-    //     std::cerr << "Failed to receive GraphSnapshot from " << host << "\n";
-    //     close(fd);
-    //     return;
-    // }
+    request::GraphSnapshot snap;
+    if (!recvProtoFramed(fd, snap))
+    {
+        std::cerr << "Failed to receive GraphSnapshot from " << host << "\n";
+        close(fd);
+        return;
+    }
 
-    // std::cout << "GraphSnapshot from " << host << ": node_id=" << snap.node_id() << "\n";
-    // for (int i = 0; i < snap.adj_size(); ++i)
-    // {
-    //     const auto &va = snap.adj(i);
-    //     std::cout << "  tx=" << va.tx_id() << " ->";
-    //     for (int j = 0; j < va.out_size(); ++j)
-    //         std::cout << " " << va.out(j);
-    //     std::cout << "\n";
-    // }
+    std::cout << "GraphSnapshot from " << host << ": node_id=" << snap.node_id() << "\n";
+    for (int i = 0; i < snap.adj_size(); ++i)
+    {
+        const auto &va = snap.adj(i);
+        std::cout << "  tx=" << va.tx_id() << " ->";
+        for (int j = 0; j < va.out_size(); ++j)
+            std::cout << " " << va.out(j);
+        std::cout << "\n";
+    }
 
     close(fd);
 }
