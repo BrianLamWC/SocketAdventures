@@ -208,6 +208,14 @@ void requestSnapshotFromHost(const std::string &host);
 
 void handleCommand(const std::string &command)
 {
+    // clear snap -> clear stored snapshots
+    if (command == "clear snap")
+    {
+        host_txn_neighbors_map.clear();
+        std::cout << "Cleared stored snapshots.\n";
+        return;
+    }
+
     // compare command: compare stored snapshots
     if (command == "compare")
     {
@@ -311,6 +319,8 @@ void handleCommand(const std::string &command)
         requestSnapshotFromHost(host);
         return;
     }
+
+    // send <filename> -> send requests from the given JSON file
     if (command.rfind("send ", 0) == 0)
     {
         std::string filename = command.substr(5);
@@ -373,11 +383,13 @@ void handleCommand(const std::string &command)
             if (kv.second >= 0)
                 close(kv.second);
         }
+
+        return;
     }
-    else
-    {
-        std::cerr << "Unknown command: " << command << "\n";
-    }
+
+    std::cerr << "Unknown command: " << command << "\n";
+
+    return;
 }
 
 // send synchronous GRAPH_SNAP request to a single host and print parsed snapshot
@@ -447,13 +459,30 @@ void requestSnapshotFromHost(const std::string &host)
         host_txn_neighbors_map[server_id] = std::move(tmp_set);
     }
 
-    // Also print to stdout for the user
-    for (const auto &rec : tmp_set)
+    // Print snapshot to stdout for the user. Prefer the stored map entry if available.
+    if (server_id != -1)
     {
-        std::cout << "  tx=" << rec.tx_id << " ->";
-        for (const auto &n : rec.neighbors)
-            std::cout << " " << n;
-        std::cout << "\n";
+        const auto &stored = host_txn_neighbors_map[server_id];
+        std::cout << "Stored GraphSnapshot for server_id=" << server_id << ": " << stored.size() << " txns\n";
+        for (const auto &rec : stored)
+        {
+            std::cout << "  tx=" << rec.tx_id << " ->";
+            for (const auto &n : rec.neighbors)
+                std::cout << " " << n;
+            std::cout << "\n";
+        }
+    }
+    else
+    {
+        // fallback: print what we parsed into tmp_set
+        std::cout << "GraphSnapshot (unknown server id) contains " << tmp_set.size() << " txns\n";
+        for (const auto &rec : tmp_set)
+        {
+            std::cout << "  tx=" << rec.tx_id << " ->";
+            for (const auto &n : rec.neighbors)
+                std::cout << " " << n;
+            std::cout << "\n";
+        }
     }
 
     close(fd);
