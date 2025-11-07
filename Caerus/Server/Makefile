@@ -5,7 +5,7 @@ CXX = g++
 CXXFLAGS = -Wall -g
 
 # Additional protobuf flags and files
-PROTO_SRC = ../proto/request.pb.cc
+PROTO_SRC = ../proto/request.pb.cc ../proto/graph_snapshot.pb.cc
 PROTO_LIBS = -lprotobuf
 
 # Build directory
