@@ -305,6 +305,8 @@ void handleCommand(const std::string &command)
     // snap with no args -> request from all known servers
     if (command == "snap")
     {
+        host_txn_neighbors_map.clear();
+        std::cout << "Cleared previously stored snapshots.\n";
         for (const auto &p : hostnames_to_id)
         {
             requestSnapshotFromHost(p.first);
