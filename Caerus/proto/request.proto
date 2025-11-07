@@ -31,7 +31,7 @@ message Request {
     PING = 4;
     START = 5;
     READY = 6;
-    DUMP = 7;
+    GRAPH_SNAP = 7;
   }
 
   optional int32 client_id = 1;     // Client ID making the request

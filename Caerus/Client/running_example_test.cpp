@@ -396,7 +396,6 @@ int main(int argc, char *argv[])
               << "%\n";
 
     sleep(10);
-    std::cout << "Sending DUMP requests to servers...\n";
     // send dump request to the servers
     for (const std::string &host : hostnames)
     {
@@ -407,7 +406,7 @@ int main(int argc, char *argv[])
             continue;
         }
         request::Request req;
-        req.set_recipient(request::Request::DUMP);
+        req.set_recipient(request::Request::GRAPH_SNAP);
         req.set_client_id(getpid());
         std::string serialized;
         req.SerializeToString(&serialized);

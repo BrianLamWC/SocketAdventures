@@ -18,6 +18,7 @@
 #include "../Server/json.hpp"
 
 #include "../proto/request.pb.h"
+#include "../proto/graph_snapshot.pb.h"
 
 using json = nlohmann::json;
 
@@ -75,6 +76,37 @@ bool writeNBytes(int fd, const void *buf, size_t n)
         p += w;
     }
     return true;
+}
+
+bool readNBytes(int fd, void *buf, size_t n)
+{
+    char *p = static_cast<char *>(buf);
+    size_t left = n;
+    while (left)
+    {
+        ssize_t r = ::recv(fd, p, left, 0);
+        if (r <= 0)
+            return false;
+        left -= r;
+        p += r;
+    }
+    return true;
+}
+
+template <typename Msg>
+bool recvProtoFramed(int fd, Msg &msg)
+{
+    uint32_t len_n;
+    if (!readNBytes(fd, &len_n, sizeof(len_n)))
+        return false;
+    uint32_t len = ntohl(len_n);
+    if (len == 0)
+        return false;
+    std::string buf;
+    buf.resize(len);
+    if (!readNBytes(fd, &buf[0], len))
+        return false;
+    return msg.ParseFromString(buf);
 }
 
 request::Request createRequest(const TxnSpec &spec)
@@ -146,8 +178,28 @@ std::vector<std::vector<TxnSpec>> parseJsonFile(const std::string &filename)
     return batches;
 }
 
+// forward declaration for snapshot helper
+void requestSnapshotFromHost(const std::string &host);
+
 void handleCommand(const std::string &command)
 {
+    // snap with no args -> request from all known servers
+    if (command == "snap")
+    {
+        for (const auto &p : hostnames_to_id)
+        {
+            requestSnapshotFromHost(p.first);
+        }
+        return;
+    }
+
+    // snap <host> -> request from the given host
+    if (command.rfind("snap ", 0) == 0)
+    {
+        std::string host = command.substr(5);
+        requestSnapshotFromHost(host);
+        return;
+    }
     if (command.rfind("send ", 0) == 0)
     {
         std::string filename = command.substr(5);
@@ -215,6 +267,48 @@ void handleCommand(const std::string &command)
     {
         std::cerr << "Unknown command: " << command << "\n";
     }
+}
+
+// send synchronous GRAPH_SNAP request to a single host and print parsed snapshot
+void requestSnapshotFromHost(const std::string &host)
+{
+    int fd = setupConnection(host.c_str(), target_port);
+    if (fd < 0)
+    {
+        std::cerr << "Can't connect to " << host << ":" << target_port << "\n";
+        return;
+    }
+
+    request::Request snap_req;
+    snap_req.set_client_id(getpid());
+    snap_req.set_recipient(request::Request::GRAPH_SNAP);
+
+    if (!sendProtoFramed(fd, snap_req))
+    {
+        std::cerr << "Failed to send GRAPH_SNAP to " << host << "\n";
+        close(fd);
+        return;
+    }
+
+    // request::GraphSnapshot snap;
+    // if (!recvProtoFramed(fd, snap))
+    // {
+    //     std::cerr << "Failed to receive GraphSnapshot from " << host << "\n";
+    //     close(fd);
+    //     return;
+    // }
+
+    // std::cout << "GraphSnapshot from " << host << ": node_id=" << snap.node_id() << "\n";
+    // for (int i = 0; i < snap.adj_size(); ++i)
+    // {
+    //     const auto &va = snap.adj(i);
+    //     std::cout << "  tx=" << va.tx_id() << " ->";
+    //     for (int j = 0; j < va.out_size(); ++j)
+    //         std::cout << " " << va.out(j);
+    //     std::cout << "\n";
+    // }
+
+    close(fd);
 }
 
 int main()

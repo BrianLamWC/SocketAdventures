@@ -17,7 +17,7 @@ struct ClientListenerThreadsArgs
 struct ClientArgs {
     int connfd;
     struct sockaddr_in client_addr;
-    Logger* logger;  // Pointer to logger for DUMP requests
+    Logger* logger; 
     Merger* merger; 
 };
 
