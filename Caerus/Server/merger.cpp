@@ -1,6 +1,8 @@
 #include "merger.h"
 #include "utils.h"
 
+#include "logger.h"
+
 #include <arpa/inet.h>
 #include <string>
 
@@ -415,6 +417,73 @@ void Merger::sendGraphSnapshotOnFd(int fd)
     if (!writeNBytes(fd, payload.data(), payload.size()))
     {
         std::cerr << "MERGER: failed to write snapshot payload to fd " << fd << std::endl;
+        return;
+    }
+}
+
+void Merger::sendMergedOrdersOnFd(int fd)
+{
+    // Snapshot the merged_order queue (does not mutate it)
+    std::vector<Transaction> txns = merged_order.snapshot();
+
+    if (txns.empty())
+    {
+        // send an empty Request with recipient MERGED_ORDER (client can interpret empty)
+        request::Request empty_req;
+        empty_req.set_recipient(request::Request::MERGED_ORDER);
+        std::string payload;
+        if (!empty_req.SerializeToString(&payload))
+        {
+            std::cerr << "MERGER: failed to serialize empty merged_orders request" << std::endl;
+            return;
+        }
+        uint32_t netlen = htonl(static_cast<uint32_t>(payload.size()));
+        writeNBytes(fd, &netlen, sizeof(netlen));
+        writeNBytes(fd, payload.data(), payload.size());
+        return;
+    }
+
+    request::Request req;
+    req.set_recipient(request::Request::MERGED_ORDER);
+
+    for (const auto &txn : txns)
+    {
+        request::Transaction *t = req.add_transaction();
+        // copy simple fields
+        t->set_id(txn.getID());
+        // use order as random_stamp
+        t->set_random_stamp(txn.getOrder());
+        t->set_client_id(txn.getServerId());
+
+        // operations
+        for (const auto &op : txn.getOperations())
+        {
+            request::Operation *rop = t->add_operations();
+            rop->set_type(op.type == OperationType::WRITE ? request::Operation::WRITE : request::Operation::READ);
+            rop->set_key(op.key);
+            if (op.type == OperationType::WRITE)
+                rop->set_value(op.value);
+        }
+    }
+
+    std::string payload;
+    if (!req.SerializeToString(&payload))
+    {
+        std::cerr << "MERGER: failed to serialize merged orders request" << std::endl;
+        return;
+    }
+
+    uint32_t netlen = htonl(static_cast<uint32_t>(payload.size()));
+
+    if (!writeNBytes(fd, &netlen, sizeof(netlen)))
+    {
+        std::cerr << "MERGER: failed to write merged orders length to fd " << fd << std::endl;
+        return;
+    }
+
+    if (!writeNBytes(fd, payload.data(), payload.size()))
+    {
+        std::cerr << "MERGER: failed to write merged orders payload to fd " << fd << std::endl;
         return;
     }
 }

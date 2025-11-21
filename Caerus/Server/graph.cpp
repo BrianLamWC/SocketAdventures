@@ -285,8 +285,22 @@ bool Graph::isSCCComplete(const int &scc_index)
             }
         }
 
-        if (!T->isComplete())
+        // Ensure transaction has observed all expected regions.
+        if (T->getSeenRegions() != T->getExpectedRegions())
         {
+            std::cout << "SCC " << scc_index << " is not complete because txn "
+                      << T->getID() << " has seen regions {";
+            for (auto r : T->getSeenRegions())
+            {
+                std::cout << " " << r;
+            }
+            std::cout << " } but expected regions {";
+            for (auto r : T->getExpectedRegions())
+            {
+                std::cout << " " << r;
+            }
+            std::cout << " }.\n";
+            
             return false;
         }
     }

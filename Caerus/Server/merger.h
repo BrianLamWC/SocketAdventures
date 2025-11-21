@@ -75,6 +75,8 @@ public:
 
     // Send a graph snapshot (fram ed protobuf) to the given file descriptor.
     void sendGraphSnapshotOnFd(int fd);
+    // Send merged orders (as a Request with recipient MERGED_ORDER) to the given fd.
+    void sendMergedOrdersOnFd(int fd);
 };
 
 #endif // MERGER_H
