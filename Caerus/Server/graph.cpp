@@ -203,20 +203,20 @@ void Graph::findSCCs()
         }
     }
 
-    // if (sccs.size() > 0)
-    // {
-    //     // Print the SCCs
-    //     std::cout << "Strongly Connected Components (SCCs):\n";
-    //     for (size_t i = 0; i < sccs.size(); ++i)
-    //     {
-    //         std::cout << "Component " << i << ":";
-    //         for (Transaction *t : sccs[i])
-    //         {
-    //             std::cout << " " << t->getID();
-    //         }
-    //         std::cout << "\n\n";
-    //     }
-    // }
+    if (sccs.size() > 0)
+    {
+        // Print the SCCs
+        std::cout << "Strongly Connected Components (SCCs):\n";
+        for (size_t i = 0; i < sccs.size(); ++i)
+        {
+            std::cout << "Component " << i << ":";
+            for (Transaction *t : sccs[i])
+            {
+                std::cout << " " << t->getID();
+            }
+            std::cout << "\n\n";
+        }
+    }
 }
 
 void Graph::buildTransactionSCCMap()
@@ -402,12 +402,6 @@ int32_t Graph::getMergedOrders_()
             std::cout << std::endl;
         }
 
-        // // print merged orders
-        // std::cout << "Merged " << comp.size() << " transactions from SCC "<< c << ":\n";
-        // for (Transaction *T : comp) {
-        //     std::cout << "  " << T->getID() << " (Order: " << T->getOrder() << ")\n";
-        // }
-        // std::cout << "\n\n";
 
         for (int p : neighbors_in[c])
         {
