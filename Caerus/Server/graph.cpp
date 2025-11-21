@@ -387,14 +387,19 @@ int32_t Graph::getMergedOrders_()
             {
                 // push the removed transaction into the merged order queue
                 merged_order.push(*up);
-
-                // Log the merged order details for visibility
-                std::cout << "Merged order generated: id=" << up->getID()
-                          << " order=" << up->getOrder()
-                          << " server=" << up->getServerId() << std::endl;
-
                 transaction_count++;
             }
+        }
+
+        // Print every transaction id currently in the merged order queue
+        {
+            auto snapshot = merged_order.snapshot();
+            std::cout << "Merged order queue (" << snapshot.size() << ") ids:";
+            for (const auto &m : snapshot)
+            {
+                std::cout << " " << m.getID();
+            }
+            std::cout << std::endl;
         }
 
         // // print merged orders
