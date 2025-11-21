@@ -335,6 +335,15 @@ void Merger::insertAlgorithm()
             }
         }
 
+        // call graph cleanup for merged orders and log if any removed
+        {
+            int removed = graph.getMergedOrders_();
+            if (removed > 0)
+            {
+                std::cout << "MERGER: removed " << removed << " merged orders" << std::endl;
+            }
+        }
+
         lk.lock();
     }
 }
