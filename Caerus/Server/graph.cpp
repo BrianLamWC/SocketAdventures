@@ -295,12 +295,27 @@ bool Graph::isSCCComplete(const int &scc_index)
                 std::cout << " " << r;
             }
             std::cout << " } but expected regions {";
-            for (auto r : T->getExpectedRegions())
+            // Print only the remaining expected regions (expected - seen)
+            std::unordered_set<int32_t> remaining = T->getExpectedRegions();
+            for (auto r_seen : T->getSeenRegions())
             {
-                std::cout << " " << r;
+                remaining.erase(r_seen);
+            }
+
+            std::cout << " } remaining expected regions {";
+            if (remaining.empty())
+            {
+                std::cout << " none";
+            }
+            else
+            {
+                for (auto r : remaining)
+                {
+                    std::cout << " " << r;
+                }
             }
             std::cout << " }.\n";
-            
+
             return false;
         }
     }
