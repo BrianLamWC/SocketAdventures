@@ -290,7 +290,7 @@ bool Graph::isSCCComplete(const int &scc_index)
         {
             std::cout << "SCC " << scc_index << " is not complete because txn "
                       << T->getID() << " has seen regions {";
-                      
+
             for (auto r : T->getSeenRegions())
             {
                 std::cout << " " << r;
@@ -385,7 +385,14 @@ int32_t Graph::getMergedOrders_()
         {
             if (auto up = removeTransaction_(T))
             {
+                // push the removed transaction into the merged order queue
                 merged_order.push(*up);
+
+                // Log the merged order details for visibility
+                std::cout << "Merged order generated: id=" << up->getID()
+                          << " order=" << up->getOrder()
+                          << " server=" << up->getServerId() << std::endl;
+
                 transaction_count++;
             }
         }
