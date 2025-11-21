@@ -340,7 +340,7 @@ void Merger::insertAlgorithm()
             int removed = graph.getMergedOrders_();
             if (removed > 0)
             {
-                std::cout << "MERGER: removed " << removed << " merged orders" << std::endl;
+                std::cout << "MERGER: removed " << removed << "node from graph" << std::endl;
             }
         }
 
