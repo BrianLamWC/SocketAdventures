@@ -386,14 +386,14 @@ int32_t Graph::getMergedOrders_()
             if (auto up = removeTransaction_(T))
             {
                 // push the removed transaction into the merged order queue
-                merged_order.push(*up);
+                merged.push(*up);
                 transaction_count++;
             }
         }
 
         // Print every transaction id currently in the merged order queue
         {
-            auto snapshot = merged_order.snapshot();
+            auto snapshot = merged.snapshot();
             std::cout << "Merged order queue (" << snapshot.size() << ") ids:";
             for (const auto &m : snapshot)
             {
@@ -408,8 +408,6 @@ int32_t Graph::getMergedOrders_()
         //     std::cout << "  " << T->getID() << " (Order: " << T->getOrder() << ")\n";
         // }
         // std::cout << "\n\n";
-
-        logging_cv.notify_all();
 
         for (int p : neighbors_in[c])
         {

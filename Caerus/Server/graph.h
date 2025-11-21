@@ -14,7 +14,6 @@
 #include "transaction.h"
 #include "queueTS.h"
 #include "utils.h"
-#include "logger.h"
 #include "../proto/graph_snapshot.pb.h"
 
 class Graph
@@ -36,6 +35,8 @@ private:
     std::vector<std::unordered_set<int>> neighbors_out;       // outgoing edges of each SCC (indexed by SCC index)
     std::vector<std::vector<int>> neighbors_in;               // incoming edges of each SCC (indexed by SCC index)
     mutable std::mutex mtx;                                   // protect nodes for snapshotting / external access
+
+    Queue_TS<Transaction> merged;
 
 public:
     Transaction *addNode(std::unique_ptr<Transaction> uptr);

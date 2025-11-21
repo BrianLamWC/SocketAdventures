@@ -6,9 +6,9 @@
 
 #include "../proto/request.pb.h"
 
-ClientListener::ClientListener(int listenfd, Logger *logger, Merger *merger)
+ClientListener::ClientListener(int listenfd, Merger *merger)
 {
-    args = {listenfd, logger, merger};
+    args = {listenfd, merger};
     pthread_t listener_thread;
 
     if (pthread_create(&listener_thread, NULL, clientListener, (void *)&args) != 0)
@@ -53,7 +53,6 @@ void *clientListener(void *args)
 
         client_args->connfd = connfd;
         client_args->client_addr = client_addr;
-        client_args->logger = my_args->logger;
         client_args->merger = my_args->merger;
 
         pthread_t client_thread;
@@ -81,7 +80,6 @@ void *handleClient(void *client_args)
     sockaddr_in client_addr = local.client_addr;
     char *client_ip = inet_ntoa(client_addr.sin_addr);
     int client_port = ntohs(client_addr.sin_port);
-    Logger *logger = local.logger;
     Merger *merger = local.merger;
 
     while (true)

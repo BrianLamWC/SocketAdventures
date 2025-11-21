@@ -10,14 +10,12 @@
 struct ClientListenerThreadsArgs
 {
     int listenfd;
-    Logger* logger;
     Merger* merger; 
 };
 
 struct ClientArgs {
     int connfd;
     struct sockaddr_in client_addr;
-    Logger* logger; 
     Merger* merger; 
 };
 
@@ -31,7 +29,7 @@ private:
     ClientListenerThreadsArgs args;
 public:
 
-    ClientListener(int listenfd, Logger* logger, Merger* merger);
+    ClientListener(int listenfd, Merger* merger);
 
 };
 

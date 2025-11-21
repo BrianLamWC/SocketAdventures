@@ -45,7 +45,7 @@ int main(int argc, char *argv[])
     Merger merger;
     
     // run logger
-    Logger logger;
+    //Logger logger;
 
     // set up listening sockets
     int peer_listenfd = setupListenfd(peer_port);
@@ -60,7 +60,7 @@ int main(int argc, char *argv[])
 
     // start listeners
     PeerListener peer_listener(peer_listenfd, &partial_sequencer, &merger);
-    ClientListener client_listener(client_listenfd, &logger, &merger);
+    ClientListener client_listener(client_listenfd, &merger);
 
     Coordinator coordinator;
 
