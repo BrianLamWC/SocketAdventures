@@ -290,11 +290,18 @@ bool Graph::isSCCComplete(const int &scc_index)
         {
             std::cout << "SCC " << scc_index << " is not complete because txn "
                       << T->getID() << " has seen regions {";
+                      
             for (auto r : T->getSeenRegions())
             {
                 std::cout << " " << r;
             }
             std::cout << " } but expected regions {";
+
+            for (auto r : T->getExpectedRegions())
+            {
+                std::cout << " " << r;
+            }
+
             // Print only the remaining expected regions (expected - seen)
             std::unordered_set<int32_t> remaining = T->getExpectedRegions();
             for (auto r_seen : T->getSeenRegions())
