@@ -7,6 +7,22 @@
                 1,
                 2
             ]
+        },
+        {
+            "target_id": 2,
+            "type": "WRITE",
+            "keys": [
+                2
+            ]
+        },
+        {
+            "target_id": 1,
+            "type": "WRITE",
+            "keys": [
+                1,
+                2,
+                3
+            ]
         }
     ]
 ]
