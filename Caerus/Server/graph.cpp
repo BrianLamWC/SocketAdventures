@@ -203,20 +203,20 @@ void Graph::findSCCs()
         }
     }
 
-    if (sccs.size() > 0)
-    {
-        // Print the SCCs
-        std::cout << "Strongly Connected Components (SCCs):\n";
-        for (size_t i = 0; i < sccs.size(); ++i)
-        {
-            std::cout << "Component " << i << ":";
-            for (Transaction *t : sccs[i])
-            {
-                std::cout << " " << t->getID();
-            }
-            std::cout << "\n\n";
-        }
-    }
+    // if (sccs.size() > 0)
+    // {
+    //     // Print the SCCs
+    //     std::cout << "Strongly Connected Components (SCCs):\n";
+    //     for (size_t i = 0; i < sccs.size(); ++i)
+    //     {
+    //         std::cout << "Component " << i << ":";
+    //         for (Transaction *t : sccs[i])
+    //         {
+    //             std::cout << " " << t->getID();
+    //         }
+    //         std::cout << "\n\n";
+    //     }
+    // }
 }
 
 void Graph::buildTransactionSCCMap()
