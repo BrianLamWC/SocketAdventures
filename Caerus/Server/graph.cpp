@@ -288,40 +288,40 @@ bool Graph::isSCCComplete(const int &scc_index)
         // Ensure transaction has observed all expected regions.
         if (T->getSeenRegions() != T->getExpectedRegions())
         {
-            std::cout << "SCC " << scc_index << " is not complete because txn "
-                      << T->getID() << " has seen regions {";
+            // std::cout << "SCC " << scc_index << " is not complete because txn "
+            //           << T->getID() << " has seen regions {";
 
-            for (auto r : T->getSeenRegions())
-            {
-                std::cout << " " << r;
-            }
-            std::cout << " } but expected regions {";
+            // for (auto r : T->getSeenRegions())
+            // {
+            //     std::cout << " " << r;
+            // }
+            // std::cout << " } but expected regions {";
 
-            for (auto r : T->getExpectedRegions())
-            {
-                std::cout << " " << r;
-            }
+            // for (auto r : T->getExpectedRegions())
+            // {
+            //     std::cout << " " << r;
+            // }
 
-            // Print only the remaining expected regions (expected - seen)
-            std::unordered_set<int32_t> remaining = T->getExpectedRegions();
-            for (auto r_seen : T->getSeenRegions())
-            {
-                remaining.erase(r_seen);
-            }
+            // // Print only the remaining expected regions (expected - seen)
+            // std::unordered_set<int32_t> remaining = T->getExpectedRegions();
+            // for (auto r_seen : T->getSeenRegions())
+            // {
+            //     remaining.erase(r_seen);
+            // }
 
-            std::cout << " } remaining expected regions {";
-            if (remaining.empty())
-            {
-                std::cout << " none";
-            }
-            else
-            {
-                for (auto r : remaining)
-                {
-                    std::cout << " " << r;
-                }
-            }
-            std::cout << " }.\n";
+            // std::cout << " } remaining expected regions {";
+            // if (remaining.empty())
+            // {
+            //     std::cout << " none";
+            // }
+            // else
+            // {
+            //     for (auto r : remaining)
+            //     {
+            //         std::cout << " " << r;
+            //     }
+            // }
+            // std::cout << " }.\n";
 
             return false;
         }
