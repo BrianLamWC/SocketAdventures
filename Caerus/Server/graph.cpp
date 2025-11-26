@@ -8,6 +8,7 @@
 
 Transaction *Graph::addNode(std::unique_ptr<Transaction> uptr)
 {
+    std::lock_guard<std::mutex> guard(mtx);
     const std::string &key = uptr->getID();
     Transaction *ptr = uptr.get();
     nodes[key] = std::move(uptr);
@@ -16,13 +17,13 @@ Transaction *Graph::addNode(std::unique_ptr<Transaction> uptr)
 
 Transaction *Graph::getNode(const std::string &uuid)
 {
+    std::lock_guard<std::mutex> guard(mtx);
     auto it = nodes.find(uuid);
     return it == nodes.end() ? nullptr : it->second.get();
 }
 
 void Graph::printAll() const
 {
-    std::cout << "\033[2J\033[1;1H";
     std::cout << "Graph contains " << nodes.size() << " node(s):\n";
     for (const auto &kv : nodes)
     {
@@ -87,6 +88,7 @@ void Graph::clear()
 
 std::unique_ptr<Transaction> Graph::removeTransaction(Transaction *rem)
 {
+    std::lock_guard<std::mutex> guard(mtx);
     // 1) Find the map entry
     auto it = nodes.find(rem->getID());
     if (it == nodes.end())
@@ -112,6 +114,7 @@ std::unique_ptr<Transaction> Graph::removeTransaction(Transaction *rem)
 
 std::unique_ptr<Transaction> Graph::removeTransaction_(Transaction *rem)
 {
+    std::lock_guard<std::mutex> guard(mtx);
     auto it = nodes.find(rem->getID());
     if (it == nodes.end())
         return nullptr;
@@ -145,7 +148,9 @@ std::unique_ptr<Transaction> Graph::removeTransaction_(Transaction *rem)
     if (nodes.find(rem->getID()) != nodes.end())
     {
         std::cerr << "Error: Transaction " << rem->getID() << " was not removed from graph!" << std::endl;
-    }else{
+    }
+    else
+    {
         std::cout << "Transaction " << rem->getID() << " successfully removed from graph." << std::endl;
     }
 
@@ -415,7 +420,6 @@ int32_t Graph::getMergedOrders_()
             }
             std::cout << std::endl;
         }
-
 
         for (int p : neighbors_in[c])
         {
