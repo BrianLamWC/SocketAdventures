@@ -87,32 +87,6 @@ void Graph::clear()
     current_index = 0;
 }
 
-std::unique_ptr<Transaction> Graph::removeTransaction(Transaction *rem)
-{
-    std::lock_guard<std::mutex> guard(mtx);
-    // 1) Find the map entry
-    auto it = nodes.find(rem->getID());
-    if (it == nodes.end())
-    {
-        return nullptr; // no such node
-    }
-
-    // 2) Remove rem from everyone else's adjacency
-    for (auto &kv : nodes)
-    {
-        kv.second->removeOutNeighbor(rem);
-    }
-
-    // 3) Steal the unique_ptr<Transaction> out of the map
-    std::unique_ptr<Transaction> up = std::move(it->second);
-
-    // 4) Erase the entry so there's no null-pointer left behind
-    nodes.erase(it);
-
-    // 5) Return ownership to the caller
-    return up;
-}
-
 std::unique_ptr<Transaction> Graph::removeTransaction_(Transaction *rem)
 {
     std::lock_guard<std::mutex> guard(mtx);
@@ -204,8 +178,6 @@ void Graph::strongConnect(Transaction *v)
 
 void Graph::findSCCs()
 {
-    std::lock_guard<std::mutex> guard(mtx);
-
     // reset any old Tarjan state
     index_map.clear();
     low_link_map.clear();
@@ -310,41 +282,7 @@ bool Graph::isSCCComplete(const int &scc_index)
         // Ensure transaction has observed all expected regions.
         if (T->getSeenRegions() != T->getExpectedRegions())
         {
-            // std::cout << "SCC " << scc_index << " is not complete because txn "
-            //           << T->getID() << " has seen regions {";
-
-            // for (auto r : T->getSeenRegions())
-            // {
-            //     std::cout << " " << r;
-            // }
-            // std::cout << " } but expected regions {";
-
-            // for (auto r : T->getExpectedRegions())
-            // {
-            //     std::cout << " " << r;
-            // }
-
-            // // Print only the remaining expected regions (expected - seen)
-            // std::unordered_set<int32_t> remaining = T->getExpectedRegions();
-            // for (auto r_seen : T->getSeenRegions())
-            // {
-            //     remaining.erase(r_seen);
-            // }
-
-            // std::cout << " } remaining expected regions {";
-            // if (remaining.empty())
-            // {
-            //     std::cout << " none";
-            // }
-            // else
-            // {
-            //     for (auto r : remaining)
-            //     {
-            //         std::cout << " " << r;
-            //     }
-            // }
-            // std::cout << " }.\n";
-
+            std::cout << "SCC " << scc_index << " incomplete due to txn " << T->getID() << " missing regions.\n";
             return false;
         }
     }
@@ -354,6 +292,8 @@ bool Graph::isSCCComplete(const int &scc_index)
 
 int32_t Graph::getMergedOrders_()
 {
+    std::lock_guard<std::mutex> guard(mtx);
+    
     // 1) SCC + condensation once
     findSCCs(); // one rep per SCC
     buildTransactionSCCMap();
