@@ -127,11 +127,11 @@ void Merger::insertAlgorithm()
         auto transactions = inner_map->pop();
 
         // print size and transction ids
-        // std::cout << "INSERT::Popped " << transactions.size() << " transactions from server " << sid << std::endl;
-        // for (const auto &txn : transactions)
-        // {
-        //     std::cout << "  " << txn << std::endl;
-        // }
+        std::cout << "INSERT::Popped " << transactions.size() << " transactions from server " << sid << std::endl;
+        for (const auto &txn : transactions)
+        {
+            std::cout << "  " << txn << std::endl;
+        }
 
         std::unordered_set<DataItem> primary_set;
         std::unordered_map<DataItem, Transaction *> most_recent_writers;
