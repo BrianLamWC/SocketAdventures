@@ -137,6 +137,10 @@ std::unique_ptr<Transaction> Graph::removeTransaction_(Transaction *rem)
     // 3) now it’s safe to steal and erase
     auto up = std::move(it->second);
     nodes.erase(it);
+
+    // print size of graph after removal
+    std::cout << "Graph size after removal: " << nodes.size() << " nodes remaining." << std::endl;
+
     return up;
 }
 
