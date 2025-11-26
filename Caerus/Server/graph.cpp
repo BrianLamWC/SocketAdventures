@@ -24,6 +24,7 @@ Transaction *Graph::getNode(const std::string &uuid)
 
 void Graph::printAll() const
 {
+    std::lock_guard<std::mutex> guard(mtx);
     std::cout << "Graph contains " << nodes.size() << " node(s):\n";
     for (const auto &kv : nodes)
     {
@@ -203,6 +204,8 @@ void Graph::strongConnect(Transaction *v)
 
 void Graph::findSCCs()
 {
+    std::lock_guard<std::mutex> guard(mtx);
+
     // reset any old Tarjan state
     index_map.clear();
     low_link_map.clear();
