@@ -8,7 +8,6 @@
 
 Transaction *Graph::addNode(std::unique_ptr<Transaction> uptr)
 {
-    
     const std::string &key = uptr->getID();
     Transaction *ptr = uptr.get();
     nodes[key] = std::move(uptr);
