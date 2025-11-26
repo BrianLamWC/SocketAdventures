@@ -236,12 +236,12 @@ void Graph::buildTransactionSCCMap()
         }
     }
 
-    // // Print the mapping
-    // std::cout << "Transaction to SCC mapping:\n";
-    // for (const auto& pair : txn_scc_index_map) {
-    //     std::cout << "Transaction UUID: " << pair.first->getID()
-    //               << " is in SCC: " << pair.second << "\n";
-    // }
+    // Print the mapping
+    std::cout << "Transaction to SCC mapping:\n";
+    for (const auto& pair : txn_scc_index_map) {
+        std::cout << "Transaction ID: " << pair.first->getID()
+                  << " is in SCC: " << pair.second << "\n";
+    }
 }
 
 void Graph::buildCondensationGraph()
