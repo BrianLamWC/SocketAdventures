@@ -145,6 +145,8 @@ std::unique_ptr<Transaction> Graph::removeTransaction_(Transaction *rem)
     if (nodes.find(rem->getID()) != nodes.end())
     {
         std::cerr << "Error: Transaction " << rem->getID() << " was not removed from graph!" << std::endl;
+    }else{
+        std::cout << "Transaction " << rem->getID() << " successfully removed from graph." << std::endl;
     }
 
     printAll();
