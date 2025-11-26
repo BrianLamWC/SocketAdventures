@@ -141,6 +141,12 @@ std::unique_ptr<Transaction> Graph::removeTransaction_(Transaction *rem)
     // print size of graph after removal
     std::cout << "Graph size after removal: " << nodes.size() << " nodes remaining." << std::endl;
 
+    // check if this transaction has actually been removed
+    if (nodes.find(rem->getID()) != nodes.end())
+    {
+        std::cerr << "Error: Transaction " << rem->getID() << " was not removed from graph!" << std::endl;
+    }
+
     printAll();
 
     return up;
@@ -239,11 +245,11 @@ void Graph::buildTransactionSCCMap()
     }
 
     // Print the mapping
-    std::cout << "Transaction to SCC mapping:\n";
-    for (const auto& pair : txn_scc_index_map) {
-        std::cout << "Transaction ID: " << pair.first->getID()
-                  << " is in SCC: " << pair.second << "\n";
-    }
+    // std::cout << "Transaction to SCC mapping:\n";
+    // for (const auto& pair : txn_scc_index_map) {
+    //     std::cout << "Transaction ID: " << pair.first->getID()
+    //               << " is in SCC: " << pair.second << "\n";
+    // }
 }
 
 void Graph::buildCondensationGraph()
