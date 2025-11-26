@@ -141,6 +141,8 @@ std::unique_ptr<Transaction> Graph::removeTransaction_(Transaction *rem)
     // print size of graph after removal
     std::cout << "Graph size after removal: " << nodes.size() << " nodes remaining." << std::endl;
 
+    printAll();
+
     return up;
 }
 
