@@ -59,23 +59,23 @@ void Graph::printAll() const
         }
         std::cout << "\n\n";
 
-        // // Expected regions
-        // const auto &expected_regions = t->getExpectedRegions();
-        // std::cout << "    Expected regions (" << expected_regions.size() << "):";
-        // for (auto region : expected_regions)
-        // {
-        //     std::cout << " " << region;
-        // }
-        // std::cout << "\n";
+        // Expected regions
+        const auto &expected_regions = t->getExpectedRegions();
+        std::cout << "    Expected regions (" << expected_regions.size() << "):";
+        for (auto region : expected_regions)
+        {
+            std::cout << " " << region;
+        }
+        std::cout << "\n";
 
-        // // Seen regions
-        // const auto &seen_regions = t->getSeenRegions();
-        // std::cout << "    Seen regions (" << seen_regions.size() << "):";
-        // for (auto region : seen_regions)
-        // {
-        //     std::cout << " " << region;
-        // }
-        // std::cout << "\n";
+        // Seen regions
+        const auto &seen_regions = t->getSeenRegions();
+        std::cout << "    Seen regions (" << seen_regions.size() << "):";
+        for (auto region : seen_regions)
+        {
+            std::cout << " " << region;
+        }
+        std::cout << "\n";
     }
 }
 
