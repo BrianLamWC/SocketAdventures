@@ -8,6 +8,7 @@
 
 Transaction *Graph::addNode(std::unique_ptr<Transaction> uptr)
 {
+    std::lock_guard<std::mutex> guard(mtx);
     const std::string &key = uptr->getID();
     Transaction *ptr = uptr.get();
     nodes[key] = std::move(uptr);
@@ -16,12 +17,14 @@ Transaction *Graph::addNode(std::unique_ptr<Transaction> uptr)
 
 Transaction *Graph::getNode(const std::string &uuid)
 {
+    std::lock_guard<std::mutex> guard(mtx);
     auto it = nodes.find(uuid);
     return it == nodes.end() ? nullptr : it->second.get();
 }
 
 void Graph::printAll() const
 {
+    std::lock_guard<std::mutex> guard(mtx);
     std::cout << "Graph contains " << nodes.size() << " node(s):\n";
     for (const auto &kv : nodes)
     {
@@ -288,6 +291,8 @@ bool Graph::isSCCComplete(const int &scc_index)
 
 int32_t Graph::getMergedOrders_()
 {
+    std::lock_guard<std::mutex> guard(mtx);
+
     // 1) SCC + condensation once
     findSCCs(); // one rep per SCC
     buildTransactionSCCMap();
