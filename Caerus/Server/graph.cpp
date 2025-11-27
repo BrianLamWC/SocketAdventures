@@ -296,86 +296,84 @@ int32_t Graph::getMergedOrders_()
 
     // 1) SCC + condensation once
     findSCCs(); // one rep per SCC
-    // buildTransactionSCCMap();
-    // buildCondensationGraph();
-    // int sccs_count = sccs.size();
+    buildTransactionSCCMap();
+    buildCondensationGraph();
+    int sccs_count = sccs.size();
 
-    // // 2) compute out-degrees and seed ready queue
-    // std::vector<int> out_degrees(sccs_count);
-    // std::queue<int> Q;
+    // 2) compute out-degrees and seed ready queue
+    std::vector<int> out_degrees(sccs_count);
+    std::queue<int> Q;
 
-    // for (int c = 0; c < sccs_count; ++c)
-    // {
-    //     out_degrees[c] = neighbors_out[c].size();
-    // }
+    for (int c = 0; c < sccs_count; ++c)
+    {
+        out_degrees[c] = neighbors_out[c].size();
+    }
 
-    // for (int c = 0; c < sccs_count; ++c)
-    // {
-    //     if (out_degrees[c] == 0 && isSCCComplete(c))
-    //     {
-    //         Q.push(c);
-    //     }
-    // }
+    for (int c = 0; c < sccs_count; ++c)
+    {
+        if (out_degrees[c] == 0 && isSCCComplete(c))
+        {
+            Q.push(c);
+        }
+    }
 
-    // int32_t transaction_count = 0;
+    int32_t transaction_count = 0;
 
-    // while (!Q.empty())
-    // {
-    //     int c = Q.front();
-    //     Q.pop();
-    //     auto &comp = sccs[c];
+    while (!Q.empty())
+    {
+        int c = Q.front();
+        Q.pop();
+        auto &comp = sccs[c];
 
-    //     if (comp.size() > 1)
-    //     {
+        if (comp.size() > 1)
+        {
 
-    //         std::sort(comp.begin(), comp.end(),
-    //                   [&](auto *a, auto *b)
-    //                   {
-    //                       int32_t a_rand = a->getOrder();
-    //                       int32_t b_rand = b->getOrder();
+            std::sort(comp.begin(), comp.end(),
+                      [&](auto *a, auto *b)
+                      {
+                          int32_t a_rand = a->getOrder();
+                          int32_t b_rand = b->getOrder();
 
-    //                       if (a_rand != b_rand)
-    //                       {
-    //                           return a_rand < b_rand;
-    //                       }
+                          if (a_rand != b_rand)
+                          {
+                              return a_rand < b_rand;
+                          }
 
-    //                       return a->getServerId() < b->getServerId();
-    //                   });
-    //     }
+                          return a->getServerId() < b->getServerId();
+                      });
+        }
 
-    //     for (Transaction *T : comp)
-    //     {
-    //         if (auto up = removeTransaction_(T))
-    //         {
-    //             // push the removed transaction into the merged order queue
-    //             merged.push(*up);
-    //             transaction_count++;
-    //         }
-    //     }
+        for (Transaction *T : comp)
+        {
+            if (auto up = removeTransaction_(T))
+            {
+                // push the removed transaction into the merged order queue
+                merged.push(*up);
+                transaction_count++;
+            }
+        }
 
-    //     // Print every transaction id currently in the merged order queue
-    //     {
-    //         auto snapshot = merged.snapshot();
-    //         std::cout << "Merged order queue (" << snapshot.size() << ") ids:";
-    //         for (const auto &m : snapshot)
-    //         {
-    //             std::cout << " " << m.getID();
-    //         }
-    //         std::cout << std::endl;
-    //     }
+        // Print every transaction id currently in the merged order queue
+        {
+            auto snapshot = merged.snapshot();
+            std::cout << "Merged order queue (" << snapshot.size() << ") ids:";
+            for (const auto &m : snapshot)
+            {
+                std::cout << " " << m.getID();
+            }
+            std::cout << std::endl;
+        }
 
-    //     for (int p : neighbors_in[c])
-    //     {
-    //         if (--out_degrees[p] == 0 && isSCCComplete(p))
-    //         {
-    //             Q.push(p);
-    //         }
-    //     }
-    // }
+        for (int p : neighbors_in[c])
+        {
+            if (--out_degrees[p] == 0 && isSCCComplete(p))
+            {
+                Q.push(p);
+            }
+        }
+    }
 
-    // return transaction_count;
-
-    return 0;
+    return transaction_count;
 }
 
 void Graph::buildSnapshotProto(request::GraphSnapshot &out) const
