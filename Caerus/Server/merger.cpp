@@ -85,27 +85,27 @@ void Merger::processRequest(const request::Request &req_proto)
             if (!ready_q_.empty())
             {
                 // Log the current state of enqueued_sids_ and ready_q_
-                std::ostringstream oss;
-                oss << "MERGER: enqueued after processRequest: {";
-                bool first = true;
+                std::ostringstream log_oss;
+                log_oss << "MERGER: enqueued after processRequest: {";
+                bool log_first = true;
                 for (const auto &x : enqueued_sids_)
                 {
-                    if (!first)
-                        oss << ",";
-                    first = false;
-                    oss << x;
+                    if (!log_first)
+                        log_oss << ",";
+                    log_first = false;
+                    log_oss << x;
                 }
-                oss << "} ready_q=[";
-                first = true;
+                log_oss << "} ready_q=[";
+                log_first = true;
                 for (const auto &x : ready_q_)
                 {
-                    if (!first)
-                        oss << ",";
-                    first = false;
-                    oss << x;
+                    if (!log_first)
+                        log_oss << ",";
+                    log_first = false;
+                    log_oss << x;
                 }
-                oss << "]";
-                std::cout << oss.str() << std::endl;
+                log_oss << "]";
+                std::cout << log_oss.str() << std::endl;
             }
 
             ready_cv.notify_one();
@@ -142,27 +142,27 @@ void Merger::insertAlgorithm()
         // Log the state immediately after popping an entry (still under lock)
         if (!ready_q_.empty())
         {
-            std::ostringstream oss;
-            oss << "MERGER: popped sid=" << sid << "; enqueued_sids_={";
-            bool first = true;
+            std::ostringstream log_oss;
+            log_oss << "MERGER: popped sid=" << sid << "; enqueued_sids_={";
+            bool log_first = true;
             for (const auto &x : enqueued_sids_)
             {
-                if (!first)
-                    oss << ",";
-                first = false;
-                oss << x;
+                if (!log_first)
+                    log_oss << ",";
+                log_first = false;
+                log_oss << x;
             }
-            oss << "} ready_q=[";
-            first = true;
+            log_oss << "} ready_q=[";
+            log_first = true;
             for (const auto &x : ready_q_)
             {
-                if (!first)
-                    oss << ",";
-                first = false;
-                oss << x;
+                if (!log_first)
+                    log_oss << ",";
+                log_first = false;
+                log_oss << x;
             }
-            oss << "]";
-            std::cout << oss.str() << std::endl;
+            log_oss << "]";
+            std::cout << log_oss.str() << std::endl;
         }
 
         lk.unlock();
@@ -388,27 +388,27 @@ void Merger::insertAlgorithm()
                     // Log the re-enqueue event and the current state
                     if (!ready_q_.empty())
                     {
-                        std::ostringstream oss;
-                        oss << "MERGER: re-enqueued sid=" << sid << "; enqueued_sids_={";
-                        bool first = true;
+                        std::ostringstream log_oss;
+                        log_oss << "MERGER: re-enqueued sid=" << sid << "; enqueued_sids_={";
+                        bool log_first = true;
                         for (const auto &x : enqueued_sids_)
                         {
-                            if (!first)
-                                oss << ",";
-                            first = false;
-                            oss << x;
+                            if (!log_first)
+                                log_oss << ",";
+                            log_first = false;
+                            log_oss << x;
                         }
-                        oss << "} ready_q=[";
-                        first = true;
+                        log_oss << "} ready_q=[";
+                        log_first = true;
                         for (const auto &x : ready_q_)
                         {
-                            if (!first)
-                                oss << ",";
-                            first = false;
-                            oss << x;
+                            if (!log_first)
+                                log_oss << ",";
+                            log_first = false;
+                            log_oss << x;
                         }
-                        oss << "]";
-                        std::cout << oss.str() << std::endl;
+                        log_oss << "]";
+                        std::cout << log_oss.str() << std::endl;
                     }
 
                     ready_cv.notify_one();
