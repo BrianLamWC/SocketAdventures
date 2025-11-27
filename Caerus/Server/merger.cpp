@@ -82,28 +82,31 @@ void Merger::processRequest(const request::Request &req_proto)
         {
             enqueued_sids_.insert(sid);
             ready_q_.push_back(sid);
-            // Log the current state of enqueued_sids_ and ready_q_
-            std::ostringstream oss;
-            oss << "MERGER: enqueued after processRequest: {";
-            bool first = true;
-            for (const auto &x : enqueued_sids_)
+            if (!ready_q_.empty())
             {
-                if (!first)
-                    oss << ",";
-                first = false;
-                oss << x;
+                // Log the current state of enqueued_sids_ and ready_q_
+                std::ostringstream oss;
+                oss << "MERGER: enqueued after processRequest: {";
+                bool first = true;
+                for (const auto &x : enqueued_sids_)
+                {
+                    if (!first)
+                        oss << ",";
+                    first = false;
+                    oss << x;
+                }
+                oss << "} ready_q=[";
+                first = true;
+                for (const auto &x : ready_q_)
+                {
+                    if (!first)
+                        oss << ",";
+                    first = false;
+                    oss << x;
+                }
+                oss << "]";
+                std::cout << oss.str() << std::endl;
             }
-            oss << "} ready_q=[";
-            first = true;
-            for (const auto &x : ready_q_)
-            {
-                if (!first)
-                    oss << ",";
-                first = false;
-                oss << x;
-            }
-            oss << "]";
-            std::cout << oss.str() << std::endl;
 
             ready_cv.notify_one();
         }
@@ -137,6 +140,7 @@ void Merger::insertAlgorithm()
         enqueued_sids_.erase(sid);
 
         // Log the state immediately after popping an entry (still under lock)
+        if (!ready_q_.empty())
         {
             std::ostringstream oss;
             oss << "MERGER: popped sid=" << sid << "; enqueued_sids_={";
@@ -382,27 +386,30 @@ void Merger::insertAlgorithm()
                     ready_q_.push_back(sid);
 
                     // Log the re-enqueue event and the current state
-                    std::ostringstream oss;
-                    oss << "MERGER: re-enqueued sid=" << sid << "; enqueued_sids_={";
-                    bool first = true;
-                    for (const auto &x : enqueued_sids_)
+                    if (!ready_q_.empty())
                     {
-                        if (!first)
-                            oss << ",";
-                        first = false;
-                        oss << x;
+                        std::ostringstream oss;
+                        oss << "MERGER: re-enqueued sid=" << sid << "; enqueued_sids_={";
+                        bool first = true;
+                        for (const auto &x : enqueued_sids_)
+                        {
+                            if (!first)
+                                oss << ",";
+                            first = false;
+                            oss << x;
+                        }
+                        oss << "} ready_q=[";
+                        first = true;
+                        for (const auto &x : ready_q_)
+                        {
+                            if (!first)
+                                oss << ",";
+                            first = false;
+                            oss << x;
+                        }
+                        oss << "]";
+                        std::cout << oss.str() << std::endl;
                     }
-                    oss << "} ready_q=[";
-                    first = true;
-                    for (const auto &x : ready_q_)
-                    {
-                        if (!first)
-                            oss << ",";
-                        first = false;
-                        oss << x;
-                    }
-                    oss << "]";
-                    std::cout << oss.str() << std::endl;
 
                     ready_cv.notify_one();
                 }
