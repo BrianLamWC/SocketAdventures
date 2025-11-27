@@ -150,6 +150,9 @@ void Merger::insertAlgorithm()
 
         auto transactions = inner_map->pop();
 
+        // print inner map state after pop
+        std::cout << "INSERT::After pop for sid=" << sid << ", inner_map->empty()=" << (inner_map->empty() ? "true" : "false") << std::endl;
+
         // print size and transction ids
         std::cout << "INSERT::Popped " << transactions.size() << " transactions from server " << sid << std::endl;
         for (const auto &txn : transactions)
@@ -386,7 +389,7 @@ void Merger::insertAlgorithm()
             }
         }
 
-        //graph.printAll();
+        // graph.printAll();
 
         // call graph cleanup for merged orders and log if any removed
         {
