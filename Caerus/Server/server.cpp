@@ -24,7 +24,7 @@ PeerListener::PeerListener(int listenfd, PartialSequencer* partial_sequencer, Me
 void *handlePeer(void *server_args)
 {
 
-    printf("handlePeer: started\n");
+    //printf("handlePeer: started\n");
 
     // 1) Cast and copy the entire struct
     auto* ptr = static_cast<ServerArgs*>(server_args);
