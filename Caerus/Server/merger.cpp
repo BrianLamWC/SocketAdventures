@@ -429,14 +429,14 @@ void Merger::insertAlgorithm()
 
         // graph.printAll();
 
-        // call graph cleanup for merged orders and log if any removed
-        // {
-        //     int removed = graph.getMergedOrders_();
-        //     if (removed > 0)
-        //     {
-        //         std::cout << "MERGER: removed " << removed << " node from graph" << std::endl;
-        //     }
-        // }
+        //call graph cleanup for merged orders and log if any removed
+        {
+            int removed = graph.getMergedOrders_();
+            if (removed > 0)
+            {
+                std::cout << "MERGER: removed " << removed << " node from graph" << std::endl;
+            }
+        }
 
         lk.lock();
     }
