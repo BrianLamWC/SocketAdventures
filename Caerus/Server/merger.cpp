@@ -150,6 +150,24 @@ void Merger::insertAlgorithm()
             continue;
         }
 
+        // Print remaining contents of inner_map
+        if (!inner_map->empty())
+        {
+            std::cout << "INSERT::inner_map for sid=" << sid << ":" << std::endl;
+            // Note: If Queue_TS has a snapshot() method, use that instead
+            // Otherwise, you may need to add a method to iterate without removing
+            auto remaining = inner_map->snapshot();  // assuming snapshot() exists
+            for (const auto &batch : remaining)
+            {
+                std::cout << "  Batch with " << batch.size() << " txns: ";
+                for (const auto &txn : batch)
+                {
+                    std::cout << txn.getID() << " ";
+                }
+                std::cout << std::endl;
+            }
+        }
+
         auto transactions = inner_map->pop();
 
         // print inner map state after pop
