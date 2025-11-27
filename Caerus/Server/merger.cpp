@@ -86,7 +86,7 @@ void Merger::processRequest(const request::Request &req_proto)
             {
                 // Log the current state of enqueued_sids_ and ready_q_
                 std::ostringstream log_oss;
-                log_oss << "MERGER: enqueued after processRequest: {";
+                log_oss << "MERGER: enqueued after processRequest: enqueued_sids_={";
                 bool log_first = true;
                 for (const auto &x : enqueued_sids_)
                 {
@@ -138,32 +138,6 @@ void Merger::insertAlgorithm()
         enqueued_sids_.erase(sid);
 
         std::cout << "  INSERT: processing server " << sid << std::endl;
-
-        // Log the state immediately after popping an entry (still under lock)
-        if (!ready_q_.empty())
-        {
-            std::ostringstream log_oss;
-            log_oss << "MERGER: popped sid=" << sid << "; enqueued_sids_={";
-            bool log_first = true;
-            for (const auto &x : enqueued_sids_)
-            {
-                if (!log_first)
-                    log_oss << ",";
-                log_first = false;
-                log_oss << x;
-            }
-            log_oss << "} ready_q=[";
-            log_first = true;
-            for (const auto &x : ready_q_)
-            {
-                if (!log_first)
-                    log_oss << ",";
-                log_first = false;
-                log_oss << x;
-            }
-            log_oss << "]";
-            std::cout << log_oss.str() << std::endl;
-        }
 
         lk.unlock();
 
