@@ -1,2 +1,7 @@
 fix the bug
 maintain two graphs, one dynamic and one static that we just keep adding to it
+
+
+somehting wrong with the coeslesceing queue
+
+{ "ip": "192.168.8.160", "port": 8001, "id": 3, "leader": false }
