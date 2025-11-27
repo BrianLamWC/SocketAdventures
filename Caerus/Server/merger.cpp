@@ -73,7 +73,7 @@ void Merger::processRequest(const request::Request &req_proto)
 
         transactions.push_back(txn);
 
-        std::cout << "MERGER: pushed txn " << txn.getID() << " from server " << sid << " into its queue" << std::endl;
+        //std::cout << "MERGER: pushed txn " << txn.getID() << " from server " << sid << " into its queue" << std::endl;
     }
 
     q->push(transactions);
@@ -84,31 +84,31 @@ void Merger::processRequest(const request::Request &req_proto)
         {
             enqueued_sids_.insert(sid);
             ready_q_.push_back(sid);
-            if (!ready_q_.empty())
-            {
-                // Log the current state of enqueued_sids_ and ready_q_
-                std::ostringstream log_oss;
-                log_oss << "MERGER: enqueued after processRequest: enqueued_sids_={";
-                bool log_first = true;
-                for (const auto &x : enqueued_sids_)
-                {
-                    if (!log_first)
-                        log_oss << ",";
-                    log_first = false;
-                    log_oss << x;
-                }
-                log_oss << "} ready_q=[";
-                log_first = true;
-                for (const auto &x : ready_q_)
-                {
-                    if (!log_first)
-                        log_oss << ",";
-                    log_first = false;
-                    log_oss << x;
-                }
-                log_oss << "]";
-                std::cout << log_oss.str() << std::endl;
-            }
+            // if (!ready_q_.empty())
+            // {
+            //     // Log the current state of enqueued_sids_ and ready_q_
+            //     std::ostringstream log_oss;
+            //     log_oss << "MERGER: enqueued after processRequest: enqueued_sids_={";
+            //     bool log_first = true;
+            //     for (const auto &x : enqueued_sids_)
+            //     {
+            //         if (!log_first)
+            //             log_oss << ",";
+            //         log_first = false;
+            //         log_oss << x;
+            //     }
+            //     log_oss << "} ready_q=[";
+            //     log_first = true;
+            //     for (const auto &x : ready_q_)
+            //     {
+            //         if (!log_first)
+            //             log_oss << ",";
+            //         log_first = false;
+            //         log_oss << x;
+            //     }
+            //     log_oss << "]";
+            //     std::cout << log_oss.str() << std::endl;
+            // }
 
             ready_cv.notify_one();
         }
@@ -150,53 +150,35 @@ void Merger::insertAlgorithm()
             continue;
         }
 
-        // Print remaining contents of inner_map
-        if (!inner_map->empty())
-        {
-            std::cout << "INSERT::inner_map for sid=" << sid << ":" << std::endl;
-            // Note: If Queue_TS has a snapshot() method, use that instead
-            // Otherwise, you may need to add a method to iterate without removing
-            auto remaining = inner_map->snapshot();  // assuming snapshot() exists
-            for (const auto &batch : remaining)
-            {
-                std::cout << "  Batch with " << batch.size() << " txns: ";
-                for (const auto &txn : batch)
-                {
-                    std::cout << txn.getID() << " ";
-                }
-                std::cout << std::endl;
-            }
-        }
-
         auto transactions = inner_map->pop();
 
         // print inner map state after pop
-        std::cout << "INSERT::After pop for sid=" << sid << ", inner_map->empty()=" << (inner_map->empty() ? "true" : "false") << std::endl;
+        //std::cout << "INSERT::After pop for sid=" << sid << ", inner_map->empty()=" << (inner_map->empty() ? "true" : "false") << std::endl;
 
         // print size and transction ids
-        std::cout << "INSERT::Popped " << transactions.size() << " transactions from server " << sid << std::endl;
-        for (const auto &txn : transactions)
-        {
-            std::cout << "  " << txn << std::endl;
-        }
+        // std::cout << "INSERT::Popped " << transactions.size() << " transactions from server " << sid << std::endl;
+        // for (const auto &txn : transactions)
+        // {
+        //     std::cout << "  " << txn << std::endl;
+        // }
 
         // Print remaining contents of inner_map
-        if (!inner_map->empty())
-        {
-            std::cout << "INSERT::Remaining in inner_map for sid=" << sid << ":" << std::endl;
-            // Note: If Queue_TS has a snapshot() method, use that instead
-            // Otherwise, you may need to add a method to iterate without removing
-            auto remaining = inner_map->snapshot();  // assuming snapshot() exists
-            for (const auto &batch : remaining)
-            {
-                std::cout << "  Batch with " << batch.size() << " txns: ";
-                for (const auto &txn : batch)
-                {
-                    std::cout << txn.getID() << " ";
-                }
-                std::cout << std::endl;
-            }
-        }
+        // if (!inner_map->empty())
+        // {
+        //     std::cout << "INSERT::Remaining in inner_map for sid=" << sid << ":" << std::endl;
+        //     // Note: If Queue_TS has a snapshot() method, use that instead
+        //     // Otherwise, you may need to add a method to iterate without removing
+        //     auto remaining = inner_map->snapshot();  // assuming snapshot() exists
+        //     for (const auto &batch : remaining)
+        //     {
+        //         std::cout << "  Batch with " << batch.size() << " txns: ";
+        //         for (const auto &txn : batch)
+        //         {
+        //             std::cout << txn.getID() << " ";
+        //         }
+        //         std::cout << std::endl;
+        //     }
+        // }
 
         std::unordered_set<DataItem> primary_set;
         std::unordered_map<DataItem, Transaction *> most_recent_writers;
@@ -397,30 +379,30 @@ void Merger::insertAlgorithm()
                     ready_q_.push_back(sid);
 
                     // Log the re-enqueue event and the current state
-                    if (!ready_q_.empty())
-                    {
-                        std::ostringstream log_oss;
-                        log_oss << "MERGER: re-enqueued sid=" << sid << "; enqueued_sids_={";
-                        bool log_first = true;
-                        for (const auto &x : enqueued_sids_)
-                        {
-                            if (!log_first)
-                                log_oss << ",";
-                            log_first = false;
-                            log_oss << x;
-                        }
-                        log_oss << "} ready_q=[";
-                        log_first = true;
-                        for (const auto &x : ready_q_)
-                        {
-                            if (!log_first)
-                                log_oss << ",";
-                            log_first = false;
-                            log_oss << x;
-                        }
-                        log_oss << "]";
-                        std::cout << log_oss.str() << std::endl;
-                    }
+                    // if (!ready_q_.empty())
+                    // {
+                    //     std::ostringstream log_oss;
+                    //     log_oss << "MERGER: re-enqueued sid=" << sid << "; enqueued_sids_={";
+                    //     bool log_first = true;
+                    //     for (const auto &x : enqueued_sids_)
+                    //     {
+                    //         if (!log_first)
+                    //             log_oss << ",";
+                    //         log_first = false;
+                    //         log_oss << x;
+                    //     }
+                    //     log_oss << "} ready_q=[";
+                    //     log_first = true;
+                    //     for (const auto &x : ready_q_)
+                    //     {
+                    //         if (!log_first)
+                    //             log_oss << ",";
+                    //         log_first = false;
+                    //         log_oss << x;
+                    //     }
+                    //     log_oss << "]";
+                    //     std::cout << log_oss.str() << std::endl;
+                    // }
 
                     ready_cv.notify_one();
                 }
