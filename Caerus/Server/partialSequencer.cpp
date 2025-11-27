@@ -28,6 +28,12 @@ void PartialSequencer::processPartialSequence()
         // grab all requests for this window (may be empty)
         auto batch = batcher_to_partial_sequencer_queue_.popAll();
 
+        if (batch.empty()) {
+            // no transactions received in this window
+            window++;
+            continue;
+        }
+
         partial_sequence_.Clear();
         partial_sequence_.set_server_id(my_id);
         partial_sequence_.set_recipient(request::Request::MERGER);
