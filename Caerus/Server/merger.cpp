@@ -74,6 +74,8 @@ void Merger::processRequest(const request::Request &req_proto)
         transactions.push_back(txn);
 
         q->push(transactions);
+
+        std::cout << "MERGER: pushed txn " << txn.getID() << " from server " << sid << " into its queue" << std::endl;
     }
 
     {
