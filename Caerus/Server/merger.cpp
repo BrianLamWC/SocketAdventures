@@ -73,10 +73,10 @@ void Merger::processRequest(const request::Request &req_proto)
 
         transactions.push_back(txn);
 
-        q->push(transactions);
-
         std::cout << "MERGER: pushed txn " << txn.getID() << " from server " << sid << " into its queue" << std::endl;
     }
+
+    q->push(transactions);
 
     {
         std::lock_guard<std::mutex> g(ready_mtx);
