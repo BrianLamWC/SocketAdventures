@@ -116,9 +116,7 @@ void Merger::processRequest(const request::Request &req_proto)
 std::ostream &operator<<(std::ostream &os, const Transaction &t)
 {
     return os << "Txn{id=" << t.getID()
-              << ", stamp=" << t.getOrder()
-              << ", origin=" << t.getServerId()
-              << ", ops=" << t.getOperations().size() << "}";
+              << ", origin=" << t.getServerId() << "}";
 }
 
 void Merger::dumpPartialSequences() const
@@ -138,6 +136,8 @@ void Merger::insertAlgorithm()
         int sid = ready_q_.front();
         ready_q_.pop_front();
         enqueued_sids_.erase(sid);
+
+        std::cout << "  INSERT: processing server " << sid << std::endl;
 
         // Log the state immediately after popping an entry (still under lock)
         if (!ready_q_.empty())
