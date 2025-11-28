@@ -285,8 +285,7 @@ void Merger::insertAlgorithm()
                         if (graph.getNode(mrw_it->second->getID()) != nullptr)
                         { // if mrw in graph
                             // std::cout << "INSERT::READSET:" << mrw_it->second->getID() << " in graph" << std::endl;
-                            auto current_txn = graph.getNode(txn.getID());
-                            current_txn->addNeighborOut(mrw_it->second);
+                            graph.addNeighborOut(graph.getNode(txn.getID()), mrw_it->second);
                             // std::cout << "INSERT::READSET: adding edge from " << txn.getID() << " to " << mrw_it->second->getID() << std::endl;
                         }
                     }
@@ -324,8 +323,7 @@ void Merger::insertAlgorithm()
                         if (graph.getNode(mrw_it->second->getID()) != nullptr)
                         { // if mrw in graph
                             // std::cout << "INSERT::WRITESET:" << mrw_it->second->getID() << " in graph" << std::endl;
-                            auto current_txn = graph.getNode(txn.getID());
-                            current_txn->addNeighborOut(mrw_it->second);
+                            graph.addNeighborOut(graph.getNode(txn.getID()), mrw_it->second);
                             // std::cout << "INSERT::WRITESET: adding edge from " << txn.getID() << " to " << mrw_it->second->getID() << std::endl;
                         }
                     }
@@ -355,8 +353,7 @@ void Merger::insertAlgorithm()
 
                             if (read_txn != nullptr) // if reader in graph
                             {
-                                auto current_txn = graph.getNode(txn.getID());
-                                current_txn->addNeighborOut(read_txn); // add reader to current transaction
+                                graph.addNeighborOut(graph.getNode(txn.getID()), read_txn);
                                 // std::cout << "INSERT::READERS: adding edge from " << txn.getID() << " to " << read_txn->getID() << std::endl;
                             }
                         }
