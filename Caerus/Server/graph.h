@@ -20,6 +20,7 @@ class Graph
 {
 private:
     std::unordered_map<std::string, std::unique_ptr<Transaction>> nodes; // all nodes in the graph
+    std::unordered_map<std::string, std::unique_ptr<Transaction>> nodes_static; // all nodes in the graph
 
     // Tarjan’s helpers
     std::unordered_map<Transaction *, int> index_map, low_link_map;
@@ -46,7 +47,6 @@ public:
     bool isEmpty() const { return nodes.empty(); }
     void clear();
     std::unique_ptr<Transaction> removeTransaction(Transaction *rem);
-    std::unique_ptr<Transaction> removeTransaction_(Transaction *rem);
 
     void findSCCs();
     void buildTransactionSCCMap();

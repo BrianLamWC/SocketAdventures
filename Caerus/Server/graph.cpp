@@ -19,7 +19,6 @@ Transaction *Graph::addNode(std::unique_ptr<Transaction> uptr)
 
 Transaction *Graph::getNode(const std::string &uuid)
 {
-    
     auto it = nodes.find(uuid);
     return it == nodes.end() ? nullptr : it->second.get();
 }
@@ -88,7 +87,7 @@ void Graph::clear()
     current_index = 0;
 }
 
-std::unique_ptr<Transaction> Graph::removeTransaction_(Transaction *rem)
+std::unique_ptr<Transaction> Graph::removeTransaction(Transaction *rem)
 {
     auto it = nodes.find(rem->getID());
     if (it == nodes.end())
@@ -292,7 +291,21 @@ bool Graph::isSCCComplete(const int &scc_index)
 
 int32_t Graph::getMergedOrders_()
 {
-    
+    // push a copy of all nodes into nodes_static
+    for (const auto &kv : nodes) {
+        const std::string &key = kv.first;
+        if (nodes_static.find(key) == nodes_static.end()) {
+            // not found, insert a copy
+            const Transaction *orig_txn = kv.second.get();
+            auto txn_copy = std::make_unique<Transaction>(
+                orig_txn->getOrder(),
+                orig_txn->getServerId(),
+                orig_txn->getOperations(),
+                orig_txn->getID()
+            );
+            nodes_static[key] = std::move(txn_copy);
+        }
+    }
 
     // 1) SCC + condensation once
     findSCCs(); // one rep per SCC
@@ -345,7 +358,7 @@ int32_t Graph::getMergedOrders_()
 
         for (Transaction *T : comp)
         {
-            if (auto up = removeTransaction_(T))
+            if (auto up = removeTransaction(T))
             {
                 // push the removed transaction into the merged order queue
                 merged.push(*up);
@@ -378,14 +391,11 @@ int32_t Graph::getMergedOrders_()
 
 void Graph::buildSnapshotProto(request::GraphSnapshot &out) const
 {
-    // Lock while we iterate the internal nodes map and copy the adjacency
-    std::lock_guard<std::mutex> guard(mtx);
-
     out.Clear();
     // Use the process/server id if available, fallback to PID
     out.set_node_id(std::to_string(my_id));
 
-    for (const auto &kv : nodes)
+    for (const auto &kv : nodes_static)
     {
         const std::string &tx_id = kv.first;
         Transaction *tx = kv.second.get();
