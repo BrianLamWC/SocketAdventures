@@ -303,6 +303,11 @@ int32_t Graph::getMergedOrders_()
                 orig_txn->getOperations(),
                 orig_txn->getID()
             );
+
+            for(Transaction* nbr : orig_txn->getOutNeighbors()) {
+                txn_copy->addNeighborOut(nbr);
+            }
+
             nodes_static[key] = std::move(txn_copy);
         }
     }
