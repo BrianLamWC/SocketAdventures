@@ -42,6 +42,7 @@ private:
 public:
     Transaction *addNode(std::unique_ptr<Transaction> uptr);
     Transaction *getNode(const std::string &uuid);
+    void Graph::addNeighborOut(Transaction* from, Transaction* to);
 
     void printAll() const;
     bool isEmpty() const { return nodes.empty(); }

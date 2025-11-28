@@ -11,6 +11,12 @@ Transaction *Graph::addNode(std::unique_ptr<Transaction> uptr)
     const std::string &key = uptr->getID();
     Transaction *ptr = uptr.get();
     nodes[key] = std::move(uptr);
+    nodes_static[key] = std::make_unique<Transaction>(
+        ptr->getOrder(),
+        ptr->getServerId(),
+        ptr->getOperations(),
+        ptr->getID()
+    );
 
     std::cout << "Graph::addNode: added transaction " << key << ", graph size now " << nodes.size() << std::endl;
 
@@ -21,6 +27,18 @@ Transaction *Graph::getNode(const std::string &uuid)
 {
     auto it = nodes.find(uuid);
     return it == nodes.end() ? nullptr : it->second.get();
+}
+
+void Graph::addNeighborOut(Transaction* from, Transaction* to) {
+    from->addNeighborOut(to);
+
+    // copy to static graph as well
+    auto it_from = nodes_static.find(from->getID());
+    auto it_to = nodes_static.find(to->getID());
+    if (it_from != nodes_static.end() && it_to != nodes_static.end()) {
+        it_from->second->addNeighborOut(it_to->second.get()); 
+    }
+
 }
 
 void Graph::printAll() const
@@ -291,28 +309,6 @@ bool Graph::isSCCComplete(const int &scc_index)
 
 int32_t Graph::getMergedOrders_()
 {
-    // push a copy of all nodes into nodes_static
-    for (const auto &kv : nodes) {
-        const std::string &key = kv.first;
-        if (nodes_static.find(key) == nodes_static.end()) {
-            // not found, insert a copy
-            const Transaction *orig_txn = kv.second.get();
-            auto txn_copy = std::make_unique<Transaction>(
-                orig_txn->getOrder(),
-                orig_txn->getServerId(),
-                orig_txn->getOperations(),
-                orig_txn->getID()
-            );
-
-            for(Transaction* nbr : orig_txn->getOutNeighbors()) {
-                std::cout << "Building static copy: adding neighbor " << nbr->getID() << " to transaction " << key << std::endl;
-                txn_copy->addNeighborOut(nbr);
-            }
-
-            nodes_static[key] = std::move(txn_copy);
-        }
-    }
-
     // 1) SCC + condensation once
     findSCCs(); // one rep per SCC
     buildTransactionSCCMap();
