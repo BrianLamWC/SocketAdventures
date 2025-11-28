@@ -305,6 +305,7 @@ int32_t Graph::getMergedOrders_()
             );
 
             for(Transaction* nbr : orig_txn->getOutNeighbors()) {
+                std::cout << "Building static copy: adding neighbor " << nbr->getID() << " to transaction " << key << std::endl;
                 txn_copy->addNeighborOut(nbr);
             }
 
