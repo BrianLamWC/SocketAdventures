@@ -49,6 +49,7 @@ struct TxnNeighbors
 
 // Global map: server_id -> set of (txn id + neighbors)
 std::map<int32_t, std::set<TxnNeighbors>> host_txn_neighbors_map;
+std::map<int32_t, std::vector<std::string>> host_merged_order_map;
 
 struct TxnSpec
 {
@@ -207,6 +208,14 @@ void requestSnapshotFromHost(const std::string &host);
 
 void handleCommand(const std::string &command)
 {
+    // get merged orders from all known servers
+    if (command == "get merged"){
+
+
+
+
+    }
+
     // clear snap -> clear stored snapshots
     if (command == "clear snap")
     {
@@ -487,6 +496,39 @@ void requestSnapshotFromHost(const std::string &host)
     }
 
     close(fd);
+}
+
+void requestMergedOrderFromHost(const std::string &host)
+{
+
+    int fd = setupConnection(host.c_str(), target_port);
+    if (fd < 0)
+    {
+        std::cerr << "Can't connect to " << host << ":" << target_port << "\n";
+        return;
+    }
+    
+    request::Request merge_req;
+    merge_req.set_client_id(getpid());
+    merge_req.set_recipient(request::Request::MERGED_ORDER);
+
+    if (!sendProtoFramed(fd, merge_req))
+    {
+        std::cerr << "Failed to MERGED_ORDER to " << host << "\n";
+        close(fd);
+        return;
+    }
+    
+    request::Request merged_order_proto;
+    if (!recvProtoFramed(fd, merged_order_proto))
+    {
+        std::cerr << "Failed to receive MergedOrder from " << host << "\n";
+        close(fd);
+        return;
+    }
+
+    
+
 }
 
 int main()
