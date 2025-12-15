@@ -45,15 +45,15 @@ void PartialSequencer::processPartialSequence()
         }
 
         // log if partial sequence is not empty
-        // if (partial_sequence_.transaction_size() > 0)
-        // {
-        //   std::ofstream logf("partial_sequence_log_" + std::to_string(my_id) + ".log",
-        //                       std::ios::app);
-        //   if (logf) {
-        //     logf << "PartialSequence window=" << window
-        //          << " txns=" << partial_sequence_.transaction_size() << "\n";
-        //   }
-        // }
+        if (partial_sequence_.transaction_size() > 0)
+        {
+          std::ofstream logf("partial_sequence_log_" + std::to_string(my_id) + ".log",
+                              std::ios::app);
+          if (logf) {
+            logf << "PartialSequence window=" << window
+                 << " txns=" << partial_sequence_.transaction_size() << "\n";
+          }
+        }
 
         {
             std::lock_guard<std::mutex> lk(partial_sequencer_to_merger_queue_mtx);
@@ -122,7 +122,7 @@ void PartialSequencer::pushReceivedTransactionIntoPartialSequence(const request:
 PartialSequencer::PartialSequencer()
 {
 
-    // std::ofstream init_log("partial_sequence_log_" + std::to_string(my_id) + ".log", std::ios::out | std::ios::trunc);
+    std::ofstream init_log("partial_sequence_log_" + std::to_string(my_id) + ".log", std::ios::out | std::ios::trunc);
     // std::ofstream init_recv_log("partial_sequencer_received_log_" + std::to_string(my_id) + ".log", std::ios::out | std::ios::trunc);
 
     if (pthread_create(&partial_sequencer_thread, NULL, [](void *arg) -> void *
