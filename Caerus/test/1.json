@@ -1,10 +1,10 @@
 [
     [
         {
-            "target_id": 1,
+            "target_id": 2,
             "type": "WRITE",
             "keys": [
-                1
+                2
             ]
         },
         {
