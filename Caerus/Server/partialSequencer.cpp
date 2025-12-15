@@ -13,14 +13,16 @@ namespace
 
 void PartialSequencer::processPartialSequence()
 {
-    while (!LOGICAL_EPOCH_READY.load()) {
+    while (!LOGICAL_EPOCH_READY.load())
+    {
         std::this_thread::sleep_for(std::chrono::milliseconds(1));
     }
 
     int64_t window = 0;
-    while (true) {
-        
-        auto deadline = LOGICAL_EPOCH + std::chrono::milliseconds((window+1) * ROUND_PERIOD.count());
+    while (true)
+    {
+
+        auto deadline = LOGICAL_EPOCH + std::chrono::milliseconds((window + 1) * ROUND_PERIOD.count());
 
         // sleep until that moment
         std::this_thread::sleep_until(deadline);
@@ -28,7 +30,8 @@ void PartialSequencer::processPartialSequence()
         // grab all requests for this window (may be empty)
         auto batch = batcher_to_partial_sequencer_queue_.popAll();
 
-        if (batch.empty()) {
+        if (batch.empty())
+        {
             // no transactions received in this window
             window++;
             continue;
@@ -39,7 +42,8 @@ void PartialSequencer::processPartialSequence()
         partial_sequence_.set_recipient(request::Request::MERGER);
         partial_sequence_.set_round(static_cast<int32_t>(window));
 
-        for (auto &req : batch) {
+        for (auto &req : batch)
+        {
             // each req.transaction(0) is a local write for your primaries
             partial_sequence_.add_transaction()->CopyFrom(req.transaction(0));
         }
@@ -47,22 +51,30 @@ void PartialSequencer::processPartialSequence()
         // log if partial sequence is not empty
         if (partial_sequence_.transaction_size() > 0)
         {
-          std::ofstream logf("partial_sequence_log_" + std::to_string(my_id) + ".log",
-                              std::ios::app);
-          if (logf) {
-            logf << "PartialSequence window=" << window
-                 << " txns=" << partial_sequence_.transaction_size() << "\n";
-          }
+            std::ofstream logf("partial_sequence_log_" + std::to_string(my_id) + ".log",
+                               std::ios::app);
+            if (logf)
+            {
+                logf << "PartialSequence window=" << window
+                     << " txns=" << partial_sequence_.transaction_size() << " [";
+                for (int i = 0; i < partial_sequence_.transaction_size(); ++i)
+                {
+                    if (i > 0)
+                        logf << ", ";
+                    logf << partial_sequence_.transaction(i).id();
+                }
+                logf << "]\n";
+            }
         }
 
         {
             std::lock_guard<std::mutex> lk(partial_sequencer_to_merger_queue_mtx);
             partial_sequencer_to_merger_queue_.push(partial_sequence_);
         } // unlock first
-        
+
         partial_sequencer_to_merger_queue_cv.notify_one();
 
-        //broadcast to other regions
+        // broadcast to other regions
         sendPartialSequence();
 
         window++;
