@@ -42,6 +42,7 @@ private:
 public:
     Transaction *addNode(std::unique_ptr<Transaction> uptr);
     Transaction *getNode(const std::string &uuid);
+    std::vector<Transaction*> getAllNodes() const;
     void addNeighborOut(Transaction* from, Transaction* to);
 
     void printAll() const;
@@ -52,7 +53,6 @@ public:
     void findSCCs();
     void buildTransactionSCCMap();
     void buildCondensationGraph();
-
     bool isSCCComplete(const int &scc_index);
 
     int32_t getMergedOrders_();

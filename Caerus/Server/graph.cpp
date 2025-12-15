@@ -411,3 +411,14 @@ void Graph::buildSnapshotProto(request::GraphSnapshot &out) const
         }
     }
 }
+
+std::vector<Transaction*> Graph::getAllNodes() const
+{
+    std::vector<Transaction*> result;
+    result.reserve(nodes.size());
+    for (const auto& kv : nodes)
+    {
+        result.push_back(kv.second.get());
+    }
+    return result;
+}

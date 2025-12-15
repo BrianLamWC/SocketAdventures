@@ -209,6 +209,29 @@ void Merger::insertAlgorithm()
             }
         }
 
+        std::vector<Transaction*> graph_transactions = graph.getAllNodes();
+
+        for (const auto &txn : graph_transactions)
+        {
+            
+            for (const auto &op : txn->getOperations())
+            {
+                auto db_it = mockDB.find(op.key);
+
+                if (db_it == mockDB.end())
+                {
+                    std::cout << "INSERT::PrimarySet: key " << op.key << " not found" << std::endl;
+                    continue;
+                }
+
+                auto data_item = db_it->second;
+
+                most_recent_writers[data_item] = txn;
+            }
+            
+        }
+        
+
         for (auto &txn : transactions)
         {
             // std::cout << "INSERT::Transaction: " << txn.getID() << std::endl;
