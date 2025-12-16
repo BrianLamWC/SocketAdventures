@@ -8,7 +8,6 @@
     {"key": "6", "value": "value6", "primary_server_id": 3},
     {"key": "7", "value": "value7", "primary_server_id": 1},
     {"key": "8", "value": "value8", "primary_server_id": 2},
-    {"key": "9", "value": "value9", "primary_server_id": 3},
-    {"key": "10", "value": "value10", "primary_server_id": 1}
+    {"key": "9", "value": "value9", "primary_server_id": 3}
   ]
 }

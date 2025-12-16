@@ -7,8 +7,13 @@
         },
         {
             "target_id": 2,
-            "type": "READ",
+            "type": "WRITE",
             "keys": [2, 9]
+        },
+        {
+            "target_id": 3,
+            "type": "WRITE",
+            "keys": [3]
         }
     ],
     [
@@ -19,15 +24,15 @@
         },
         {
             "target_id": 3,
-            "type": "READ",
+            "type": "WRITE",
             "keys": [6]
         }
     ],
     [
         {
             "target_id": 2,
-            "type": "READ",
-            "keys": [8,1]
+            "type": "WRITE",
+            "keys": [8]
         },
         {
             "target_id": 3,
