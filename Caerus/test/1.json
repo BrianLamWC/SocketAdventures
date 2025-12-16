@@ -3,32 +3,51 @@
         {
             "target_id": 1,
             "type": "WRITE",
-            "keys": [
-                1
-            ]
+            "keys": [1]
         },
+        {
+            "target_id": 2,
+            "type": "READ",
+            "keys": [2]
+        },
+        {
+            "target_id": 3,
+            "type": "WRITE",
+            "keys": [3]
+        }
+    ],
+    [
         {
             "target_id": 1,
             "type": "READ",
-            "keys": [
-                1
-            ]
+            "keys": [4]
         },
         {
-            "target_id": 1,
-            "type": "READ",
-            "keys": [
-                1
-            ]
+            "target_id": 2,
+            "type": "WRITE",
+            "keys": [5]
         },
+        {
+            "target_id": 3,
+            "type": "READ",
+            "keys": [6]
+        }
+    ],
+    [
         {
             "target_id": 1,
             "type": "WRITE",
-            "keys": [
-                1
-            ]
+            "keys": [7]
+        },
+        {
+            "target_id": 2,
+            "type": "READ",
+            "keys": [8]
+        },
+        {
+            "target_id": 3,
+            "type": "WRITE",
+            "keys": [9, 10]
         }
-
     ]
-
 ]
