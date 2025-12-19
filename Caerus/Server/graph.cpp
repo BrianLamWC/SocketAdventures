@@ -130,8 +130,31 @@ std::unique_ptr<Transaction> Graph::removeTransaction(Transaction *rem)
     }
 
     // 3) now it’s safe to steal and erase
-    auto up = std::move(it->second);
+    auto removed = std::move(it->second);
     nodes.erase(it);
+
+    // 4) remove from mrw or mrr maps
+    for (const auto &op : removed->getOperations())
+    {
+        auto db_it = mockDB.find(op.key);
+
+        if (db_it == mockDB.end())
+        {
+            std::cout << "REMOVE::ReadWriteSet: key " << op.key << " not found" << std::endl;
+            continue;
+        }
+
+        auto data_item = db_it->second;
+
+        if (op.type == OperationType::READ)
+        {
+            remove_MRR(data_item, removed->getID());
+        }
+        else if (op.type == OperationType::WRITE)
+        {
+            remove_MRW(data_item);
+        }
+    }
 
     // print size of graph after removal
     std::cout << "Graph size after removal: " << nodes.size() << " nodes remaining." << std::endl;
@@ -148,7 +171,7 @@ std::unique_ptr<Transaction> Graph::removeTransaction(Transaction *rem)
 
     printAll();
 
-    return up;
+    return removed;
 }
 
 void Graph::strongConnect(Transaction *v)
@@ -421,4 +444,64 @@ std::vector<Transaction*> Graph::getAllNodes() const
         result.push_back(kv.second.get());
     }
     return result;
+}
+
+void Graph::add_MRW(DataItem item, Transaction* txn)
+{
+    // add or update the most recent writer for a data item
+
+    most_recent_writer[item] = txn;
+
+}
+
+void Graph::remove_MRW(DataItem item)
+{
+
+    // remove the data item from the most recent writer map
+    most_recent_writer.erase(item);
+
+}
+
+std::string Graph::getMostRecentWriterID(DataItem item)
+{
+    auto it = most_recent_writer.find(item);
+    if (it != most_recent_writer.end() && it->second != nullptr)
+    {
+        return it->second->getID();
+    }
+    return ""; // return empty string if no writer found
+}
+
+void Graph::add_MRR(DataItem item, const std::string& txn_id)
+{
+    // add the txn_id to the set of most recent readers for the data item if not already present
+    // if set does not exist, create it
+    
+    most_recent_readers[item].emplace(txn_id);
+
+}
+
+void Graph::remove_MRR(DataItem item, const std::string& txn_id)
+{
+    // remove the txn_id from the set of most recent readers for the data item
+    auto it = most_recent_readers.find(item);
+    if (it != most_recent_readers.end())
+    {
+        it->second.erase(txn_id);
+        // if the set becomes empty, remove the entry from the map
+        if (it->second.empty())
+        {
+            most_recent_readers.erase(it);
+        }
+    }
+}
+
+std::unordered_set<std::string> Graph::getMostRecentReadersIDs(DataItem item)
+{
+    auto it = most_recent_readers.find(item);
+    if (it != most_recent_readers.end())
+    {
+        return it->second;
+    }
+    return {}; // return empty set if no readers found
 }

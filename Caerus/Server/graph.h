@@ -21,6 +21,8 @@ class Graph
 private:
     std::unordered_map<std::string, std::unique_ptr<Transaction>> nodes; // all nodes in the graph
     std::unordered_map<std::string, std::unique_ptr<Transaction>> nodes_static; // all nodes in the graph
+    std::unordered_map<DataItem, Transaction *> most_recent_writer; // points to only one transaction per data item
+    std::unordered_map<DataItem, std::unordered_set<std::string>> most_recent_readers; // points to multiple transactions per data item
 
     // Tarjan’s helpers
     std::unordered_map<Transaction *, int> index_map, low_link_map;
@@ -44,6 +46,12 @@ public:
     Transaction *getNode(const std::string &uuid);
     std::vector<Transaction*> getAllNodes() const;
     void addNeighborOut(Transaction* from, Transaction* to);
+    void add_MRW(DataItem item, Transaction* txn); // probably only used by insert algo
+    void remove_MRW(DataItem item); // probably only used when we remove a transaction from the graph
+    std::string getMostRecentWriterID(DataItem item);
+    void add_MRR(DataItem item, const std::string& txn_id); // probably only used by insert algo
+    void remove_MRR(DataItem item, const std::string& txn_id); // probably only used when we remove a transaction from the graph
+    std::unordered_set<std::string> getMostRecentReadersIDs(DataItem item);
 
     void printAll() const;
     bool isEmpty() const { return nodes.empty(); }

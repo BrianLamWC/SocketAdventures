@@ -73,7 +73,7 @@ void Merger::processRequest(const request::Request &req_proto)
 
         transactions.push_back(txn);
 
-        //std::cout << "MERGER: pushed txn " << txn.getID() << " from server " << sid << " into its queue" << std::endl;
+        // std::cout << "MERGER: pushed txn " << txn.getID() << " from server " << sid << " into its queue" << std::endl;
     }
 
     q->push(transactions);
@@ -152,34 +152,6 @@ void Merger::insertAlgorithm()
 
         auto transactions = inner_map->pop();
 
-        // print inner map state after pop
-        //std::cout << "INSERT::After pop for sid=" << sid << ", inner_map->empty()=" << (inner_map->empty() ? "true" : "false") << std::endl;
-
-        // print size and transction ids
-        // std::cout << "INSERT::Popped " << transactions.size() << " transactions from server " << sid << std::endl;
-        // for (const auto &txn : transactions)
-        // {
-        //     std::cout << "  " << txn << std::endl;
-        // }
-
-        // Print remaining contents of inner_map
-        // if (!inner_map->empty())
-        // {
-        //     std::cout << "INSERT::Remaining in inner_map for sid=" << sid << ":" << std::endl;
-        //     // Note: If Queue_TS has a snapshot() method, use that instead
-        //     // Otherwise, you may need to add a method to iterate without removing
-        //     auto remaining = inner_map->snapshot();  // assuming snapshot() exists
-        //     for (const auto &batch : remaining)
-        //     {
-        //         std::cout << "  Batch with " << batch.size() << " txns: ";
-        //         for (const auto &txn : batch)
-        //         {
-        //             std::cout << txn.getID() << " ";
-        //         }
-        //         std::cout << std::endl;
-        //     }
-        // }
-
         std::unordered_set<DataItem> primary_set;
         std::unordered_map<DataItem, Transaction *> most_recent_writers;
         std::unordered_map<DataItem, std::unordered_set<std::string>> most_recent_readers;
@@ -209,29 +181,7 @@ void Merger::insertAlgorithm()
             }
         }
 
-        std::vector<Transaction*> graph_transactions = graph.getAllNodes();
-
-        for (const auto &txn : graph_transactions)
-        {
-            
-            for (const auto &op : txn->getOperations())
-            {
-                auto db_it = mockDB.find(op.key);
-
-                if (db_it == mockDB.end())
-                {
-                    std::cout << "INSERT::PrimarySet: key " << op.key << " not found" << std::endl;
-                    continue;
-                }
-
-                auto data_item = db_it->second;
-
-                most_recent_writers[data_item] = txn;
-            }
-            
-        }
-        
-
+        // process each transaction
         for (auto &txn : transactions)
         {
             // std::cout << "INSERT::Transaction: " << txn.getID() << std::endl;
@@ -290,34 +240,29 @@ void Merger::insertAlgorithm()
 
                     // std::cout << "INSERT::READSET:" << data_item.val << " is in read and primary set" << std::endl;
 
-                    auto mrw_it = most_recent_writers.find(data_item); // get mrw for data item
+                    auto mrw_id = graph.getMostRecentWriterID(data_item);
 
-                    if (mrw_it == most_recent_writers.end())
+                    if (mrw_id.empty())
                     { // data item not found
-                        // std::cout << "INSERT::READSET: key " << data_item.val << " not found" << std::endl;
+                        std::cout << "INSERT::READSET: key " << data_item.val << " not found" << std::endl;
                         continue;
                     }
 
                     // auto &mrw_txn = mrw_it->second;
 
-                    if (mrw_it->second != nullptr)
-                    { // data item has mrw
-                        // print transaction id
-                        // std::cout << "INSERT::READSET: key " << data_item.val << " has mrw " << mrw_it->second->getID() << std::endl;
-
-                        if (graph.getNode(mrw_it->second->getID()) != nullptr)
-                        { // if mrw in graph
-                            // std::cout << "INSERT::READSET:" << mrw_it->second->getID() << " in graph" << std::endl;
-                            graph.addNeighborOut(graph.getNode(txn.getID()), mrw_it->second);
-                            // std::cout << "INSERT::READSET: adding edge from " << txn.getID() << " to " << mrw_it->second->getID() << std::endl;
-                        }
+                    if (graph.getNode(mrw_id) != nullptr)
+                    { // if mrw in graph
+                        // std::cout << "INSERT::READSET:" << mrw_id << " in graph" << std::endl;
+                        graph.addNeighborOut(graph.getNode(txn.getID()), graph.getNode(mrw_id));
+                        // std::cout << "INSERT::READSET: adding edge from " << txn.getID() << " to " << mrw_id << std::endl;
                     }
                     else
                     {
-                        // std::cout << "INSERT::READSET: key " << data_item.val << " has no mrw" << std::endl;
+                        std::cout << "INSERT::READSET: MRW " << mrw_id << " not in graph" << std::endl;
                     }
 
-                    most_recent_readers[data_item].emplace(txn.getID()); // add current transaction to readers
+                    // most_recent_readers[data_item].emplace(txn.getID()); // add current transaction to readers
+                    graph.add_MRR(data_item, txn.getID());
                 }
             }
 
@@ -329,45 +274,31 @@ void Merger::insertAlgorithm()
 
                     // std::cout << "INSERT::WRITESET:" <<data_item.val << " is in write and primary set" << std::endl;
 
-                    auto mrw_it = most_recent_writers.find(data_item); // get mrw for data item
+                    auto mrw_id = graph.getMostRecentWriterID(data_item);
 
-                    if (mrw_it == most_recent_writers.end())
+                    if (mrw_id.empty())
                     { // data item not found
                         std::cout << "INSERT::WRITESET: key " << data_item.val << " not found" << std::endl;
                         continue;
                     }
 
-                    if (mrw_it->second != nullptr)
-                    { // data item has mrw , check if mrw is in graph
-
-                        // print transaction id
-                        // std::cout << "INSERT::WRITESET: key " << data_item.val << " has mrw " << mrw_it->second->getID() << std::endl;
-
-                        if (graph.getNode(mrw_it->second->getID()) != nullptr)
-                        { // if mrw in graph
-                            // std::cout << "INSERT::WRITESET:" << mrw_it->second->getID() << " in graph" << std::endl;
-                            graph.addNeighborOut(graph.getNode(txn.getID()), mrw_it->second);
-                            // std::cout << "INSERT::WRITESET: adding edge from " << txn.getID() << " to " << mrw_it->second->getID() << std::endl;
-                        }
-                    }
-                    else
-                    {
-                        // std::cout << "INSERT::WRITESET: key " << data_item.val << " has no mrw" << std::endl;
+                    if (graph.getNode(mrw_id) != nullptr)
+                    { // if mrw in graph
+                        // std::cout << "INSERT::WRITESET:" << mrw_id << " in graph" << std::endl;
+                        graph.addNeighborOut(graph.getNode(txn.getID()), graph.getNode(mrw_id));
+                        // std::cout << "INSERT::WRITESET: adding edge from " << txn.getID() << " to " << mrw_id << std::endl;
                     }
 
-                    mrw_it->second = graph.getNode(txn.getID()); // set mrw to current transaction
+                    graph.add_MRW(data_item, graph.getNode(txn.getID()));
 
                     // readers ∩ Primary Set
-                    auto readers_it = most_recent_readers.find(data_item);
+                    auto mrr_ids = graph.getMostRecentReadersIDs(data_item);
 
-                    if (readers_it != most_recent_readers.end())
-                    {
+                    if (!mrr_ids.empty())
 
                         // std::cout << "INSERT::READERS: key " << data_item.val << " has readers" << std::endl;
 
-                        auto readers = readers_it->second;
-
-                        for (const auto &reader_id : readers)
+                        for (const auto &reader_id : mrr_ids)
                         {
 
                             // std::cout << "INSERT::READERS: key " << data_item.val << " has reader " << reader_id << std::endl;
@@ -379,8 +310,11 @@ void Merger::insertAlgorithm()
                                 graph.addNeighborOut(graph.getNode(txn.getID()), read_txn);
                                 // std::cout << "INSERT::READERS: adding edge from " << txn.getID() << " to " << read_txn->getID() << std::endl;
                             }
+                            else
+                            {
+                                std::cout << "INSERT::READERS: reader " << reader_id << " not in graph" << std::endl;
+                            }
                         }
-                    }
                 }
             }
         }
@@ -397,33 +331,6 @@ void Merger::insertAlgorithm()
                 {
                     enqueued_sids_.insert(sid);
                     ready_q_.push_back(sid);
-
-                    // Log the re-enqueue event and the current state
-                    // if (!ready_q_.empty())
-                    // {
-                    //     std::ostringstream log_oss;
-                    //     log_oss << "MERGER: re-enqueued sid=" << sid << "; enqueued_sids_={";
-                    //     bool log_first = true;
-                    //     for (const auto &x : enqueued_sids_)
-                    //     {
-                    //         if (!log_first)
-                    //             log_oss << ",";
-                    //         log_first = false;
-                    //         log_oss << x;
-                    //     }
-                    //     log_oss << "} ready_q=[";
-                    //     log_first = true;
-                    //     for (const auto &x : ready_q_)
-                    //     {
-                    //         if (!log_first)
-                    //             log_oss << ",";
-                    //         log_first = false;
-                    //         log_oss << x;
-                    //     }
-                    //     log_oss << "]";
-                    //     std::cout << log_oss.str() << std::endl;
-                    // }
-
                     ready_cv.notify_one();
                 }
             }
@@ -431,7 +338,7 @@ void Merger::insertAlgorithm()
 
         graph.printAll();
 
-        //call graph cleanup for merged orders and log if any removed
+        // call graph cleanup for merged orders and log if any removed
         {
             int removed = graph.getMergedOrders_();
             if (removed > 0)
