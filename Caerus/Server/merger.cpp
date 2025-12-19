@@ -241,7 +241,7 @@ void Merger::insertAlgorithm()
                     if (mrw_id.empty()) { // no previous writer
                         graph.add_MRR(data_item, txn.getID());
 
-                    } else if (mrw) { // previous writer in graph
+                    } else if (mrw and mrw->getID() != txn.getID()) { // previous writer in graph
                         graph.addNeighborOut(graph.getNode(txn.getID()), mrw);
                         graph.add_MRR(data_item, txn.getID());
 
@@ -267,7 +267,7 @@ void Merger::insertAlgorithm()
                     if (mrw_id.empty()) { // no previous writer
                         graph.add_MRR(data_item, txn.getID());
 
-                    } else if (mrw) { // previous writer in graph
+                    } else if (mrw and mrw->getID() != txn.getID()) { // previous writer in graph
                         graph.addNeighborOut(graph.getNode(txn.getID()), mrw);
                         graph.add_MRR(data_item, txn.getID());
 
