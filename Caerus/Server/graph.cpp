@@ -315,6 +315,7 @@ bool Graph::isSCCComplete(const int &scc_index)
         {
             if (txn_scc_index_map.at(nbr) != scc_index)
             {
+                std::cout << "SCC " << scc_index << " incomplete due to txn " << T->getID() << " having outgoing edge to txn " << nbr->getID() << ".\n";
                 return false;
             }
         }
