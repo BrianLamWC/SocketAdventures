@@ -153,8 +153,6 @@ void Merger::insertAlgorithm()
         auto transactions = inner_map->pop();
 
         std::unordered_set<DataItem> primary_set;
-        std::unordered_map<DataItem, Transaction *> most_recent_writers;
-        std::unordered_map<DataItem, std::unordered_set<std::string>> most_recent_readers;
 
         // setup the primary set for current server
         for (const auto &txn : transactions)
@@ -175,9 +173,6 @@ void Merger::insertAlgorithm()
                 {
                     primary_set.insert(data_item);
                 }
-
-                // ensure the key exists in the MRW map (value initialized to nullptr)
-                most_recent_writers.emplace(data_item, nullptr);
             }
         }
 
@@ -241,28 +236,20 @@ void Merger::insertAlgorithm()
                     // std::cout << "INSERT::READSET:" << data_item.val << " is in read and primary set" << std::endl;
 
                     auto mrw_id = graph.getMostRecentWriterID(data_item);
+                    auto mrw = graph.getNode(mrw_id);
 
-                    if (mrw_id.empty())
-                    { // data item not found
-                        std::cout << "INSERT::READSET: key " << data_item.val << " not found" << std::endl;
-                        continue;
+                    if (mrw_id.empty()) { // no previous writer
+                        graph.add_MRR(data_item, txn.getID());
+
+                    } else if (mrw) { // previous writer in graph
+                        graph.addNeighborOut(graph.getNode(txn.getID()), mrw);
+                        graph.add_MRR(data_item, txn.getID());
+
+                    } else if (!mrw) { // previous writer not in graph
+                        std::cout << "INSERT::READSET: previous writer " << mrw_id << " not in graph" << std::endl;
+                        graph.removeTransaction(mrw);
                     }
 
-                    // auto &mrw_txn = mrw_it->second;
-
-                    if (graph.getNode(mrw_id) != nullptr)
-                    { // if mrw in graph
-                        // std::cout << "INSERT::READSET:" << mrw_id << " in graph" << std::endl;
-                        graph.addNeighborOut(graph.getNode(txn.getID()), graph.getNode(mrw_id));
-                        // std::cout << "INSERT::READSET: adding edge from " << txn.getID() << " to " << mrw_id << std::endl;
-                    }
-                    else
-                    {
-                        std::cout << "INSERT::READSET: MRW " << mrw_id << " not in graph" << std::endl;
-                    }
-
-                    // most_recent_readers[data_item].emplace(txn.getID()); // add current transaction to readers
-                    graph.add_MRR(data_item, txn.getID());
                 }
             }
 
@@ -275,21 +262,19 @@ void Merger::insertAlgorithm()
                     std::cout << "INSERT::WRITESET:" <<data_item.val << " is in write and primary set" << std::endl;
 
                     auto mrw_id = graph.getMostRecentWriterID(data_item);
+                    auto mrw = graph.getNode(mrw_id);
 
-                    if (mrw_id.empty())
-                    { // data item not found
-                        std::cout << "INSERT::WRITESET: key " << data_item.val << " not found" << std::endl;
-                        continue;
+                    if (mrw_id.empty()) { // no previous writer
+                        graph.add_MRR(data_item, txn.getID());
+
+                    } else if (mrw) { // previous writer in graph
+                        graph.addNeighborOut(graph.getNode(txn.getID()), mrw);
+                        graph.add_MRR(data_item, txn.getID());
+
+                    } else if (!mrw) { // previous writer not in graph
+                        std::cout << "INSERT::READSET: previous writer " << mrw_id << " not in graph" << std::endl;
+                        graph.removeTransaction(mrw);
                     }
-
-                    if (graph.getNode(mrw_id) != nullptr)
-                    { // if mrw in graph
-                        // std::cout << "INSERT::WRITESET:" << mrw_id << " in graph" << std::endl;
-                        graph.addNeighborOut(graph.getNode(txn.getID()), graph.getNode(mrw_id));
-                        // std::cout << "INSERT::WRITESET: adding edge from " << txn.getID() << " to " << mrw_id << std::endl;
-                    }
-
-                    graph.add_MRW(data_item, graph.getNode(txn.getID()));
 
                     // readers ∩ Primary Set
                     auto mrr_ids = graph.getMostRecentReadersIDs(data_item);
