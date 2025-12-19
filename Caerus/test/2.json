@@ -21,6 +21,11 @@
             "target_id": 3,
             "type": "WRITE",
             "keys": [6]
+        },
+        {
+            "target_id": 3,
+            "type": "WRITE",
+            "keys": [3]
         }
     ],
     [
