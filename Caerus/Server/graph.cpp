@@ -480,6 +480,9 @@ std::string Graph::getMostRecentWriterID(DataItem item)
                   << ") is transaction " << it->second->getID() << std::endl;
         return it->second->getID();
     }
+    std::cout << "Graph::getMostRecentWriterID: no most recent writer for data item ("
+              << item.val << ", " << item.primaryCopyID
+              << ")\n";
     return ""; // return empty string if no writer found
 }
 
