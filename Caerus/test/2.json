@@ -21,17 +21,12 @@
             "target_id": 3,
             "type": "WRITE",
             "keys": [6]
-        },
-        {
-            "target_id": 3,
-            "type": "WRITE",
-            "keys": [3]
         }
     ],
     [
         {
             "target_id": 3,
-            "type": "WRITE",
+            "type": "READ",
             "keys": [1,9]
         }
     ]
