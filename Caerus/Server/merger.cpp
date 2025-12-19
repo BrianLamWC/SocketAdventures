@@ -272,7 +272,7 @@ void Merger::insertAlgorithm()
                 if (write_set.find(data_item) != write_set.end())
                 {
 
-                    // std::cout << "INSERT::WRITESET:" <<data_item.val << " is in write and primary set" << std::endl;
+                    std::cout << "INSERT::WRITESET:" <<data_item.val << " is in write and primary set" << std::endl;
 
                     auto mrw_id = graph.getMostRecentWriterID(data_item);
 
