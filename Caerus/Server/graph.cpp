@@ -452,6 +452,10 @@ void Graph::add_MRW(DataItem item, Transaction* txn)
 
     most_recent_writer[item] = txn;
 
+    std::cout << "Graph::add_MRW: set most recent writer for data item ("
+              << item.val << ", " << item.primaryCopyID
+              << ") to transaction " << txn->getID() << std::endl;
+
 }
 
 void Graph::remove_MRW(DataItem item)
@@ -459,6 +463,9 @@ void Graph::remove_MRW(DataItem item)
 
     // remove the data item from the most recent writer map
     most_recent_writer.erase(item);
+    std::cout << "Graph::remove_MRW: removed most recent writer for data item ("
+              << item.val << ", " << item.primaryCopyID
+              << ")\n";
 
 }
 
@@ -467,6 +474,9 @@ std::string Graph::getMostRecentWriterID(DataItem item)
     auto it = most_recent_writer.find(item);
     if (it != most_recent_writer.end() && it->second != nullptr)
     {
+        std::cout << "Graph::getMostRecentWriterID: most recent writer for data item ("
+                  << item.val << ", " << item.primaryCopyID
+                  << ") is transaction " << it->second->getID() << std::endl;
         return it->second->getID();
     }
     return ""; // return empty string if no writer found
@@ -478,6 +488,11 @@ void Graph::add_MRR(DataItem item, const std::string& txn_id)
     // if set does not exist, create it
     
     most_recent_readers[item].emplace(txn_id);
+
+    std::cout << "Graph::add_MRR: added transaction " << txn_id
+              << " to most recent readers for data item ("
+              << item.val << ", " << item.primaryCopyID
+              << ")\n";
 
 }
 
@@ -494,6 +509,12 @@ void Graph::remove_MRR(DataItem item, const std::string& txn_id)
             most_recent_readers.erase(it);
         }
     }
+
+    std::cout << "Graph::remove_MRR: removed transaction " << txn_id
+              << " from most recent readers for data item ("
+              << item.val << ", " << item.primaryCopyID
+              << ")\n";
+
 }
 
 std::unordered_set<std::string> Graph::getMostRecentReadersIDs(DataItem item)
@@ -501,6 +522,15 @@ std::unordered_set<std::string> Graph::getMostRecentReadersIDs(DataItem item)
     auto it = most_recent_readers.find(item);
     if (it != most_recent_readers.end())
     {
+        std::cout << "Graph::getMostRecentReadersIDs: most recent readers for data item ("
+                  << item.val << ", " << item.primaryCopyID
+                  << ") are:";
+        for (const auto& reader_id : it->second)
+        {
+            std::cout << " " << reader_id;
+        }
+        std::cout << std::endl;  
+
         return it->second;
     }
     return {}; // return empty set if no readers found
