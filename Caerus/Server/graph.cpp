@@ -41,9 +41,15 @@ void Graph::addNeighborOut(Transaction* from, Transaction* to) {
     
     from->addNeighborOut(to);
 
-    std::cout << "Graph::addNeighborOut: added edge from " << from->getID()
-              << " to " << to->getID() << std::endl;
-
+    // print the neigbors of 'to' after addition
+    std::cout << "Graph::addNeighborOut: Transaction " << from->getID()
+              << " now has neighbors: ";
+    const auto &nbr = from->getOutNeighbors();
+    for (auto *n : nbr)
+    {
+        std::cout << " " << n->getID();
+    }
+    std::cout << "\n";
 }
 
 void Graph::printAll() const
