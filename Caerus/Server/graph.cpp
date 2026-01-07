@@ -39,6 +39,13 @@ void Graph::addNeighborOut(Transaction* from, Transaction* to) {
         it_from->second->addNeighborOut(it_to->second.get()); 
     }
 
+    
+    auto it_from = nodes.find(from->getID());
+    auto it_to = nodes.find(to->getID());
+    if (it_from != nodes.end() && it_to != nodes.end()) {
+        it_from->second->addNeighborOut(it_to->second.get()); 
+    }
+
 }
 
 void Graph::printAll() const
