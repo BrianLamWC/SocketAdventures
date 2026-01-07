@@ -421,7 +421,7 @@ void Graph::buildSnapshotProto(request::GraphSnapshot &out) const
     // Use the process/server id if available, fallback to PID
     out.set_node_id(std::to_string(my_id));
 
-    for (const auto &kv : nodes_static)
+    for (const auto &kv : nodes)
     {
         const std::string &tx_id = kv.first;
         Transaction *tx = kv.second.get();
@@ -538,4 +538,13 @@ std::unordered_set<std::string> Graph::getMostRecentReadersIDs(DataItem item)
         return it->second;
     }
     return {}; // return empty set if no readers found
+}
+
+void Graph::clearMRRIds(DataItem item)
+{
+    most_recent_readers.erase(item);
+
+    std::cout << "Graph::clearMRRIds: cleared most recent readers for data item ("
+              << item.val << ", " << item.primaryCopyID
+              << ")\n";
 }

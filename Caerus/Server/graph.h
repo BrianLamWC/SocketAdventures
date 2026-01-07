@@ -46,12 +46,14 @@ public:
     Transaction *getNode(const std::string &uuid);
     std::vector<Transaction*> getAllNodes() const;
     void addNeighborOut(Transaction* from, Transaction* to);
+
     void add_MRW(DataItem item, Transaction* txn); // probably only used by insert algo
     void remove_MRW(DataItem item); // probably only used when we remove a transaction from the graph
     std::string getMostRecentWriterID(DataItem item);
     void add_MRR(DataItem item, const std::string& txn_id); // probably only used by insert algo
     void remove_MRR(DataItem item, const std::string& txn_id); // probably only used when we remove a transaction from the graph
     std::unordered_set<std::string> getMostRecentReadersIDs(DataItem item);
+    void clearMRRIds(DataItem item);
 
     void printAll() const;
     bool isEmpty() const { return nodes.empty(); }

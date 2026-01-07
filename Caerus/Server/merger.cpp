@@ -227,80 +227,59 @@ void Merger::insertAlgorithm()
                 curr_txn->addSeenRegion(sid);
             }
 
+
             // Read Set ∩ Primary Set
-            for (const auto &data_item : primary_set)
+            for (const auto &data_item : read_set)
             {
-                if (read_set.find(data_item) != read_set.end())
-                {
+                if (primary_set.find(data_item) == primary_set.end()) continue;
 
-                    // std::cout << "INSERT::READSET:" << data_item.val << " is in read and primary set" << std::endl;
+                // std::cout << "INSERT::READSET:" << data_item.val << " is in read and primary set" << std::endl;
 
-                    auto mrw_id = graph.getMostRecentWriterID(data_item);
-                    auto mrw = graph.getNode(mrw_id);
+                auto mrw_id = graph.getMostRecentWriterID(data_item);
+                auto mrw = graph.getNode(mrw_id);
 
-                    if (mrw_id.empty()) { // no previous writer
-                        graph.add_MRR(data_item, txn.getID());
+                if (mrw_id.empty()) { // no previous writer
+                    graph.add_MRR(data_item, txn.getID());
 
-                    } else if (mrw and mrw->getID() != txn.getID()) { // previous writer in graph
-                        graph.addNeighborOut(graph.getNode(txn.getID()), mrw);
-                        graph.add_MRR(data_item, txn.getID());
+                } else if (mrw and mrw->getID() != txn.getID()) { // previous writer in graph
+                    graph.addNeighborOut(curr_txn, mrw);
+                    graph.add_MRR(data_item, txn.getID());
 
-                    } else if (!mrw) { // previous writer not in graph
-                        std::cout << "INSERT::READSET: previous writer " << mrw_id << " not in graph" << std::endl;
-                        graph.removeTransaction(mrw);
-                    }
-
+                } else if (!mrw) { // previous writer not in graph
+                    std::cout << "INSERT::READSET: previous writer " << mrw_id << " not in graph" << std::endl;
+                    graph.removeTransaction(mrw);
                 }
+                
             }
 
             // Write Set ∩ Primary Set
-            for (const auto &data_item : primary_set)
-            {
-                if (write_set.find(data_item) != write_set.end())
-                {
+            for (const auto &data_item : write_set) {
 
-                    std::cout << "INSERT::WRITESET:" <<data_item.val << " is in write and primary set" << std::endl;
+                if (primary_set.find(data_item) == primary_set.end()) continue;
 
-                    auto mrw_id = graph.getMostRecentWriterID(data_item);
-                    auto mrw = graph.getNode(mrw_id);
+                auto mrw_id = graph.getMostRecentWriterID(data_item);
+                auto mrw = mrw_id.empty() ? nullptr : graph.getNode(mrw_id);
 
-                    if (mrw_id.empty()) { // no previous writer
-                        graph.add_MRW(data_item, graph.getNode(txn.getID()));
+                auto mrr_ids = graph.getMostRecentReadersIDs(data_item);
 
-                    } else if (mrw and mrw->getID() != txn.getID()) { // previous writer in graph
-                        graph.addNeighborOut(graph.getNode(txn.getID()), mrw);
-                        graph.add_MRW(data_item,  graph.getNode(txn.getID()));
-
-                    } else if (!mrw) { // previous writer not in graph
-                        std::cout << "INSERT::READSET: previous writer " << mrw_id << " not in graph" << std::endl;
-                        graph.removeTransaction(mrw);
-                    }
-
-                    // readers ∩ Primary Set
-                    auto mrr_ids = graph.getMostRecentReadersIDs(data_item);
-
-                    if (!mrr_ids.empty())
-
-                        // std::cout << "INSERT::READERS: key " << data_item.val << " has readers" << std::endl;
-
-                        for (const auto &reader_id : mrr_ids)
-                        {
-
-                            // std::cout << "INSERT::READERS: key " << data_item.val << " has reader " << reader_id << std::endl;
-
-                            auto read_txn = graph.getNode(reader_id);
-
-                            if (read_txn != nullptr) // if reader in graph
-                            {
-                                graph.addNeighborOut(graph.getNode(txn.getID()), read_txn);
-                                // std::cout << "INSERT::READERS: adding edge from " << txn.getID() << " to " << read_txn->getID() << std::endl;
-                            }
-                            else
-                            {
-                                std::cout << "INSERT::READERS: reader " << reader_id << " not in graph" << std::endl;
-                            }
-                        }
+                if (mrw_id.empty()) {
+                    // true "no previous writer"
+                    graph.add_MRW(data_item, curr_txn);
+                    graph.clearMRRIds(data_item);
+                    continue;
                 }
+
+                if (mrr_ids.empty()) {
+                    if (mrw != nullptr) graph.addNeighborOut(curr_txn, mrw);
+                } else {
+                    for (const auto &reader_id : mrr_ids) {
+                        auto read_txn = graph.getNode(reader_id);
+                        if (read_txn != nullptr) graph.addNeighborOut(curr_txn, read_txn);
+                    }
+                }
+
+                graph.add_MRW(data_item, curr_txn);
+                graph.clearMRRIds(data_item);
             }
         }
 
@@ -324,13 +303,13 @@ void Merger::insertAlgorithm()
         graph.printAll();
 
         // call graph cleanup for merged orders and log if any removed
-        {
-            int removed = graph.getMergedOrders_();
-            if (removed > 0)
-            {
-                std::cout << "MERGER: removed " << removed << " node from graph" << std::endl;
-            }
-        }
+        // {
+        //     int removed = graph.getMergedOrders_();
+        //     if (removed > 0)
+        //     {
+        //         std::cout << "MERGER: removed " << removed << " node from graph" << std::endl;
+        //     }
+        // }
 
         lk.lock();
     }
