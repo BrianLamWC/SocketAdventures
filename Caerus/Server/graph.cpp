@@ -451,6 +451,10 @@ void Graph::add_MRW(DataItem item, Transaction* txn)
 {
     // add or update the most recent writer for a data item
 
+    std::cout << "Graph::add_MRW: adding most recent writer for data item ("
+              << item.val << ", " << item.primaryCopyID
+              << ") to transaction " << txn->getID() << std::endl;
+
     most_recent_writer[item] = txn;
 
     std::cout << "Graph::add_MRW: set most recent writer for data item ("
@@ -461,7 +465,6 @@ void Graph::add_MRW(DataItem item, Transaction* txn)
 
 void Graph::remove_MRW(DataItem item)
 {
-
     // remove the data item from the most recent writer map
     most_recent_writer.erase(item);
     std::cout << "Graph::remove_MRW: removed most recent writer for data item ("
