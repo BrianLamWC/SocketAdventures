@@ -18,7 +18,7 @@ Transaction *Graph::addNode(std::unique_ptr<Transaction> uptr)
         ptr->getID()
     );
 
-    std::cout << "Graph::addNode: added transaction " << key << ", graph size now " << nodes.size() << std::endl;
+    //std::cout << "Graph::addNode: added transaction " << key << ", graph size now " << nodes.size() << std::endl;
 
     return ptr;
 }
@@ -41,15 +41,15 @@ void Graph::addNeighborOut(Transaction* from, Transaction* to) {
     
     from->addNeighborOut(to);
 
-    // print the neigbors of 'to' after addition
-    std::cout << "Graph::addNeighborOut: Transaction " << from->getID()
-              << " now has neighbors: ";
-    const auto &nbr = from->getOutNeighbors();
-    for (auto *n : nbr)
-    {
-        std::cout << " " << n->getID();
-    }
-    std::cout << "\n";
+    // // print the neigbors of 'to' after addition
+    // std::cout << "Graph::addNeighborOut: Transaction " << from->getID()
+    //           << " now has neighbors: ";
+    // const auto &nbr = from->getOutNeighbors();
+    // for (auto *n : nbr)
+    // {
+    //     std::cout << " " << n->getID();
+    // }
+    // std::cout << "\n";
 }
 
 void Graph::printAll() const
@@ -462,15 +462,15 @@ void Graph::add_MRW(DataItem item, Transaction* txn)
 {
     // add or update the most recent writer for a data item
 
-    std::cout << "Graph::add_MRW: adding most recent writer for data item ("
-              << item.val << ", " << item.primaryCopyID
-              << ") to transaction " << txn->getID() << std::endl;
+    // std::cout << "Graph::add_MRW: adding most recent writer for data item ("
+    //           << item.val << ", " << item.primaryCopyID
+    //           << ") to transaction " << txn->getID() << std::endl;
 
     most_recent_writer[item] = txn;
 
-    std::cout << "Graph::add_MRW: set most recent writer for data item ("
-              << item.val << ", " << item.primaryCopyID
-              << ") to transaction " << txn->getID() << std::endl;
+    // std::cout << "Graph::add_MRW: set most recent writer for data item ("
+    //           << item.val << ", " << item.primaryCopyID
+    //           << ") to transaction " << txn->getID() << std::endl;
 
 }
 
@@ -478,9 +478,9 @@ void Graph::remove_MRW(DataItem item)
 {
     // remove the data item from the most recent writer map
     most_recent_writer.erase(item);
-    std::cout << "Graph::remove_MRW: removed most recent writer for data item ("
-              << item.val << ", " << item.primaryCopyID
-              << ")\n";
+    // std::cout << "Graph::remove_MRW: removed most recent writer for data item ("
+    //           << item.val << ", " << item.primaryCopyID
+    //           << ")\n";
 
 }
 
@@ -489,14 +489,14 @@ std::string Graph::getMostRecentWriterID(DataItem item)
     auto it = most_recent_writer.find(item);
     if (it != most_recent_writer.end() && it->second != nullptr)
     {
-        std::cout << "Graph::getMostRecentWriterID: most recent writer for data item ("
-                  << item.val << ", " << item.primaryCopyID
-                  << ") is transaction " << it->second->getID() << std::endl;
+        // std::cout << "Graph::getMostRecentWriterID: most recent writer for data item ("
+        //           << item.val << ", " << item.primaryCopyID
+        //           << ") is transaction " << it->second->getID() << std::endl;
         return it->second->getID();
     }
-    std::cout << "Graph::getMostRecentWriterID: no most recent writer for data item ("
-              << item.val << ", " << item.primaryCopyID
-              << ")\n";
+    // std::cout << "Graph::getMostRecentWriterID: no most recent writer for data item ("
+    //           << item.val << ", " << item.primaryCopyID
+    //           << ")\n";
     return ""; // return empty string if no writer found
 }
 
@@ -507,10 +507,10 @@ void Graph::add_MRR(DataItem item, const std::string& txn_id)
     
     most_recent_readers[item].emplace(txn_id);
 
-    std::cout << "Graph::add_MRR: added transaction " << txn_id
-              << " to most recent readers for data item ("
-              << item.val << ", " << item.primaryCopyID
-              << ")\n";
+    // std::cout << "Graph::add_MRR: added transaction " << txn_id
+    //           << " to most recent readers for data item ("
+    //           << item.val << ", " << item.primaryCopyID
+    //           << ")\n";
 
 }
 
@@ -540,14 +540,14 @@ std::unordered_set<std::string> Graph::getMostRecentReadersIDs(DataItem item)
     auto it = most_recent_readers.find(item);
     if (it != most_recent_readers.end())
     {
-        std::cout << "Graph::getMostRecentReadersIDs: most recent readers for data item ("
-                  << item.val << ", " << item.primaryCopyID
-                  << ") are:";
-        for (const auto& reader_id : it->second)
-        {
-            std::cout << " " << reader_id;
-        }
-        std::cout << std::endl;  
+        // std::cout << "Graph::getMostRecentReadersIDs: most recent readers for data item ("
+        //           << item.val << ", " << item.primaryCopyID
+        //           << ") are:";
+        // for (const auto& reader_id : it->second)
+        // {
+        //     std::cout << " " << reader_id;
+        // }
+        // std::cout << std::endl;  
 
         return it->second;
     }
@@ -558,7 +558,7 @@ void Graph::clearMRRIds(DataItem item)
 {
     most_recent_readers.erase(item);
 
-    std::cout << "Graph::clearMRRIds: cleared most recent readers for data item ("
-              << item.val << ", " << item.primaryCopyID
-              << ")\n";
+    // std::cout << "Graph::clearMRRIds: cleared most recent readers for data item ("
+    //           << item.val << ", " << item.primaryCopyID
+    //           << ")\n";
 }
