@@ -240,9 +240,15 @@ void Merger::insertAlgorithm()
                 auto mrw = graph.getNode(mrw_id);
 
                 if (mrw_id.empty()) { // no previous writer
+                    std::cout << "INSERT::READSET: no previous writer for data item (" 
+                              << data_item.val << ", " << data_item.primaryCopyID 
+                              << ")" << std::endl;
                     graph.add_MRR(data_item, curr_txn->getID());
 
                 } else if (mrw and mrw->getID() != curr_txn->getID()) { // previous writer in graph
+                    std::cout << "INSERT::READSET: previous writer for data item (" 
+                              << data_item.val << ", " << data_item.primaryCopyID 
+                              << ") is transaction " << mrw_id << std::endl;
                     graph.addNeighborOut(curr_txn, mrw);
                     graph.add_MRR(data_item, curr_txn->getID());
                 } else if (!mrw) { // previous writer not in graph
