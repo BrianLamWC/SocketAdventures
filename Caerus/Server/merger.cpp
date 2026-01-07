@@ -218,69 +218,80 @@ void Merger::insertAlgorithm()
 
             if (curr_txn == nullptr)
             {
-                curr_txn = &txn;
                 txn.setExpectedRegions(expected_regions);
                 txn.addSeenRegion(sid);
-                graph.addNode(std::make_unique<Transaction>(txn));
+                curr_txn = graph.addNode(std::make_unique<Transaction>(txn));
             }
             else
             {
                 curr_txn->addSeenRegion(sid);
             }
 
-
             // Read Set ∩ Primary Set
             for (const auto &data_item : read_set)
             {
-                if (primary_set.find(data_item) == primary_set.end()) continue;
+                if (primary_set.find(data_item) == primary_set.end())
+                    continue;
 
                 // std::cout << "INSERT::READSET:" << data_item.val << " is in read and primary set" << std::endl;
 
                 auto mrw_id = graph.getMostRecentWriterID(data_item);
                 auto mrw = graph.getNode(mrw_id);
 
-                if (mrw_id.empty()) { // no previous writer
-                    std::cout << "INSERT::READSET: no previous writer for data item (" 
-                              << data_item.val << ", " << data_item.primaryCopyID 
+                if (mrw_id.empty())
+                { // no previous writer
+                    std::cout << "INSERT::READSET: no previous writer for data item ("
+                              << data_item.val << ", " << data_item.primaryCopyID
                               << ")" << std::endl;
                     graph.add_MRR(data_item, curr_txn->getID());
-
-                } else if (mrw and mrw->getID() != curr_txn->getID()) { // previous writer in graph
-                    std::cout << "INSERT::READSET: previous writer for data item (" 
-                              << data_item.val << ", " << data_item.primaryCopyID 
+                }
+                else if (mrw and mrw->getID() != curr_txn->getID())
+                { // previous writer in graph
+                    std::cout << "INSERT::READSET: previous writer for data item ("
+                              << data_item.val << ", " << data_item.primaryCopyID
                               << ") is transaction " << mrw_id << std::endl;
                     graph.addNeighborOut(curr_txn, mrw);
                     graph.add_MRR(data_item, curr_txn->getID());
-                } else if (!mrw) { // previous writer not in graph
+                }
+                else if (!mrw)
+                { // previous writer not in graph
                     std::cout << "INSERT::READSET: previous writer " << mrw_id << " not in graph" << std::endl;
                     graph.removeTransaction(mrw);
                 }
-                
             }
 
             // Write Set ∩ Primary Set
-            for (const auto &data_item : write_set) {
+            for (const auto &data_item : write_set)
+            {
 
-                if (primary_set.find(data_item) == primary_set.end()) continue;
+                if (primary_set.find(data_item) == primary_set.end())
+                    continue;
 
                 auto mrw_id = graph.getMostRecentWriterID(data_item);
                 auto mrw = mrw_id.empty() ? nullptr : graph.getNode(mrw_id);
 
                 auto mrr_ids = graph.getMostRecentReadersIDs(data_item);
 
-                if (mrw_id.empty()) {
+                if (mrw_id.empty())
+                {
                     // true "no previous writer"
                     graph.add_MRW(data_item, curr_txn);
                     graph.clearMRRIds(data_item);
                     continue;
                 }
 
-                if (mrr_ids.empty()) {
-                    if (mrw != nullptr) graph.addNeighborOut(curr_txn, mrw);
-                } else {
-                    for (const auto &reader_id : mrr_ids) {
+                if (mrr_ids.empty())
+                {
+                    if (mrw != nullptr)
+                        graph.addNeighborOut(curr_txn, mrw);
+                }
+                else
+                {
+                    for (const auto &reader_id : mrr_ids)
+                    {
                         auto read_txn = graph.getNode(reader_id);
-                        if (read_txn != nullptr) graph.addNeighborOut(curr_txn, read_txn);
+                        if (read_txn != nullptr)
+                            graph.addNeighborOut(curr_txn, read_txn);
                     }
                 }
 
