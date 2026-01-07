@@ -41,6 +41,9 @@ void Graph::addNeighborOut(Transaction* from, Transaction* to) {
     
     from->addNeighborOut(to);
 
+    std::cout << "Graph::addNeighborOut: added edge from " << from->getID()
+              << " to " << to->getID() << std::endl;
+
 }
 
 void Graph::printAll() const
