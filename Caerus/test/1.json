@@ -3,7 +3,17 @@
         {
             "target_id": 1,
             "type": "WRITE",
-            "keys": [1,2]
+            "keys": [1]
+        },
+        {
+            "target_id": 1,
+            "type": "READ",
+            "keys": [1]
+        },
+        {
+            "target_id": 1,
+            "type": "READ",
+            "keys": [1]
         }
     ]
 ]
