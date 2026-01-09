@@ -36,7 +36,7 @@ struct DataItem
 
     // (optional) convenience constructor
     DataItem(std::string v, int32_t p, std::string m = "")
-        : val(std::move(v)), primaryCopyID(p) {} //use move beccause it just steals the buffer instead of allocating a new buffer
+        : val(std::move(v)), primaryCopyID(p) {} // use move beccause it just steals the buffer instead of allocating a new buffer
 
     // equality: all fields must match
     bool operator==(DataItem const &o) const noexcept
@@ -51,7 +51,7 @@ std::unordered_map<std::string, DataItem> mockDB;
 struct TxnNeighbors
 {
     std::string tx_id;
-    std::set<std::string> out_neighbors; // neighbor tx ids
+    std::set<std::string> out_neighbors;      // neighbor tx ids
     std::set<std::string> incoming_neighbors; // incoming neighbor tx ids
 
     bool operator<(TxnNeighbors const &o) const noexcept
@@ -85,8 +85,9 @@ std::map<std::string, int> hostnames_to_id = {
 };
 int target_port = 7001;
 
-void setupMockDB(){
-    
+void setupMockDB()
+{
+
     std::ifstream file("../Server/data.json");
 
     if (!file.is_open())
@@ -101,11 +102,10 @@ void setupMockDB(){
 
     for (auto data_item : data_items)
     {
-        mockDB.insert({data_item["key"], {data_item["value"], (int32_t) data_item["primary_server_id"]} });
+        mockDB.insert({data_item["key"], {data_item["value"], (int32_t)data_item["primary_server_id"]}});
     }
-    
-    file.close();
 
+    file.close();
 }
 
 int setupConnection(const char *host, int port)
@@ -255,7 +255,8 @@ void generateRandomTransactions(int num_txns, int max_ops_per_txn);
 void handleCommand(const std::string &command)
 {
     // get merged orders from all known servers
-    if (command == "get merged"){
+    if (command == "get merged")
+    {
 
         host_txn_neighbors_map.clear();
         std::cout << "Cleared previously stored snapshots.\n";
@@ -275,7 +276,6 @@ void handleCommand(const std::string &command)
         }
 
         return;
-
     }
 
     // send n number of random requests
@@ -370,7 +370,7 @@ void requestMergedOrderFromHost(const std::string &host)
         std::cerr << "Can't connect to " << host << ":" << target_port << "\n";
         return;
     }
-    
+
     request::Request merge_req;
     merge_req.set_client_id(getpid());
     merge_req.set_recipient(request::Request::MERGED);
@@ -381,7 +381,7 @@ void requestMergedOrderFromHost(const std::string &host)
         close(fd);
         return;
     }
-    
+
     request::GraphSnapshot merged_order_proto;
     if (!recvProtoFramed(fd, merged_order_proto))
     {
@@ -439,7 +439,6 @@ void requestMergedOrderFromHost(const std::string &host)
         for (int j = 0; j < va.in_size(); ++j)
             rec.incoming_neighbors.insert(va.in(j));
         merged_order_vec.push_back(std::move(rec));
-
     }
 
     if (server_id != -1)
@@ -448,7 +447,7 @@ void requestMergedOrderFromHost(const std::string &host)
         host_merged_order_map[server_id] = std::move(merged_order_vec);
     }
 
-    //print merged order map to stdout
+    // print merged order map to stdout
     if (server_id != -1)
     {
         const auto &stored = host_merged_order_map[server_id];
@@ -465,7 +464,8 @@ void requestMergedOrderFromHost(const std::string &host)
     close(fd);
 }
 
-void compareSnapshots(){
+void compareSnapshots()
+{
     if (host_txn_neighbors_map.size() < 2)
     {
         std::cout << "Not enough snapshots to compare (need >=2).\n";
@@ -527,7 +527,7 @@ void verfiyMergedOrderFromHost(const std::string &host)
 
     const auto &snapshot = sit->second;
     std::cout << "Verifying Merged Order against Snapshot for server_id=" << server_id << "...\n";
-    
+
     for (const auto &txn : merged_order)
     {
         const std::string &tx_id = txn.tx_id;
@@ -556,38 +556,102 @@ void verfiyMergedOrderFromHost(const std::string &host)
 
 void generateRandomTransactions(int num_txns, int max_ops_per_txn)
 {
+    std::cout << "[DEBUG] generateRandomTransactions() called with num_txns=" << num_txns << ", max_ops_per_txn=" << max_ops_per_txn << "\n";
+    std::cout << "[DEBUG] mockDB.size()=" << mockDB.size() << "\n";
+
+    if (mockDB.empty())
+    {
+        std::cerr << "[ERROR] mockDB is empty! Cannot generate transactions.\n";
+        return;
+    }
+
+    // Establish connections to all servers first
+    std::map<int, int> server_id_to_fd;
+    for (const auto &pair : hostnames_to_id)
+    {
+        int fd = setupConnection(pair.first.c_str(), target_port);
+        if (fd < 0)
+        {
+            std::cerr << "Can't connect to " << pair.first << ":" << target_port << "\n";
+        }
+        server_id_to_fd[pair.second] = fd;
+    }
+
     std::uniform_int_distribution<int> key_dist(1, mockDB.size()); // pick keys from 1 to size of mockDB
     std::uniform_int_distribution<int> ops_dist(1, max_ops_per_txn);
     std::uniform_int_distribution<int> type_dist(0, 1); // 0: READ, 1: WRITE
 
     for (int i = 0; i < num_txns; ++i)
     {
+        std::cout << "[DEBUG] Generating txn " << i << "\n";
         int num_ops = ops_dist(rng);
+        std::cout << "[DEBUG]   num_ops=" << num_ops << "\n";
+
         TxnSpec spec;
         for (int j = 0; j < num_ops; ++j)
         {
             spec.type = type_dist(rng) == 0 ? request::Operation::READ : request::Operation::WRITE;
-            spec.keys.push_back(key_dist(rng));
+            int random_key = key_dist(rng);
+            std::cout << "[DEBUG]     op " << j << ": key=" << random_key << "\n";
+            spec.keys.push_back(random_key);
         }
 
         // randomly choose a key from spec.keys to determine target server
+        std::cout << "[DEBUG]   spec.keys.size()=" << spec.keys.size() << "\n";
+        if (spec.keys.empty())
+        {
+            std::cerr << "[ERROR] spec.keys is empty!\n";
+            continue;
+        }
+
         int key_for_server = spec.keys[rng() % spec.keys.size()];
+        std::cout << "[DEBUG]   key_for_server=" << key_for_server << "\n";
 
         // check primary copy from mockDB
         auto db_it = mockDB.find(std::to_string(key_for_server));
         if (db_it != mockDB.end())
         {
             spec.target_id = db_it->second.primaryCopyID;
+            std::cout << "[DEBUG]   Found key in mockDB, target_id=" << spec.target_id << "\n";
         }
         else
         {
             // abort if key not found
-            std::cerr << "Key " << key_for_server << " not found in mockDB. Aborting transaction generation.\n";
+            std::cerr << "[ERROR] Key " << key_for_server << " not found in mockDB. Aborting transaction generation.\n";
             continue;
         }
+
+        std::cout << "[DEBUG]   Creating request...\n";
         request::Request req = createRequest(spec);
         std::cout << "Generated txn " << req.transaction(0).id() << " for server " << spec.target_id << " with " << num_ops << " ops.\n";
+
+        // Send the transaction
+        int sid = req.target_server_id();
+        auto it = server_id_to_fd.find(sid);
+        if (it == server_id_to_fd.end() || it->second < 0)
+        {
+            std::cerr << "No valid connection for server_id " << sid << "\n";
+            continue;
+        }
+        int fd = it->second;
+        if (!sendProtoFramed(fd, req))
+        {
+            std::cerr << "Send failed to server_id " << sid << "\n";
+        }
+        else
+        {
+            std::cout << "  Sent txn " << req.transaction(0).id() << " to server " << sid << "\n";
+        }
     }
+
+    // Close all connections
+    for (auto &kv : server_id_to_fd)
+    {
+        if (kv.second >= 0)
+            close(kv.second);
+    }
+
+    std::cout << "[DEBUG] generateRandomTransactions() completed\n";
 }
 
 int main()
