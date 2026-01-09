@@ -133,7 +133,7 @@ void *handleClient(void *client_args)
             // Build and send snapshot on this connection. Do not push to request queue.
             if (merger)
             {
-                merger->sendGraphSnapshotOnFd(connfd);
+                merger->sendMergedOrdersOnFd(connfd);
                 // after sending, continue to wait for more requests on the same connection
                 continue;
             }
