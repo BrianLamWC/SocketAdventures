@@ -454,11 +454,13 @@ void Graph::buildSnapshotProto(request::GraphSnapshot &out) const
 
         for (Transaction *nbr : kv.getOutNeighbors())
         {
+            std::cout << "Graph::buildSnapshotProto: adding merged order neighbor "
+                      << nbr->getID() << " to transaction " << kv.getID() << std::endl;
             va->add_out(nbr->getID());
         }
 
     }
-    
+
 }
 
 std::vector<Transaction*> Graph::getAllNodes() const
