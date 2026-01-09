@@ -49,7 +49,8 @@ struct TxnNeighbors
 
 // Global map: server_id -> set of (txn id + neighbors)
 std::map<int32_t, std::set<TxnNeighbors>> host_txn_neighbors_map;
-std::map<int32_t, std::vector<std::string>> host_merged_order_map;
+// Global map: server_id -> merged order vector
+std::map<int32_t, std::vector<TxnNeighbors>> host_merged_order_map;
 
 struct TxnSpec
 {
@@ -215,7 +216,7 @@ void handleCommand(const std::string &command)
         std::cout << "Cleared previously stored snapshots.\n";
         for (const auto &p : hostnames_to_id)
         {
-            requestSnapshotFromHost(p.first);
+            requestMergedOrderFromHost(p.first);
         }
         return;
 
@@ -532,8 +533,79 @@ void requestMergedOrderFromHost(const std::string &host)
         return;
     }
 
-    
+    std::cout << "Merged Order and Graph Snap from " << host << ": server_id=" << merged_order_proto.node_id() << "\n";
+    // Populate global map for this host id with the snapshot contents.
+    int32_t server_id = -1;
+    auto hit = hostnames_to_id.find(host);
+    if (hit != hostnames_to_id.end())
+    {
+        server_id = hit->second;
+    }
+    else
+    {
+        // fallback: try to parse node_id from snapshot
+        try
+        {
+            server_id = std::stoi(merged_order_proto.node_id());
+        }
+        catch (...)
+        {
+            server_id = -1;
+        }
+    }
 
+    // Populate global host_txn_neighbors_map
+    std::set<TxnNeighbors> tmp_set;
+    for (int i = 0; i < merged_order_proto.adj_size(); ++i)
+    {
+        const auto &va = merged_order_proto.adj(i);
+        TxnNeighbors rec;
+        rec.tx_id = va.tx_id();
+        for (int j = 0; j < va.out_size(); ++j)
+            rec.neighbors.insert(va.out(j));
+        tmp_set.insert(std::move(rec));
+    }
+
+    if (server_id != -1)
+    {
+        // single-threaded test program: directly assign without locking
+        host_txn_neighbors_map[server_id] = std::move(tmp_set);
+    }
+
+    // populate global host_merged_order_map
+    std::vector<TxnNeighbors> merged_order_vec;
+    for (int i = 0; i < merged_order_proto.merged_order_size(); ++i)
+    {
+        const auto &va = merged_order_proto.merged_order(i);
+        TxnNeighbors rec;
+        rec.tx_id = va.tx_id();
+        for (int j = 0; j < va.out_size(); ++j)
+            rec.neighbors.insert(va.out(j));
+        merged_order_vec.push_back(std::move(rec));
+
+    }
+
+    if (server_id != -1)
+    {
+        // single-threaded test program: directly assign without locking
+        host_merged_order_map[server_id] = std::move(merged_order_vec);
+    }
+
+    //print merged order map to stdout
+    if (server_id != -1)
+    {
+        const auto &stored = host_merged_order_map[server_id];
+        std::cout << "Stored Merged Order for server_id=" << server_id << ": " << stored.size() << " txns\n";
+        for (const auto &rec : stored)
+        {
+            std::cout << "  tx=" << rec.tx_id << " ->";
+            for (const auto &n : rec.neighbors)
+                std::cout << " " << n;
+            std::cout << "\n";
+        }
+    }
+
+    close(fd);
 }
 
 int main()
