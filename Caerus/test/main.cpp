@@ -206,6 +206,7 @@ std::vector<std::vector<TxnSpec>> parseJsonFile(const std::string &filename)
 }
 
 void requestSnapshotFromHost(const std::string &host);
+void requestMergedOrderFromHost(const std::string &host);
 
 void handleCommand(const std::string &command)
 {
