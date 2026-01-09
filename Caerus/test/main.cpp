@@ -601,7 +601,7 @@ void requestMergedOrderFromHost(const std::string &host)
         for (const auto &rec : stored)
         {
             std::cout << "  tx=" << rec.tx_id << " ->";
-            for (const auto &n : rec.neighbors)
+            for (const auto &n : rec.incoming_neighbors)
                 std::cout << " " << n;
             std::cout << "\n";
         }
