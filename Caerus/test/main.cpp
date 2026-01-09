@@ -279,7 +279,7 @@ void handleCommand(const std::string &command)
     }
 
     // send n number of random requests
-    if (command.rfind("send ", 0) == 0 && command.size() > 5)
+    if (command.rfind("test ", 0) == 0 && command.size() > 5)
     {
         int n = std::stoi(command.substr(5));
 
