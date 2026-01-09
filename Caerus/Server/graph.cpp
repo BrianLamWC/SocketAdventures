@@ -429,7 +429,6 @@ int32_t Graph::getMergedOrders_()
 
 void Graph::buildSnapshotProto(request::GraphSnapshot &snap) const
 {
-    std::cout << "Graph::buildSnapshotProto: building graph snapshot protobuf\n";
     snap.Clear();
     // Use the process/server id if available, fallback to PID
     snap.set_node_id(std::to_string(my_id));
@@ -450,14 +449,11 @@ void Graph::buildSnapshotProto(request::GraphSnapshot &snap) const
 
     for (const auto &kv : merged.snapshot())
     {
-        std::cout << "Graph::buildSnapshotProto: adding merged order transaction "<< kv.getID() << std::endl;
         request::VertexAdj *va = snap.add_merged_order();
         va->set_tx_id(kv.getID());
 
         for (const std::string &nbr : kv.getIncomingNeighborIDs()) // use incoming neighbor IDs
         {
-            std::cout << "Graph::buildSnapshotProto: adding merged order neighbor "
-                      << nbr << " to transaction " << kv.getID() << std::endl;
             va->add_in(nbr);
         }
 

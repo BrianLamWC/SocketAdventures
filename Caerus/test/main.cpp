@@ -33,7 +33,7 @@ std::mt19937 rng{std::random_device{}()};
 struct TxnNeighbors
 {
     std::string tx_id;
-    std::set<std::string> neighbors; // neighbor tx ids
+    std::set<std::string> out_neighbors; // neighbor tx ids
     std::set<std::string> incoming_neighbors; // incoming neighbor tx ids
 
     bool operator<(TxnNeighbors const &o) const noexcept
@@ -44,7 +44,7 @@ struct TxnNeighbors
     // only when both tx_id and neighbors match
     bool operator==(TxnNeighbors const &o) const noexcept
     {
-        return tx_id == o.tx_id && neighbors == o.neighbors;
+        return tx_id == o.tx_id && out_neighbors == o.out_neighbors;
     }
 };
 
@@ -206,8 +206,9 @@ std::vector<std::vector<TxnSpec>> parseJsonFile(const std::string &filename)
     return batches;
 }
 
-void requestSnapshotFromHost(const std::string &host);
 void requestMergedOrderFromHost(const std::string &host);
+void compareSnapshots();
+void verfiyMergedOrderFromHost(const std::string &host);
 
 void handleCommand(const std::string &command)
 {
@@ -216,10 +217,19 @@ void handleCommand(const std::string &command)
 
         host_txn_neighbors_map.clear();
         std::cout << "Cleared previously stored snapshots.\n";
+
         for (const auto &p : hostnames_to_id)
         {
             requestMergedOrderFromHost(p.first);
         }
+
+        compareSnapshots();
+
+        for (const auto &p : hostnames_to_id)
+        {
+            verfiyMergedOrderFromHost(p.first);
+        }
+
         return;
 
     }
@@ -265,76 +275,6 @@ void handleCommand(const std::string &command)
         if (all_equal)
             std::cout << "All snapshots are identical.\n";
 
-        return;
-    }
-
-    if (command.rfind("compare ", 0) == 0)
-    {
-        // compare <hostA> <hostB>
-        std::string args = command.substr(8);
-        std::istringstream iss(args);
-        std::string a, b;
-        if (!(iss >> a >> b))
-        {
-            std::cout << "Usage: compare <hostA> <hostB>\n";
-            return;
-        }
-
-        auto find_id = [&](const std::string &s) -> int32_t
-        {
-            auto it = hostnames_to_id.find(s);
-            if (it != hostnames_to_id.end())
-                return it->second;
-            try
-            {
-                return std::stoi(s);
-            }
-            catch (...)
-            {
-                return -1;
-            }
-        };
-
-        int32_t ida = find_id(a);
-        int32_t idb = find_id(b);
-        if (ida == -1 || idb == -1)
-        {
-            std::cout << "Unknown host(s) or id(s).\n";
-            return;
-        }
-
-        auto ita = host_txn_neighbors_map.find(ida);
-        auto itb = host_txn_neighbors_map.find(idb);
-        if (ita == host_txn_neighbors_map.end() || itb == host_txn_neighbors_map.end())
-        {
-            std::cout << "Snapshot missing for one or both hosts.\n";
-            return;
-        }
-
-        if (ita->second == itb->second)
-            std::cout << "Snapshots for " << a << " and " << b << " are IDENTICAL.\n";
-        else
-            std::cout << "Snapshots for " << a << " and " << b << " DIFFER.\n";
-
-        return;
-    }
-    // snap with no args -> request from all known servers
-    if (command == "snap")
-    {
-        host_txn_neighbors_map.clear();
-        std::cout << "Cleared previously stored snapshots.\n";
-        for (const auto &p : hostnames_to_id)
-        {
-            requestSnapshotFromHost(p.first);
-        }
-        return;
-    }
-
-    // snap <host> -> request from the given host
-    if (command.rfind("snap ", 0) == 0)
-    {
-        std::string host = command.substr(5);
-        requestSnapshotFromHost(host);
         return;
     }
 
@@ -410,102 +350,6 @@ void handleCommand(const std::string &command)
     return;
 }
 
-// send synchronous GRAPH_SNAP request to a single host and print parsed snapshot
-void requestSnapshotFromHost(const std::string &host)
-{
-    int fd = setupConnection(host.c_str(), target_port);
-    if (fd < 0)
-    {
-        std::cerr << "Can't connect to " << host << ":" << target_port << "\n";
-        return;
-    }
-
-    request::Request snap_req;
-    snap_req.set_client_id(getpid());
-    snap_req.set_recipient(request::Request::MERGED);
-
-    if (!sendProtoFramed(fd, snap_req))
-    {
-        std::cerr << "Failed to send GRAPH_SNAP to " << host << "\n";
-        close(fd);
-        return;
-    }
-
-    request::GraphSnapshot snap;
-    if (!recvProtoFramed(fd, snap))
-    {
-        std::cerr << "Failed to receive GraphSnapshot from " << host << "\n";
-        close(fd);
-        return;
-    }
-
-    std::cout << "GraphSnapshot from " << host << ": server_id=" << snap.node_id() << "\n";
-    // Populate global map for this host id with the snapshot contents.
-    int32_t server_id = -1;
-    auto hit = hostnames_to_id.find(host);
-    if (hit != hostnames_to_id.end())
-    {
-        server_id = hit->second;
-    }
-    else
-    {
-        // fallback: try to parse node_id from snapshot
-        try
-        {
-            server_id = std::stoi(snap.node_id());
-        }
-        catch (...)
-        {
-            server_id = -1;
-        }
-    }
-
-    std::set<TxnNeighbors> tmp_set;
-    for (int i = 0; i < snap.adj_size(); ++i)
-    {
-        const auto &va = snap.adj(i);
-        TxnNeighbors rec;
-        rec.tx_id = va.tx_id();
-        for (int j = 0; j < va.out_size(); ++j)
-            rec.neighbors.insert(va.out(j));
-        tmp_set.insert(std::move(rec));
-    }
-
-    if (server_id != -1)
-    {
-        // single-threaded test program: directly assign without locking
-        host_txn_neighbors_map[server_id] = std::move(tmp_set);
-    }
-
-    // Print snapshot to stdout for the user. Prefer the stored map entry if available.
-    // if (server_id != -1)
-    // {
-    //     const auto &stored = host_txn_neighbors_map[server_id];
-    //     std::cout << "Stored GraphSnapshot for server_id=" << server_id << ": " << stored.size() << " txns\n";
-    //     for (const auto &rec : stored)
-    //     {
-    //         std::cout << "  tx=" << rec.tx_id << " ->";
-    //         for (const auto &n : rec.neighbors)
-    //             std::cout << " " << n;
-    //         std::cout << "\n";
-    //     }
-    // }
-    // else
-    // {
-    //     // fallback: print what we parsed into tmp_set
-    //     std::cout << "GraphSnapshot (unknown server id) contains " << tmp_set.size() << " txns\n";
-    //     for (const auto &rec : tmp_set)
-    //     {
-    //         std::cout << "  tx=" << rec.tx_id << " ->";
-    //         for (const auto &n : rec.neighbors)
-    //             std::cout << " " << n;
-    //         std::cout << "\n";
-    //     }
-    // }
-
-    close(fd);
-}
-
 void requestMergedOrderFromHost(const std::string &host)
 {
 
@@ -564,7 +408,7 @@ void requestMergedOrderFromHost(const std::string &host)
         TxnNeighbors rec;
         rec.tx_id = va.tx_id();
         for (int j = 0; j < va.out_size(); ++j)
-            rec.neighbors.insert(va.out(j));
+            rec.out_neighbors.insert(va.out(j));
         tmp_set.insert(std::move(rec));
     }
 
@@ -597,7 +441,7 @@ void requestMergedOrderFromHost(const std::string &host)
     if (server_id != -1)
     {
         const auto &stored = host_merged_order_map[server_id];
-        std::cout << "Stored Merged Order for server_id=" << server_id << ": " << stored.size() << " txns\n";
+        std::cout << "Stored Merged Order for server_id=" << server_id << ": " << stored.size() << " txns, INCOMING NEIGHBORS\n";
         for (const auto &rec : stored)
         {
             std::cout << "  tx=" << rec.tx_id << " ->";
@@ -608,6 +452,95 @@ void requestMergedOrderFromHost(const std::string &host)
     }
 
     close(fd);
+}
+
+void compareSnapshots(){
+    if (host_txn_neighbors_map.size() < 2)
+    {
+        std::cout << "Not enough snapshots to compare (need >=2).\n";
+        return;
+    }
+
+    auto it = host_txn_neighbors_map.begin();
+    const auto host = it->first;
+    const auto &set = it->second;
+    ++it;
+
+    bool all_equal = true;
+    for (; it != host_txn_neighbors_map.end(); ++it)
+    {
+        int32_t other_host = it->first;
+        const auto &other_set = it->second;
+        if (!(set == other_set))
+        {
+            std::cout << "Snapshots differ: host " << host << " != host " << other_host << "\n";
+            all_equal = false;
+        }
+        else
+        {
+            std::cout << "Snapshots identical: host " << host << " == host " << other_host << "\n";
+        }
+    }
+
+    if (all_equal)
+        std::cout << "All snapshots are identical.\n";
+
+    return;
+}
+
+void verfiyMergedOrderFromHost(const std::string &host)
+{
+    auto hit = hostnames_to_id.find(host);
+    if (hit == hostnames_to_id.end())
+    {
+        std::cerr << "Unknown host: " << host << "\n";
+        return;
+    }
+    int32_t server_id = hit->second;
+
+    auto mit = host_merged_order_map.find(server_id);
+    if (mit == host_merged_order_map.end())
+    {
+        std::cerr << "No merged order stored for server_id " << server_id << "\n";
+        return;
+    }
+    const auto &merged_order = mit->second;
+
+    // verify that for each txn in merged order, its incoming neighbors has itself in their outgoing neighbors in the snapshot
+    auto sit = host_txn_neighbors_map.find(server_id);
+    if (sit == host_txn_neighbors_map.end())
+    {
+        std::cerr << "No snapshot stored for server_id " << server_id << "\n";
+        return;
+    }
+
+    const auto &snapshot = sit->second;
+    std::cout << "Verifying Merged Order against Snapshot for server_id=" << server_id << "...\n";
+    
+    for (const auto &txn : merged_order)
+    {
+        const std::string &tx_id = txn.tx_id;
+        const auto &incoming_nbrs = txn.incoming_neighbors;
+
+        for (const auto &in_nbr_id : incoming_nbrs)
+        {
+            // find in_nbr_id in snapshot
+            auto it = snapshot.find(TxnNeighbors{in_nbr_id, {}});
+            if (it == snapshot.end())
+            {
+                std::cerr << "  ERROR: Incoming neighbor txn " << in_nbr_id << " not found in snapshot for server_id " << server_id << "\n";
+                continue;
+            }
+            const auto &in_nbr_txn = *it;
+            // check if in_nbr_txn has tx_id in its outgoing neighbors
+            if (in_nbr_txn.out_neighbors.find(tx_id) == in_nbr_txn.out_neighbors.end())
+            {
+                std::cerr << "  ERROR: Mismatch: txn " << in_nbr_id << " does not have outgoing edge to " << tx_id << " in snapshot for server_id " << server_id << "\n";
+            }
+        }
+    }
+
+    std::cout << "Verification completed for server_id=" << server_id << ".\n";
 }
 
 int main()
