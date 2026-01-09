@@ -250,7 +250,7 @@ std::vector<std::vector<TxnSpec>> parseJsonFile(const std::string &filename)
 void requestMergedOrderFromHost(const std::string &host);
 void compareSnapshots();
 void verfiyMergedOrderFromHost(const std::string &host);
-void generateRandomTransactions(int n);
+void generateRandomTransactions(int num_txns, int max_ops_per_txn);
 
 void handleCommand(const std::string &command)
 {
