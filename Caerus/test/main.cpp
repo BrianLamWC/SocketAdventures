@@ -583,21 +583,17 @@ void generateRandomTransactions(int num_txns, int max_ops_per_txn)
 
     for (int i = 0; i < num_txns; ++i)
     {
-        std::cout << "[DEBUG] Generating txn " << i << "\n";
         int num_ops = ops_dist(rng);
-        std::cout << "[DEBUG]   num_ops=" << num_ops << "\n";
 
         TxnSpec spec;
         for (int j = 0; j < num_ops; ++j)
         {
             spec.type = type_dist(rng) == 0 ? request::Operation::READ : request::Operation::WRITE;
             int random_key = key_dist(rng);
-            std::cout << "[DEBUG]     op " << j << ": key=" << random_key << "\n";
             spec.keys.push_back(random_key);
         }
 
         // randomly choose a key from spec.keys to determine target server
-        std::cout << "[DEBUG]   spec.keys.size()=" << spec.keys.size() << "\n";
         if (spec.keys.empty())
         {
             std::cerr << "[ERROR] spec.keys is empty!\n";
@@ -605,14 +601,12 @@ void generateRandomTransactions(int num_txns, int max_ops_per_txn)
         }
 
         int key_for_server = spec.keys[rng() % spec.keys.size()];
-        std::cout << "[DEBUG]   key_for_server=" << key_for_server << "\n";
 
         // check primary copy from mockDB
         auto db_it = mockDB.find(std::to_string(key_for_server));
         if (db_it != mockDB.end())
         {
             spec.target_id = db_it->second.primaryCopyID;
-            std::cout << "[DEBUG]   Found key in mockDB, target_id=" << spec.target_id << "\n";
         }
         else
         {
@@ -621,7 +615,6 @@ void generateRandomTransactions(int num_txns, int max_ops_per_txn)
             continue;
         }
 
-        std::cout << "[DEBUG]   Creating request...\n";
         request::Request req = createRequest(spec);
         std::cout << "Generated txn " << req.transaction(0).id() << " for server " << spec.target_id << " with " << num_ops << " ops.\n";
 
@@ -651,7 +644,6 @@ void generateRandomTransactions(int num_txns, int max_ops_per_txn)
             close(kv.second);
     }
 
-    std::cout << "[DEBUG] generateRandomTransactions() completed\n";
 }
 
 int main()
