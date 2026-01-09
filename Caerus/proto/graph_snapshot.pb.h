@@ -191,6 +191,7 @@ class VertexAdj PROTOBUF_FINAL :
 
   enum : int {
     kOutFieldNumber = 2,
+    kInFieldNumber = 3,
     kTxIdFieldNumber = 1,
   };
   // repeated string out = 2;
@@ -215,6 +216,30 @@ class VertexAdj PROTOBUF_FINAL :
   private:
   const std::string& _internal_out(int index) const;
   std::string* _internal_add_out();
+  public:
+
+  // repeated string in = 3;
+  int in_size() const;
+  private:
+  int _internal_in_size() const;
+  public:
+  void clear_in();
+  const std::string& in(int index) const;
+  std::string* mutable_in(int index);
+  void set_in(int index, const std::string& value);
+  void set_in(int index, std::string&& value);
+  void set_in(int index, const char* value);
+  void set_in(int index, const char* value, size_t size);
+  std::string* add_in();
+  void add_in(const std::string& value);
+  void add_in(std::string&& value);
+  void add_in(const char* value);
+  void add_in(const char* value, size_t size);
+  const ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField<std::string>& in() const;
+  ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField<std::string>* mutable_in();
+  private:
+  const std::string& _internal_in(int index) const;
+  std::string* _internal_add_in();
   public:
 
   // required string tx_id = 1;
@@ -256,6 +281,7 @@ class VertexAdj PROTOBUF_FINAL :
   ::PROTOBUF_NAMESPACE_ID::internal::HasBits<1> _has_bits_;
   mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
   ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField<std::string> out_;
+  ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField<std::string> in_;
   ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr tx_id_;
   friend struct ::TableStruct_graph_5fsnapshot_2eproto;
 };
@@ -640,6 +666,80 @@ inline ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField<std::string>*
 VertexAdj::mutable_out() {
   // @@protoc_insertion_point(field_mutable_list:request.VertexAdj.out)
   return &out_;
+}
+
+// repeated string in = 3;
+inline int VertexAdj::_internal_in_size() const {
+  return in_.size();
+}
+inline int VertexAdj::in_size() const {
+  return _internal_in_size();
+}
+inline void VertexAdj::clear_in() {
+  in_.Clear();
+}
+inline std::string* VertexAdj::add_in() {
+  // @@protoc_insertion_point(field_add_mutable:request.VertexAdj.in)
+  return _internal_add_in();
+}
+inline const std::string& VertexAdj::_internal_in(int index) const {
+  return in_.Get(index);
+}
+inline const std::string& VertexAdj::in(int index) const {
+  // @@protoc_insertion_point(field_get:request.VertexAdj.in)
+  return _internal_in(index);
+}
+inline std::string* VertexAdj::mutable_in(int index) {
+  // @@protoc_insertion_point(field_mutable:request.VertexAdj.in)
+  return in_.Mutable(index);
+}
+inline void VertexAdj::set_in(int index, const std::string& value) {
+  // @@protoc_insertion_point(field_set:request.VertexAdj.in)
+  in_.Mutable(index)->assign(value);
+}
+inline void VertexAdj::set_in(int index, std::string&& value) {
+  // @@protoc_insertion_point(field_set:request.VertexAdj.in)
+  in_.Mutable(index)->assign(std::move(value));
+}
+inline void VertexAdj::set_in(int index, const char* value) {
+  GOOGLE_DCHECK(value != nullptr);
+  in_.Mutable(index)->assign(value);
+  // @@protoc_insertion_point(field_set_char:request.VertexAdj.in)
+}
+inline void VertexAdj::set_in(int index, const char* value, size_t size) {
+  in_.Mutable(index)->assign(
+    reinterpret_cast<const char*>(value), size);
+  // @@protoc_insertion_point(field_set_pointer:request.VertexAdj.in)
+}
+inline std::string* VertexAdj::_internal_add_in() {
+  return in_.Add();
+}
+inline void VertexAdj::add_in(const std::string& value) {
+  in_.Add()->assign(value);
+  // @@protoc_insertion_point(field_add:request.VertexAdj.in)
+}
+inline void VertexAdj::add_in(std::string&& value) {
+  in_.Add(std::move(value));
+  // @@protoc_insertion_point(field_add:request.VertexAdj.in)
+}
+inline void VertexAdj::add_in(const char* value) {
+  GOOGLE_DCHECK(value != nullptr);
+  in_.Add()->assign(value);
+  // @@protoc_insertion_point(field_add_char:request.VertexAdj.in)
+}
+inline void VertexAdj::add_in(const char* value, size_t size) {
+  in_.Add()->assign(reinterpret_cast<const char*>(value), size);
+  // @@protoc_insertion_point(field_add_pointer:request.VertexAdj.in)
+}
+inline const ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField<std::string>&
+VertexAdj::in() const {
+  // @@protoc_insertion_point(field_list:request.VertexAdj.in)
+  return in_;
+}
+inline ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField<std::string>*
+VertexAdj::mutable_in() {
+  // @@protoc_insertion_point(field_mutable_list:request.VertexAdj.in)
+  return &in_;
 }
 
 // -------------------------------------------------------------------

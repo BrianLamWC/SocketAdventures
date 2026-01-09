@@ -454,11 +454,11 @@ void Graph::buildSnapshotProto(request::GraphSnapshot &out) const
         request::VertexAdj *va = out.add_merged_order();
         va->set_tx_id(kv.getID());
 
-        for (Transaction *nbr : kv.getOutNeighbors())
+        for (const std::string &nbr : kv.getIncomingNeighborIDs()) // use incoming neighbor IDs
         {
             std::cout << "Graph::buildSnapshotProto: adding merged order neighbor "
-                      << nbr->getID() << " to transaction " << kv.getID() << std::endl;
-            va->add_out(nbr->getID());
+                      << nbr << " to transaction " << kv.getID() << std::endl;
+            va->add_out(nbr);
         }
 
     }

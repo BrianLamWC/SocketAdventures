@@ -66,7 +66,9 @@ const ::PROTOBUF_NAMESPACE_ID::uint32 TableStruct_graph_5fsnapshot_2eproto::offs
   ~0u,  // no _weak_field_map_
   PROTOBUF_FIELD_OFFSET(::request::VertexAdj, tx_id_),
   PROTOBUF_FIELD_OFFSET(::request::VertexAdj, out_),
+  PROTOBUF_FIELD_OFFSET(::request::VertexAdj, in_),
   0,
+  ~0u,
   ~0u,
   PROTOBUF_FIELD_OFFSET(::request::GraphSnapshot, _has_bits_),
   PROTOBUF_FIELD_OFFSET(::request::GraphSnapshot, _internal_metadata_),
@@ -81,8 +83,8 @@ const ::PROTOBUF_NAMESPACE_ID::uint32 TableStruct_graph_5fsnapshot_2eproto::offs
   ~0u,
 };
 static const ::PROTOBUF_NAMESPACE_ID::internal::MigrationSchema schemas[] PROTOBUF_SECTION_VARIABLE(protodesc_cold) = {
-  { 0, 7, sizeof(::request::VertexAdj)},
-  { 9, 17, sizeof(::request::GraphSnapshot)},
+  { 0, 8, sizeof(::request::VertexAdj)},
+  { 11, 19, sizeof(::request::GraphSnapshot)},
 };
 
 static ::PROTOBUF_NAMESPACE_ID::Message const * const file_default_instances[] = {
@@ -91,11 +93,11 @@ static ::PROTOBUF_NAMESPACE_ID::Message const * const file_default_instances[] =
 };
 
 const char descriptor_table_protodef_graph_5fsnapshot_2eproto[] PROTOBUF_SECTION_VARIABLE(protodesc_cold) =
-  "\n\024graph_snapshot.proto\022\007request\"\'\n\tVerte"
-  "xAdj\022\r\n\005tx_id\030\001 \002(\t\022\013\n\003out\030\002 \003(\t\"k\n\rGrap"
-  "hSnapshot\022\017\n\007node_id\030\001 \002(\t\022\037\n\003adj\030\002 \003(\0132"
-  "\022.request.VertexAdj\022(\n\014merged_order\030\003 \003("
-  "\0132\022.request.VertexAdj"
+  "\n\024graph_snapshot.proto\022\007request\"3\n\tVerte"
+  "xAdj\022\r\n\005tx_id\030\001 \002(\t\022\013\n\003out\030\002 \003(\t\022\n\n\002in\030\003"
+  " \003(\t\"k\n\rGraphSnapshot\022\017\n\007node_id\030\001 \002(\t\022\037"
+  "\n\003adj\030\002 \003(\0132\022.request.VertexAdj\022(\n\014merge"
+  "d_order\030\003 \003(\0132\022.request.VertexAdj"
   ;
 static const ::PROTOBUF_NAMESPACE_ID::internal::DescriptorTable*const descriptor_table_graph_5fsnapshot_2eproto_deps[1] = {
 };
@@ -105,7 +107,7 @@ static ::PROTOBUF_NAMESPACE_ID::internal::SCCInfoBase*const descriptor_table_gra
 };
 static ::PROTOBUF_NAMESPACE_ID::internal::once_flag descriptor_table_graph_5fsnapshot_2eproto_once;
 const ::PROTOBUF_NAMESPACE_ID::internal::DescriptorTable descriptor_table_graph_5fsnapshot_2eproto = {
-  false, false, descriptor_table_protodef_graph_5fsnapshot_2eproto, "graph_snapshot.proto", 181,
+  false, false, descriptor_table_protodef_graph_5fsnapshot_2eproto, "graph_snapshot.proto", 193,
   &descriptor_table_graph_5fsnapshot_2eproto_once, descriptor_table_graph_5fsnapshot_2eproto_sccs, descriptor_table_graph_5fsnapshot_2eproto_deps, 2, 0,
   schemas, file_default_instances, TableStruct_graph_5fsnapshot_2eproto::offsets,
   file_level_metadata_graph_5fsnapshot_2eproto, 2, file_level_enum_descriptors_graph_5fsnapshot_2eproto, file_level_service_descriptors_graph_5fsnapshot_2eproto,
@@ -132,7 +134,8 @@ class VertexAdj::_Internal {
 
 VertexAdj::VertexAdj(::PROTOBUF_NAMESPACE_ID::Arena* arena)
   : ::PROTOBUF_NAMESPACE_ID::Message(arena),
-  out_(arena) {
+  out_(arena),
+  in_(arena) {
   SharedCtor();
   RegisterArenaDtor(arena);
   // @@protoc_insertion_point(arena_constructor:request.VertexAdj)
@@ -140,7 +143,8 @@ VertexAdj::VertexAdj(::PROTOBUF_NAMESPACE_ID::Arena* arena)
 VertexAdj::VertexAdj(const VertexAdj& from)
   : ::PROTOBUF_NAMESPACE_ID::Message(),
       _has_bits_(from._has_bits_),
-      out_(from.out_) {
+      out_(from.out_),
+      in_(from.in_) {
   _internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
   tx_id_.UnsafeSetDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
   if (from._internal_has_tx_id()) {
@@ -188,6 +192,7 @@ void VertexAdj::Clear() {
   (void) cached_has_bits;
 
   out_.Clear();
+  in_.Clear();
   cached_has_bits = _has_bits_[0];
   if (cached_has_bits & 0x00000001u) {
     tx_id_.ClearNonDefaultToEmpty();
@@ -230,6 +235,22 @@ const char* VertexAdj::_InternalParse(const char* ptr, ::PROTOBUF_NAMESPACE_ID::
             CHK_(ptr);
             if (!ctx->DataAvailable(ptr)) break;
           } while (::PROTOBUF_NAMESPACE_ID::internal::ExpectTag<18>(ptr));
+        } else goto handle_unusual;
+        continue;
+      // repeated string in = 3;
+      case 3:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<::PROTOBUF_NAMESPACE_ID::uint8>(tag) == 26)) {
+          ptr -= 1;
+          do {
+            ptr += 1;
+            auto str = _internal_add_in();
+            ptr = ::PROTOBUF_NAMESPACE_ID::internal::InlineGreedyStringParser(str, ptr, ctx);
+            #ifndef NDEBUG
+            ::PROTOBUF_NAMESPACE_ID::internal::VerifyUTF8(str, "request.VertexAdj.in");
+            #endif  // !NDEBUG
+            CHK_(ptr);
+            if (!ctx->DataAvailable(ptr)) break;
+          } while (::PROTOBUF_NAMESPACE_ID::internal::ExpectTag<26>(ptr));
         } else goto handle_unusual;
         continue;
       default: {
@@ -282,6 +303,16 @@ failure:
     target = stream->WriteString(2, s, target);
   }
 
+  // repeated string in = 3;
+  for (int i = 0, n = this->_internal_in_size(); i < n; i++) {
+    const auto& s = this->_internal_in(i);
+    ::PROTOBUF_NAMESPACE_ID::internal::WireFormat::VerifyUTF8StringNamedField(
+      s.data(), static_cast<int>(s.length()),
+      ::PROTOBUF_NAMESPACE_ID::internal::WireFormat::SERIALIZE,
+      "request.VertexAdj.in");
+    target = stream->WriteString(3, s, target);
+  }
+
   if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
     target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormat::InternalSerializeUnknownFieldsToArray(
         _internal_metadata_.unknown_fields<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(::PROTOBUF_NAMESPACE_ID::UnknownFieldSet::default_instance), target, stream);
@@ -310,6 +341,14 @@ size_t VertexAdj::ByteSizeLong() const {
   for (int i = 0, n = out_.size(); i < n; i++) {
     total_size += ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::StringSize(
       out_.Get(i));
+  }
+
+  // repeated string in = 3;
+  total_size += 1 *
+      ::PROTOBUF_NAMESPACE_ID::internal::FromIntSize(in_.size());
+  for (int i = 0, n = in_.size(); i < n; i++) {
+    total_size += ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::StringSize(
+      in_.Get(i));
   }
 
   if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
@@ -344,6 +383,7 @@ void VertexAdj::MergeFrom(const VertexAdj& from) {
   (void) cached_has_bits;
 
   out_.MergeFrom(from.out_);
+  in_.MergeFrom(from.in_);
   if (from._internal_has_tx_id()) {
     _internal_set_tx_id(from._internal_tx_id());
   }
@@ -373,6 +413,7 @@ void VertexAdj::InternalSwap(VertexAdj* other) {
   _internal_metadata_.Swap<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(&other->_internal_metadata_);
   swap(_has_bits_[0], other->_has_bits_[0]);
   out_.InternalSwap(&other->out_);
+  in_.InternalSwap(&other->in_);
   tx_id_.Swap(&other->tx_id_, &::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArena());
 }
 

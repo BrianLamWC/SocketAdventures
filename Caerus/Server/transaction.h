@@ -69,6 +69,8 @@ public:
 
     const std::unordered_set<Transaction*>& getIncomingNeighbors() const { return neighbors_in; }
 
+    const std::unordered_set<std::string>& getIncomingNeighborIDs() const { return neigbors_in_ids; }
+
     void setExpectedRegions(const std::unordered_set<int32_t>& regions) { expected_regions = regions; }
     const std::unordered_set<int32_t>& getExpectedRegions() const { return expected_regions; }
 
