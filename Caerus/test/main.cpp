@@ -29,6 +29,24 @@ using json = nlohmann::json;
 std::atomic<int32_t> globalTransactionCounter{1};
 std::mt19937 rng{std::random_device{}()};
 
+struct DataItem
+{
+    std::string val;
+    int32_t primaryCopyID;
+
+    // (optional) convenience constructor
+    DataItem(std::string v, int32_t p, std::string m = "")
+        : val(std::move(v)), primaryCopyID(p) {} //use move beccause it just steals the buffer instead of allocating a new buffer
+
+    // equality: all fields must match
+    bool operator==(DataItem const &o) const noexcept
+    {
+        return val == o.val && primaryCopyID == o.primaryCopyID;
+    }
+};
+
+std::unordered_map<std::string, DataItem> mockDB;
+
 // Record for a transaction and its neighbors
 struct TxnNeighbors
 {
@@ -66,6 +84,29 @@ std::map<std::string, int> hostnames_to_id = {
     {"192.168.8.160", 3},
 };
 int target_port = 7001;
+
+void setupMockDB(){
+    
+    std::ifstream file("../Server/data.json");
+
+    if (!file.is_open())
+    {
+        std::cerr << "setupMockDB: error opening file" << std::endl;
+        exit(1);
+    }
+
+    json data = json::parse(file);
+
+    auto data_items = data["data_items"];
+
+    for (auto data_item : data_items)
+    {
+        mockDB.insert({data_item["key"], {data_item["value"], (int32_t) data_item["primary_server_id"]} });
+    }
+    
+    file.close();
+
+}
 
 int setupConnection(const char *host, int port)
 {
@@ -209,6 +250,7 @@ std::vector<std::vector<TxnSpec>> parseJsonFile(const std::string &filename)
 void requestMergedOrderFromHost(const std::string &host);
 void compareSnapshots();
 void verfiyMergedOrderFromHost(const std::string &host);
+void generateRandomTransactions(int n);
 
 void handleCommand(const std::string &command)
 {
@@ -217,6 +259,8 @@ void handleCommand(const std::string &command)
 
         host_txn_neighbors_map.clear();
         std::cout << "Cleared previously stored snapshots.\n";
+        host_merged_order_map.clear();
+        std::cout << "Cleared previously stored merged orders.\n";
 
         for (const auto &p : hostnames_to_id)
         {
@@ -234,47 +278,14 @@ void handleCommand(const std::string &command)
 
     }
 
-    // clear snap -> clear stored snapshots
-    if (command == "clear snap")
+    // send n number of random requests
+    if (command.rfind("send ", 0) == 0 && command.size() > 5)
     {
-        host_txn_neighbors_map.clear();
-        std::cout << "Cleared stored snapshots.\n";
-        return;
-    }
+        int n = std::stoi(command.substr(5));
 
-    // compare command: compare stored snapshots
-    if (command == "compare")
-    {
-        if (host_txn_neighbors_map.size() < 2)
-        {
-            std::cout << "Not enough snapshots to compare (need >=2).\n";
-            return;
-        }
+        int max_ops_per_txn = 5; // default max operations per transaction
 
-        auto it = host_txn_neighbors_map.begin();
-        const auto host = it->first;
-        const auto &set = it->second;
-        ++it;
-
-        bool all_equal = true;
-        for (; it != host_txn_neighbors_map.end(); ++it)
-        {
-            int32_t other_host = it->first;
-            const auto &other_set = it->second;
-            if (!(set == other_set))
-            {
-                std::cout << "Snapshots differ: host " << host << " != host " << other_host << "\n";
-                all_equal = false;
-            }
-            else
-            {
-                std::cout << "Snapshots identical: host " << host << " == host " << other_host << "\n";
-            }
-        }
-
-        if (all_equal)
-            std::cout << "All snapshots are identical.\n";
-
+        generateRandomTransactions(n, max_ops_per_txn);
         return;
     }
 
@@ -541,6 +552,42 @@ void verfiyMergedOrderFromHost(const std::string &host)
     }
 
     std::cout << "Verification completed for server_id=" << server_id << ".\n";
+}
+
+void generateRandomTransactions(int num_txns, int max_ops_per_txn)
+{
+    std::uniform_int_distribution<int> key_dist(1, mockDB.size()); // pick keys from 1 to size of mockDB
+    std::uniform_int_distribution<int> ops_dist(1, max_ops_per_txn);
+    std::uniform_int_distribution<int> type_dist(0, 1); // 0: READ, 1: WRITE
+
+    for (int i = 0; i < num_txns; ++i)
+    {
+        int num_ops = ops_dist(rng);
+        TxnSpec spec;
+        for (int j = 0; j < num_ops; ++j)
+        {
+            spec.type = type_dist(rng) == 0 ? request::Operation::READ : request::Operation::WRITE;
+            spec.keys.push_back(key_dist(rng));
+        }
+
+        // randomly choose a key from spec.keys to determine target server
+        int key_for_server = spec.keys[rng() % spec.keys.size()];
+
+        // check primary copy from mockDB
+        auto db_it = mockDB.find(std::to_string(key_for_server));
+        if (db_it != mockDB.end())
+        {
+            spec.target_id = db_it->second.primaryCopyID;
+        }
+        else
+        {
+            // abort if key not found
+            std::cerr << "Key " << key_for_server << " not found in mockDB. Aborting transaction generation.\n";
+            continue;
+        }
+        request::Request req = createRequest(spec);
+        std::cout << "Generated txn " << req.transaction(0).id() << " for server " << spec.target_id << " with " << num_ops << " ops.\n";
+    }
 }
 
 int main()
