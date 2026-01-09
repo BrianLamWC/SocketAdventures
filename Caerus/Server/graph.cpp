@@ -449,6 +449,8 @@ void Graph::buildSnapshotProto(request::GraphSnapshot &out) const
 
     for (const auto &kv : merged.snapshot())
     {
+        std::cout << "Graph::buildSnapshotProto: adding merged order transaction "
+                  << kv.getID() << std::endl;
         request::VertexAdj *va = out.add_merged_order();
         va->set_tx_id(kv.getID());
 
