@@ -594,6 +594,7 @@ int main()
 {
     GOOGLE_PROTOBUF_VERIFY_VERSION;
     std::string command;
+    setupMockDB();
     while (true)
     {
         std::cout << "Enter command: ";
