@@ -34,6 +34,7 @@ struct TxnNeighbors
 {
     std::string tx_id;
     std::set<std::string> neighbors; // neighbor tx ids
+    std::set<std::string> incoming_neighbors; // incoming neighbor tx ids
 
     bool operator<(TxnNeighbors const &o) const noexcept
     {
@@ -581,7 +582,7 @@ void requestMergedOrderFromHost(const std::string &host)
         TxnNeighbors rec;
         rec.tx_id = va.tx_id();
         for (int j = 0; j < va.out_size(); ++j)
-            rec.neighbors.insert(va.out(j));
+            rec.incoming_neighbors.insert(va.out(j));
         merged_order_vec.push_back(std::move(rec));
 
     }
