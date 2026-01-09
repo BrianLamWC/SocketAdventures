@@ -427,19 +427,19 @@ int32_t Graph::getMergedOrders_()
     return transaction_count;
 }
 
-void Graph::buildSnapshotProto(request::GraphSnapshot &out) const
+void Graph::buildSnapshotProto(request::GraphSnapshot &snap) const
 {
     std::cout << "Graph::buildSnapshotProto: building graph snapshot protobuf\n";
-    out.Clear();
+    snap.Clear();
     // Use the process/server id if available, fallback to PID
-    out.set_node_id(std::to_string(my_id));
+    snap.set_node_id(std::to_string(my_id));
 
     for (const auto &kv : nodes_static)
     {
         const std::string &tx_id = kv.first;
         Transaction *tx = kv.second.get();
 
-        request::VertexAdj *va = out.add_adj();
+        request::VertexAdj *va = snap.add_adj();
         va->set_tx_id(tx_id);
 
         for (Transaction *nbr : tx->getOutNeighbors())
@@ -451,14 +451,14 @@ void Graph::buildSnapshotProto(request::GraphSnapshot &out) const
     for (const auto &kv : merged.snapshot())
     {
         std::cout << "Graph::buildSnapshotProto: adding merged order transaction "<< kv.getID() << std::endl;
-        request::VertexAdj *va = out.add_merged_order();
+        request::VertexAdj *va = snap.add_merged_order();
         va->set_tx_id(kv.getID());
 
         for (const std::string &nbr : kv.getIncomingNeighborIDs()) // use incoming neighbor IDs
         {
             std::cout << "Graph::buildSnapshotProto: adding merged order neighbor "
                       << nbr << " to transaction " << kv.getID() << std::endl;
-            va->add_out(nbr);
+            va->add_in(nbr);
         }
 
     }
