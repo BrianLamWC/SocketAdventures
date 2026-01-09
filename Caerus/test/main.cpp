@@ -581,8 +581,8 @@ void requestMergedOrderFromHost(const std::string &host)
         const auto &va = merged_order_proto.merged_order(i);
         TxnNeighbors rec;
         rec.tx_id = va.tx_id();
-        for (int j = 0; j < va.out_size(); ++j)
-            rec.incoming_neighbors.insert(va.out(j));
+        for (int j = 0; j < va.in_size(); ++j)
+            rec.incoming_neighbors.insert(va.in(j));
         merged_order_vec.push_back(std::move(rec));
 
     }
