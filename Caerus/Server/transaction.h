@@ -29,6 +29,7 @@ private:
     // intrusive adjacency list
     std::unordered_set<Transaction*> neighbors_out;
     std::unordered_set<Transaction*> neighbors_in;
+    std::unordered_set<std::string> neigbors_in_ids;
 
     std::unordered_set<int32_t> expected_regions;
     std::unordered_set<int32_t> seen_regions;
@@ -48,6 +49,10 @@ public:
     void addNeighborOut(Transaction* ptr) { 
         neighbors_out.insert(ptr); 
         ptr->neighbors_in.insert(this); 
+    }
+
+    void addNeighborInID(const std::string& neighbor_id) {
+        neigbors_in_ids.insert(neighbor_id);
     }
 
     void removeOutNeighbor(Transaction* ptr) { 

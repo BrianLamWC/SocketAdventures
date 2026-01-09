@@ -211,8 +211,13 @@ void handleCommand(const std::string &command)
     // get merged orders from all known servers
     if (command == "get merged"){
 
-
-
+        host_txn_neighbors_map.clear();
+        std::cout << "Cleared previously stored snapshots.\n";
+        for (const auto &p : hostnames_to_id)
+        {
+            requestSnapshotFromHost(p.first);
+        }
+        return;
 
     }
 
@@ -414,7 +419,7 @@ void requestSnapshotFromHost(const std::string &host)
 
     request::Request snap_req;
     snap_req.set_client_id(getpid());
-    snap_req.set_recipient(request::Request::GRAPH_SNAP);
+    snap_req.set_recipient(request::Request::MERGED);
 
     if (!sendProtoFramed(fd, snap_req))
     {
@@ -470,30 +475,30 @@ void requestSnapshotFromHost(const std::string &host)
     }
 
     // Print snapshot to stdout for the user. Prefer the stored map entry if available.
-    if (server_id != -1)
-    {
-        const auto &stored = host_txn_neighbors_map[server_id];
-        std::cout << "Stored GraphSnapshot for server_id=" << server_id << ": " << stored.size() << " txns\n";
-        for (const auto &rec : stored)
-        {
-            std::cout << "  tx=" << rec.tx_id << " ->";
-            for (const auto &n : rec.neighbors)
-                std::cout << " " << n;
-            std::cout << "\n";
-        }
-    }
-    else
-    {
-        // fallback: print what we parsed into tmp_set
-        std::cout << "GraphSnapshot (unknown server id) contains " << tmp_set.size() << " txns\n";
-        for (const auto &rec : tmp_set)
-        {
-            std::cout << "  tx=" << rec.tx_id << " ->";
-            for (const auto &n : rec.neighbors)
-                std::cout << " " << n;
-            std::cout << "\n";
-        }
-    }
+    // if (server_id != -1)
+    // {
+    //     const auto &stored = host_txn_neighbors_map[server_id];
+    //     std::cout << "Stored GraphSnapshot for server_id=" << server_id << ": " << stored.size() << " txns\n";
+    //     for (const auto &rec : stored)
+    //     {
+    //         std::cout << "  tx=" << rec.tx_id << " ->";
+    //         for (const auto &n : rec.neighbors)
+    //             std::cout << " " << n;
+    //         std::cout << "\n";
+    //     }
+    // }
+    // else
+    // {
+    //     // fallback: print what we parsed into tmp_set
+    //     std::cout << "GraphSnapshot (unknown server id) contains " << tmp_set.size() << " txns\n";
+    //     for (const auto &rec : tmp_set)
+    //     {
+    //         std::cout << "  tx=" << rec.tx_id << " ->";
+    //         for (const auto &n : rec.neighbors)
+    //             std::cout << " " << n;
+    //         std::cout << "\n";
+    //     }
+    // }
 
     close(fd);
 }
@@ -510,7 +515,7 @@ void requestMergedOrderFromHost(const std::string &host)
     
     request::Request merge_req;
     merge_req.set_client_id(getpid());
-    merge_req.set_recipient(request::Request::MERGED_ORDER);
+    merge_req.set_recipient(request::Request::MERGED);
 
     if (!sendProtoFramed(fd, merge_req))
     {
@@ -519,7 +524,7 @@ void requestMergedOrderFromHost(const std::string &host)
         return;
     }
     
-    request::Request merged_order_proto;
+    request::GraphSnapshot merged_order_proto;
     if (!recvProtoFramed(fd, merged_order_proto))
     {
         std::cerr << "Failed to receive MergedOrder from " << host << "\n";

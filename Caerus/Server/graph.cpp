@@ -129,6 +129,7 @@ std::unique_ptr<Transaction> Graph::removeTransaction(Transaction *rem)
     for (Transaction *pred : preds)
     {
         pred->removeOutNeighbor(rem);
+        rem->addNeighborInID(pred->getID());
     }
 
     // copy the outgoing‐neighbor list and break those edges
@@ -432,7 +433,7 @@ void Graph::buildSnapshotProto(request::GraphSnapshot &out) const
     // Use the process/server id if available, fallback to PID
     out.set_node_id(std::to_string(my_id));
 
-    for (const auto &kv : nodes)
+    for (const auto &kv : nodes_static)
     {
         const std::string &tx_id = kv.first;
         Transaction *tx = kv.second.get();
@@ -445,6 +446,19 @@ void Graph::buildSnapshotProto(request::GraphSnapshot &out) const
             va->add_out(nbr->getID());
         }
     }
+
+    for (const auto &kv : merged.snapshot())
+    {
+        request::VertexAdj *va = out.add_merged_order();
+        va->set_tx_id(kv.getID());
+
+        for (Transaction *nbr : kv.getOutNeighbors())
+        {
+            va->add_out(nbr->getID());
+        }
+
+    }
+    
 }
 
 std::vector<Transaction*> Graph::getAllNodes() const

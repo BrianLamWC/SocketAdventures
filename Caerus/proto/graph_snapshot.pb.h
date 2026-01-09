@@ -382,6 +382,7 @@ class GraphSnapshot PROTOBUF_FINAL :
 
   enum : int {
     kAdjFieldNumber = 2,
+    kMergedOrderFieldNumber = 3,
     kNodeIdFieldNumber = 1,
   };
   // repeated .request.VertexAdj adj = 2;
@@ -401,6 +402,24 @@ class GraphSnapshot PROTOBUF_FINAL :
   ::request::VertexAdj* add_adj();
   const ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::request::VertexAdj >&
       adj() const;
+
+  // repeated .request.VertexAdj merged_order = 3;
+  int merged_order_size() const;
+  private:
+  int _internal_merged_order_size() const;
+  public:
+  void clear_merged_order();
+  ::request::VertexAdj* mutable_merged_order(int index);
+  ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::request::VertexAdj >*
+      mutable_merged_order();
+  private:
+  const ::request::VertexAdj& _internal_merged_order(int index) const;
+  ::request::VertexAdj* _internal_add_merged_order();
+  public:
+  const ::request::VertexAdj& merged_order(int index) const;
+  ::request::VertexAdj* add_merged_order();
+  const ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::request::VertexAdj >&
+      merged_order() const;
 
   // required string node_id = 1;
   bool has_node_id() const;
@@ -441,6 +460,7 @@ class GraphSnapshot PROTOBUF_FINAL :
   ::PROTOBUF_NAMESPACE_ID::internal::HasBits<1> _has_bits_;
   mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
   ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::request::VertexAdj > adj_;
+  ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::request::VertexAdj > merged_order_;
   ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr node_id_;
   friend struct ::TableStruct_graph_5fsnapshot_2eproto;
 };
@@ -756,6 +776,45 @@ inline const ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::request::VertexAdj >&
 GraphSnapshot::adj() const {
   // @@protoc_insertion_point(field_list:request.GraphSnapshot.adj)
   return adj_;
+}
+
+// repeated .request.VertexAdj merged_order = 3;
+inline int GraphSnapshot::_internal_merged_order_size() const {
+  return merged_order_.size();
+}
+inline int GraphSnapshot::merged_order_size() const {
+  return _internal_merged_order_size();
+}
+inline void GraphSnapshot::clear_merged_order() {
+  merged_order_.Clear();
+}
+inline ::request::VertexAdj* GraphSnapshot::mutable_merged_order(int index) {
+  // @@protoc_insertion_point(field_mutable:request.GraphSnapshot.merged_order)
+  return merged_order_.Mutable(index);
+}
+inline ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::request::VertexAdj >*
+GraphSnapshot::mutable_merged_order() {
+  // @@protoc_insertion_point(field_mutable_list:request.GraphSnapshot.merged_order)
+  return &merged_order_;
+}
+inline const ::request::VertexAdj& GraphSnapshot::_internal_merged_order(int index) const {
+  return merged_order_.Get(index);
+}
+inline const ::request::VertexAdj& GraphSnapshot::merged_order(int index) const {
+  // @@protoc_insertion_point(field_get:request.GraphSnapshot.merged_order)
+  return _internal_merged_order(index);
+}
+inline ::request::VertexAdj* GraphSnapshot::_internal_add_merged_order() {
+  return merged_order_.Add();
+}
+inline ::request::VertexAdj* GraphSnapshot::add_merged_order() {
+  // @@protoc_insertion_point(field_add:request.GraphSnapshot.merged_order)
+  return _internal_add_merged_order();
+}
+inline const ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::request::VertexAdj >&
+GraphSnapshot::merged_order() const {
+  // @@protoc_insertion_point(field_list:request.GraphSnapshot.merged_order)
+  return merged_order_;
 }
 
 #ifdef __GNUC__

@@ -127,7 +127,7 @@ void *handleClient(void *client_args)
             break;
         }
 
-        if (req_proto.recipient() == request::Request::GRAPH_SNAP)
+        if (req_proto.recipient() == request::Request::MERGED)
         {
 
             // Build and send snapshot on this connection. Do not push to request queue.
@@ -139,7 +139,7 @@ void *handleClient(void *client_args)
             }
             else
             {
-                fprintf(stderr, "CLIENT_HANDLER: no merger available to serve GRAPH_SNAP\n");
+                fprintf(stderr, "CLIENT_HANDLER: no merger available to serve MERGED\n");
                 break;
             }
         }

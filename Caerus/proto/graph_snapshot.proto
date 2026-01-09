@@ -10,4 +10,5 @@ message VertexAdj {
 message GraphSnapshot {
   required string node_id = 1;
   repeated VertexAdj adj = 2;
+  repeated VertexAdj merged_order = 3;
 }
