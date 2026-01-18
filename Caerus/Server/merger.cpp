@@ -278,7 +278,7 @@ void Merger::insertAlgorithm()
             }
         }
 
-        graph.printAll();
+        //graph.printAll();
 
         // call graph cleanup for merged orders and log if any removed
         {

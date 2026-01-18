@@ -486,6 +486,47 @@ void compareSnapshots()
         {
             std::cout << "Snapshots differ: host " << host << " != host " << other_host << "\n";
             all_equal = false;
+
+            // Print differences
+            std::cout << "  Transactions only in host " << host << ":\n";
+            for (const auto &txn : set)
+            {
+                if (other_set.find(txn) == other_set.end())
+                {
+                    std::cout << "    tx_id: " << txn.tx_id << "\n";
+                    std::cout << "      out_neighbors: ";
+                    for (const auto &n : txn.out_neighbors) std::cout << n << " ";
+                    std::cout << "\n";
+                }
+            }
+            std::cout << "  Transactions only in host " << other_host << ":\n";
+            for (const auto &txn : other_set)
+            {
+                if (set.find(txn) == set.end())
+                {
+                    std::cout << "    tx_id: " << txn.tx_id << "\n";
+                    std::cout << "      out_neighbors: ";
+                    for (const auto &n : txn.out_neighbors) std::cout << n << " ";
+                    std::cout << "\n";
+                }
+            }
+            // Print transactions with same tx_id but different neighbors
+            std::cout << "  Transactions with same tx_id but different neighbors:\n";
+            for (const auto &txn : set)
+            {
+                auto it2 = std::find_if(other_set.begin(), other_set.end(),
+                    [&](const TxnNeighbors &o) { return o.tx_id == txn.tx_id; });
+                if (it2 != other_set.end() && !(txn == *it2))
+                {
+                    std::cout << "    tx_id: " << txn.tx_id << "\n";
+                    std::cout << "      host " << host << " out_neighbors: ";
+                    for (const auto &n : txn.out_neighbors) std::cout << n << " ";
+                    std::cout << "\n";
+                    std::cout << "      host " << other_host << " out_neighbors: ";
+                    for (const auto &n : it2->out_neighbors) std::cout << n << " ";
+                    std::cout << "\n";
+                }
+            }
         }
         else
         {
