@@ -452,13 +452,13 @@ void requestMergedOrderFromHost(const std::string &host)
     {
         const auto &stored = host_merged_order_map[server_id];
         std::cout << "Stored Merged Order for server_id=" << server_id << ": " << stored.size() << " txns, INCOMING NEIGHBORS\n";
-        for (const auto &rec : stored)
-        {
-            std::cout << "  tx=" << rec.tx_id << " <- ";
-            for (const auto &n : rec.incoming_neighbors)
-                std::cout << " " << n;
-            std::cout << "\n";
-        }
+        // for (const auto &rec : stored)
+        // {
+        //     std::cout << "  tx=" << rec.tx_id << " <- ";
+        //     for (const auto &n : rec.incoming_neighbors)
+        //         std::cout << " " << n;
+        //     std::cout << "\n";
+        // }
     }
 
     close(fd);
@@ -578,7 +578,7 @@ void generateRandomTransactions(int num_txns, int max_ops_per_txn)
     }
 
     std::uniform_int_distribution<int> key_dist(1, mockDB.size()); // pick keys from 1 to size of mockDB
-    std::uniform_int_distribution<int> ops_dist(1, max_ops_per_txn);
+    std::uniform_int_distribution<int> ops_dist(1, max_ops_per_txn); // number of operations per transaction
     std::uniform_int_distribution<int> type_dist(0, 1); // 0: READ, 1: WRITE
 
     for (int i = 0; i < num_txns; ++i)

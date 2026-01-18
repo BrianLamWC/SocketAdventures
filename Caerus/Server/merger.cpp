@@ -79,67 +79,30 @@ void Merger::processRequest(const request::Request &req_proto)
     q->push(transactions);
 
     {
-        std::lock_guard<std::mutex> g(ready_mtx);
+        std::lock_guard<std::mutex> g(ready_mtx); // lock ready queue mutex
         if (!enqueued_sids_.count(sid))
         {
             enqueued_sids_.insert(sid);
             ready_q_.push_back(sid);
-            // if (!ready_q_.empty())
-            // {
-            //     // Log the current state of enqueued_sids_ and ready_q_
-            //     std::ostringstream log_oss;
-            //     log_oss << "MERGER: enqueued after processRequest: enqueued_sids_={";
-            //     bool log_first = true;
-            //     for (const auto &x : enqueued_sids_)
-            //     {
-            //         if (!log_first)
-            //             log_oss << ",";
-            //         log_first = false;
-            //         log_oss << x;
-            //     }
-            //     log_oss << "} ready_q=[";
-            //     log_first = true;
-            //     for (const auto &x : ready_q_)
-            //     {
-            //         if (!log_first)
-            //             log_oss << ",";
-            //         log_first = false;
-            //         log_oss << x;
-            //     }
-            //     log_oss << "]";
-            //     std::cout << log_oss.str() << std::endl;
-            // }
 
             ready_cv.notify_one();
         }
     }
 }
 
-std::ostream &operator<<(std::ostream &os, const Transaction &t)
-{
-    return os << "Txn{id=" << t.getID()
-              << ", origin=" << t.getServerId() << "}";
-}
-
-void Merger::dumpPartialSequences() const
-{
-    graph.printAll();
-}
-
 void Merger::insertAlgorithm()
 {
-    std::unique_lock<std::mutex> lk(ready_mtx);
+    std::unique_lock<std::mutex> lk(ready_mtx); // initialize lock for ready queue
 
     while (true)
     {
-        ready_cv.wait(lk, [this]()
-                      { return !ready_q_.empty(); });
+        ready_cv.wait(lk, [this]() { return !ready_q_.empty(); }); // wait until there is work to do
 
         int sid = ready_q_.front();
         ready_q_.pop_front();
         enqueued_sids_.erase(sid);
 
-        lk.unlock();
+        lk.unlock(); // unlock ready queue mutex while working
 
         auto it = partial_sequences.find(sid);
         auto &inner_map = it->second;
@@ -303,7 +266,6 @@ void Merger::insertAlgorithm()
         {
             std::lock_guard<std::mutex> g(ready_mtx);
             // If queue isn’t empty, schedule another turn for this sid.
-            // (Assumes Queue_TS::empty() is thread-safe; if not, track counts yourself.)
             auto it2 = partial_sequences.find(sid);
             if (it2 != partial_sequences.end() && !it2->second->empty())
             {
@@ -327,7 +289,7 @@ void Merger::insertAlgorithm()
             }
         }
 
-        lk.lock();
+        lk.lock(); // lock before going back to waiting, IMPORTANT needs to be locked before wait
     }
 }
 
@@ -365,52 +327,6 @@ Merger::Merger()
     }
 
     pthread_detach(insert_thread);
-
-    // Create an dump thread that calls the dumpPartialSequences() method every 10 seconds.
-    // if (pthread_create(&dump_thread, nullptr, [](void *arg) -> void *
-    //                    {
-    //         while (true)
-    //         {
-    //             sleep(10);
-    //             static_cast<Merger*>(arg)->dumpPartialSequences();
-    //         }
-    //         return nullptr; }, this) != 0)
-    // {
-    //     threadError("Error creating dump thread");
-    // }
-    // pthread_detach(dump_thread);
-}
-
-void Merger::sendGraphSnapshotOnFd(int fd)
-{
-    request::GraphSnapshot snap;
-
-    // build snapshot (Graph::buildSnapshotProto is thread-safe and locks its own mutex)
-    graph.buildSnapshotProto(snap);
-
-    std::string payload;
-    if (!snap.SerializeToString(&payload))
-    {
-        std::cerr << "MERGER: failed to serialize GraphSnapshot" << std::endl;
-        return;
-    }
-
-    uint32_t len = static_cast<uint32_t>(payload.size());
-    uint32_t netlen = htonl(len);
-
-    // write length prefix
-    if (!writeNBytes(fd, &netlen, sizeof(netlen)))
-    {
-        std::cerr << "MERGER: failed to write snapshot length to fd " << fd << std::endl;
-        return;
-    }
-
-    // write payload
-    if (!writeNBytes(fd, payload.data(), payload.size()))
-    {
-        std::cerr << "MERGER: failed to write snapshot payload to fd " << fd << std::endl;
-        return;
-    }
 }
 
 void Merger::sendMergedOrdersOnFd(int fd)

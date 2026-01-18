@@ -57,24 +57,15 @@ public:
     // Constructor receives the list of expected server ids.
     Merger();
 
-    // Processes one round of requests.
-    void processRoundRequests();
-
     // Pop from input queue
     void popFromQueue();
 
     // Process a single incoming request
     void processRequest(const request::Request &req_proto);
 
-    void processIncomingRequest(const request::Request &req_proto);
-
-    void dumpPartialSequences() const;
-
     // Insert algorithm
     void insertAlgorithm();
 
-    // Send a graph snapshot (fram ed protobuf) to the given file descriptor.
-    void sendGraphSnapshotOnFd(int fd);
     // Send merged orders (as a Request with recipient MERGED_ORDER) to the given fd.
     void sendMergedOrdersOnFd(int fd);
 };
