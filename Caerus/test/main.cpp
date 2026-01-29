@@ -100,7 +100,7 @@ void loadServersConfig()
     {
         std::string ip = server["ip"];
         int id = server["id"];
-        int port = server["port"];
+        int port = 7001
         hostnames_to_id[ip] = id;
         server_id_to_port[id] = port;
     }
