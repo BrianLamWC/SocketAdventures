@@ -78,12 +78,34 @@ struct TxnSpec
     std::vector<int> keys;
 };
 
-std::map<std::string, int> hostnames_to_id = {
-    {"192.168.8.140", 1},
-    {"192.168.8.150", 2},
-    {"192.168.8.160", 3},
-};
-int target_port = 7001;
+std::map<std::string, int> hostnames_to_id;
+std::map<int, int> server_id_to_port;
+const std::string servers_config_path = "../Server/servers.json";
+
+void loadServersConfig()
+{
+    std::ifstream file(servers_config_path);
+    if (!file.is_open())
+    {
+        std::cerr << "loadServersConfig: error opening file " << servers_config_path << "\n";
+        exit(1);
+    }
+
+    json data = json::parse(file);
+    auto servers = data["servers"];
+    hostnames_to_id.clear();
+    server_id_to_port.clear();
+
+    for (const auto &server : servers)
+    {
+        std::string ip = server["ip"];
+        int id = server["id"];
+        int port = server["port"];
+        hostnames_to_id[ip] = id;
+        server_id_to_port[id] = port;
+    }
+    file.close();
+}
 
 void setupMockDB()
 {
@@ -130,6 +152,27 @@ int setupConnection(const char *host, int port)
     }
     freeaddrinfo(res);
     return fd;
+}
+
+void connectToAllServers(std::map<int, int> &server_id_to_fd)
+{
+    for (const auto &pair : hostnames_to_id)
+    {
+        auto pit = server_id_to_port.find(pair.second);
+        if (pit == server_id_to_port.end() || pit->second <= 0)
+        {
+            std::cerr << "Missing/invalid port for server_id " << pair.second << " (host " << pair.first << ")\n";
+            continue;
+        }
+        int port = pit->second;
+        int fd = setupConnection(pair.first.c_str(), port);
+        if (fd < 0)
+        {
+            std::cerr << "Can't connect to " << pair.first << ":" << port << "\n";
+            continue;
+        }
+        server_id_to_fd[pair.second] = fd;
+    }
 }
 
 bool writeNBytes(int fd, const void *buf, size_t n)
@@ -247,10 +290,11 @@ std::vector<std::vector<TxnSpec>> parseJsonFile(const std::string &filename)
     return batches;
 }
 
-void requestMergedOrderFromHost(const std::string &host);
+void requestMergedOrderFromHost(const int server_id, const int fd);
 void compareSnapshots();
 void verfiyMergedOrderFromHost(const std::string &host);
-void generateRandomTransactions(int num_txns, int max_ops_per_txn);
+void generateRandomTransactions(int num_txns, int max_ops_per_txn, std::ofstream *log_file);
+void logTxnJsonl(std::ofstream &log_file, const request::Request &req);
 
 void handleCommand(const std::string &command)
 {
@@ -263,9 +307,18 @@ void handleCommand(const std::string &command)
         host_merged_order_map.clear();
         std::cout << "Cleared previously stored merged orders.\n";
 
-        for (const auto &p : hostnames_to_id)
+        std::map<int,int> server_id_to_fd;
+        connectToAllServers(server_id_to_fd);
+
+        for (const auto &p : server_id_to_fd)
         {
-            requestMergedOrderFromHost(p.first);
+            if (p.second <= 0)
+            {
+                std::cerr << "Skipping server_id " << p.first << " due to invalid fd.\n";
+                continue;
+            }
+
+            requestMergedOrderFromHost(p.first, p.second);
         }
 
         compareSnapshots();
@@ -285,7 +338,14 @@ void handleCommand(const std::string &command)
 
         int max_ops_per_txn = 5; // default max operations per transaction
 
-        generateRandomTransactions(n, max_ops_per_txn);
+        const std::string log_path = "test/txn_log.jsonl";
+        std::ofstream log_file(log_path, std::ios::trunc);
+        if (!log_file.is_open())
+        {
+            std::cerr << "Failed to open log file for writing: " << log_path << "\n";
+        }
+
+        generateRandomTransactions(n, max_ops_per_txn, log_file.is_open() ? &log_file : nullptr);
         return;
     }
 
@@ -306,15 +366,7 @@ void handleCommand(const std::string &command)
 
         // Establish connections to all servers first
         std::map<int, int> server_id_to_fd;
-        for (const auto &pair : hostnames_to_id)
-        {
-            int fd = setupConnection(pair.first.c_str(), target_port);
-            if (fd < 0)
-            {
-                std::cerr << "Can't connect to " << pair.first << ":" << target_port << "\n";
-            }
-            server_id_to_fd[pair.second] = fd;
-        }
+        connectToAllServers(server_id_to_fd);
 
         // Send each batch in order
         for (size_t batch_idx = 0; batch_idx < batches.size(); ++batch_idx)
@@ -329,7 +381,7 @@ void handleCommand(const std::string &command)
             {
                 int sid = req.target_server_id();
                 auto it = server_id_to_fd.find(sid);
-                if (it == server_id_to_fd.end() || it->second < 0)
+                if (it == server_id_to_fd.end() || it->second <= 0)
                 {
                     std::cerr << "No valid connection for server_id " << sid << "\n";
                     continue;
@@ -361,15 +413,8 @@ void handleCommand(const std::string &command)
     return;
 }
 
-void requestMergedOrderFromHost(const std::string &host)
+void requestMergedOrderFromHost(const int server_id, const int fd)
 {
-
-    int fd = setupConnection(host.c_str(), target_port);
-    if (fd < 0)
-    {
-        std::cerr << "Can't connect to " << host << ":" << target_port << "\n";
-        return;
-    }
 
     request::Request merge_req;
     merge_req.set_client_id(getpid());
@@ -377,7 +422,7 @@ void requestMergedOrderFromHost(const std::string &host)
 
     if (!sendProtoFramed(fd, merge_req))
     {
-        std::cerr << "Failed to MERGED_ORDER to " << host << "\n";
+        std::cerr << "Failed to MERGED_ORDER to " << server_id << "\n";
         close(fd);
         return;
     }
@@ -385,31 +430,13 @@ void requestMergedOrderFromHost(const std::string &host)
     request::GraphSnapshot merged_order_proto;
     if (!recvProtoFramed(fd, merged_order_proto))
     {
-        std::cerr << "Failed to receive MergedOrder from " << host << "\n";
+        std::cerr << "Failed to receive MergedOrder from " << server_id << "\n";
         close(fd);
         return;
     }
 
-    std::cout << "Merged Order and Graph Snap from " << host << ": server_id=" << merged_order_proto.node_id() << "\n";
+    std::cout << "Merged Order and Graph Snap from " << server_id << ": server_id=" << merged_order_proto.node_id() << "\n";
     // Populate global map for this host id with the snapshot contents.
-    int32_t server_id = -1;
-    auto hit = hostnames_to_id.find(host);
-    if (hit != hostnames_to_id.end())
-    {
-        server_id = hit->second;
-    }
-    else
-    {
-        // fallback: try to parse node_id from snapshot
-        try
-        {
-            server_id = std::stoi(merged_order_proto.node_id());
-        }
-        catch (...)
-        {
-            server_id = -1;
-        }
-    }
 
     // Populate global host_txn_neighbors_map
     std::set<TxnNeighbors> tmp_set;
@@ -595,7 +622,7 @@ void verfiyMergedOrderFromHost(const std::string &host)
     std::cout << "Verification completed for server_id=" << server_id << ".\n";
 }
 
-void generateRandomTransactions(int num_txns, int max_ops_per_txn)
+void generateRandomTransactions(int num_txns, int max_ops_per_txn, std::ofstream *log_file)
 {
     std::cout << "[DEBUG] generateRandomTransactions() called with num_txns=" << num_txns << ", max_ops_per_txn=" << max_ops_per_txn << "\n";
     std::cout << "[DEBUG] mockDB.size()=" << mockDB.size() << "\n";
@@ -608,15 +635,7 @@ void generateRandomTransactions(int num_txns, int max_ops_per_txn)
 
     // Establish connections to all servers first
     std::map<int, int> server_id_to_fd;
-    for (const auto &pair : hostnames_to_id)
-    {
-        int fd = setupConnection(pair.first.c_str(), target_port);
-        if (fd < 0)
-        {
-            std::cerr << "Can't connect to " << pair.first << ":" << target_port << "\n";
-        }
-        server_id_to_fd[pair.second] = fd;
-    }
+    connectToAllServers(server_id_to_fd);
 
     std::uniform_int_distribution<int> key_dist(1, mockDB.size()); // pick keys from 1 to size of mockDB
     std::uniform_int_distribution<int> ops_dist(1, max_ops_per_txn); // number of operations per transaction
@@ -662,7 +681,7 @@ void generateRandomTransactions(int num_txns, int max_ops_per_txn)
         // Send the transaction
         int sid = req.target_server_id();
         auto it = server_id_to_fd.find(sid);
-        if (it == server_id_to_fd.end() || it->second < 0)
+        if (it == server_id_to_fd.end() || it->second <= 0)
         {
             std::cerr << "No valid connection for server_id " << sid << "\n";
             continue;
@@ -675,6 +694,10 @@ void generateRandomTransactions(int num_txns, int max_ops_per_txn)
         else
         {
             std::cout << "  Sent txn " << req.transaction(0).id() << " to server " << sid << "\n";
+            if (log_file)
+            {
+                logTxnJsonl(*log_file, req);
+            }
         }
     }
 
@@ -687,10 +710,40 @@ void generateRandomTransactions(int num_txns, int max_ops_per_txn)
 
 }
 
+void logTxnJsonl(std::ofstream &log_file, const request::Request &req)
+{
+    if (req.transaction_size() <= 0)
+        return;
+
+    const auto &txn = req.transaction(0);
+    json record;
+    record["txn_id"] = txn.id();
+    record["client_id"] = txn.client_id();
+    record["target_server_id"] = req.target_server_id();
+    record["ops"] = json::array();
+
+    for (int i = 0; i < txn.operations_size(); ++i)
+    {
+        const auto &op = txn.operations(i);
+        json op_rec;
+        op_rec["type"] = (op.type() == request::Operation::WRITE) ? "WRITE" : "READ";
+        op_rec["key"] = op.key();
+        if (op.type() == request::Operation::WRITE)
+        {
+            op_rec["value"] = op.value();
+        }
+        record["ops"].push_back(std::move(op_rec));
+    }
+
+    log_file << record.dump() << "\n";
+    log_file.flush();
+}
+
 int main()
 {
     GOOGLE_PROTOBUF_VERIFY_VERSION;
     std::string command;
+    loadServersConfig();
     setupMockDB();
     while (true)
     {
