@@ -718,7 +718,6 @@ void logTxnJsonl(std::ofstream &log_file, const request::Request &req)
     const auto &txn = req.transaction(0);
     json record;
     record["txn_id"] = txn.id();
-    record["client_id"] = txn.client_id();
     record["target_server_id"] = req.target_server_id();
     record["ops"] = json::array();
 
