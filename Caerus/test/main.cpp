@@ -338,7 +338,7 @@ void handleCommand(const std::string &command)
 
         int max_ops_per_txn = 5; // default max operations per transaction
 
-        const std::string log_path = "test/txn_log.jsonl";
+        const std::string log_path = "./txn_log.jsonl";
         std::ofstream log_file(log_path, std::ios::trunc);
         if (!log_file.is_open())
         {
