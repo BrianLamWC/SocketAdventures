@@ -505,6 +505,7 @@ void compareSnapshots()
     ++it;
 
     bool all_equal = true;
+    constexpr size_t kMaxDiffReport = 20;
     for (; it != host_txn_neighbors_map.end(); ++it)
     {
         int32_t other_host = it->first;
@@ -514,46 +515,73 @@ void compareSnapshots()
             std::cout << "Snapshots differ: host " << host << " != host " << other_host << "\n";
             all_equal = false;
 
+            std::unordered_map<std::string, const TxnNeighbors *> other_by_id;
+            other_by_id.reserve(other_set.size());
+            for (const auto &txn : other_set)
+                other_by_id.emplace(txn.tx_id, &txn);
+
             // Print differences
             std::cout << "  Transactions only in host " << host << ":\n";
+            size_t only_in_host = 0;
             for (const auto &txn : set)
             {
-                if (other_set.find(txn) == other_set.end())
+                if (other_by_id.find(txn.tx_id) == other_by_id.end())
                 {
-                    std::cout << "    tx_id: " << txn.tx_id << "\n";
-                    std::cout << "      out_neighbors: ";
-                    for (const auto &n : txn.out_neighbors) std::cout << n << " ";
-                    std::cout << "\n";
+                    ++only_in_host;
+                    if (only_in_host <= kMaxDiffReport)
+                    {
+                        std::cout << "    tx_id: " << txn.tx_id << "\n";
+                        std::cout << "      out_neighbors: ";
+                        for (const auto &n : txn.out_neighbors) std::cout << n << " ";
+                        std::cout << "\n";
+                    }
                 }
             }
+            if (only_in_host > kMaxDiffReport)
+                std::cout << "    ... (" << only_in_host - kMaxDiffReport << " more)\n";
+
             std::cout << "  Transactions only in host " << other_host << ":\n";
+            size_t only_in_other = 0;
             for (const auto &txn : other_set)
             {
                 if (set.find(txn) == set.end())
                 {
-                    std::cout << "    tx_id: " << txn.tx_id << "\n";
-                    std::cout << "      out_neighbors: ";
-                    for (const auto &n : txn.out_neighbors) std::cout << n << " ";
-                    std::cout << "\n";
+                    ++only_in_other;
+                    if (only_in_other <= kMaxDiffReport)
+                    {
+                        std::cout << "    tx_id: " << txn.tx_id << "\n";
+                        std::cout << "      out_neighbors: ";
+                        for (const auto &n : txn.out_neighbors) std::cout << n << " ";
+                        std::cout << "\n";
+                    }
                 }
             }
+            if (only_in_other > kMaxDiffReport)
+                std::cout << "    ... (" << only_in_other - kMaxDiffReport << " more)\n";
+
             // Print transactions with same tx_id but different neighbors
             std::cout << "  Transactions with same tx_id but different neighbors:\n";
+            size_t different_neighbors = 0;
             for (const auto &txn : set)
             {
-                auto it2 = std::find_if(other_set.begin(), other_set.end(),
-                    [&](const TxnNeighbors &o) { return o.tx_id == txn.tx_id; });
-                if (it2 != other_set.end() && !(txn == *it2))
+                auto it2 = other_by_id.find(txn.tx_id);
+                if (it2 != other_by_id.end() && !(txn == *it2->second))
                 {
-                    std::cout << "    tx_id: " << txn.tx_id << "\n";
-                    std::cout << "      host " << host << " out_neighbors: ";
-                    for (const auto &n : txn.out_neighbors) std::cout << n << " ";
-                    std::cout << "\n";
-                    std::cout << "      host " << other_host << " out_neighbors: ";
-                    for (const auto &n : it2->out_neighbors) std::cout << n << " ";
-                    std::cout << "\n";
+                    ++different_neighbors;
+                    if (different_neighbors <= kMaxDiffReport)
+                    {
+                        std::cout << "    tx_id: " << txn.tx_id << "\n";
+                        std::cout << "      host " << host << " out_neighbors: ";
+                        for (const auto &n : txn.out_neighbors) std::cout << n << " ";
+                        std::cout << "\n";
+                        std::cout << "      host " << other_host << " out_neighbors: ";
+                        for (const auto &n : it2->second->out_neighbors) std::cout << n << " ";
+                        std::cout << "\n";
+                    }
                 }
             }
+            if (different_neighbors > kMaxDiffReport)
+                std::cout << "    ... (" << different_neighbors - kMaxDiffReport << " more)\n";
         }
         else
         {
