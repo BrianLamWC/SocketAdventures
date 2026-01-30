@@ -174,7 +174,7 @@ std::unique_ptr<Transaction> Graph::removeTransaction(Transaction *rem)
     }
 
     // print size of graph after removal
-    std::cout << "Graph size after removal: " << nodes.size() << " nodes remaining." << std::endl;
+    //std::cout << "Graph size after removal: " << nodes.size() << " nodes remaining." << std::endl;
 
     // check if this transaction has actually been removed
     if (nodes.find(rem->getID()) != nodes.end())
@@ -183,7 +183,7 @@ std::unique_ptr<Transaction> Graph::removeTransaction(Transaction *rem)
     }
     else
     {
-        std::cout << "Transaction " << rem->getID() << " successfully removed from graph." << std::endl;
+        //std::cout << "Transaction " << rem->getID() << " successfully removed from graph." << std::endl;
     }
 
     //printAll();
@@ -552,10 +552,10 @@ void Graph::remove_MRR(DataItem item, const std::string& txn_id)
         }
     }
 
-    std::cout << "Graph::remove_MRR: removed transaction " << txn_id
-              << " from most recent readers for data item ("
-              << item.val << ", " << item.primaryCopyID
-              << ")\n";
+    // std::cout << "Graph::remove_MRR: removed transaction " << txn_id
+    //           << " from most recent readers for data item ("
+    //           << item.val << ", " << item.primaryCopyID
+    //           << ")\n";
 
 }
 
