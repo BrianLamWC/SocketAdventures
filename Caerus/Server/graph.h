@@ -37,7 +37,7 @@ private:
     std::unordered_map<Transaction *, int> txn_scc_index_map; // maps each transaction to its SCC index
     std::vector<std::unordered_set<int>> neighbors_out;       // outgoing edges of each SCC (indexed by SCC index)
     std::vector<std::vector<int>> neighbors_in;               // incoming edges of each SCC (indexed by SCC index)
-    mutable std::mutex mtx;                                   // protect nodes for snapshotting / external access
+    mutable std::mutex snapshot_mtx;                                // protects nodes_static + merged snapshot data
 
     Queue_TS<Transaction> merged;
 

@@ -10,13 +10,18 @@ Transaction *Graph::addNode(std::unique_ptr<Transaction> uptr)
 {
     const std::string &key = uptr->getID();
     Transaction *ptr = uptr.get();
+
     nodes[key] = std::move(uptr);
-    nodes_static[key] = std::make_unique<Transaction>(
-        ptr->getOrder(),
-        ptr->getServerId(),
-        ptr->getOperations(),
-        ptr->getID()
-    );
+
+    {
+        std::lock_guard<std::mutex> lock(snapshot_mtx);
+        nodes_static[key] = std::make_unique<Transaction>(
+            ptr->getOrder(),
+            ptr->getServerId(),
+            ptr->getOperations(),
+            ptr->getID()
+        );
+    }
 
     //std::cout << "Graph::addNode: added transaction " << key << ", graph size now " << nodes.size() << std::endl;
 
@@ -33,14 +38,15 @@ void Graph::addNeighborOut(Transaction* from, Transaction* to) {
     from->addNeighborOut(to);
 
     // copy to static graph as well
-    auto it_from = nodes_static.find(from->getID());
-    auto it_to = nodes_static.find(to->getID());
-    if (it_from != nodes_static.end() && it_to != nodes_static.end()) {
-        it_from->second->addNeighborOut(it_to->second.get()); 
+    {
+        std::lock_guard<std::mutex> lock(snapshot_mtx);
+        auto it_from = nodes_static.find(from->getID());
+        auto it_to = nodes_static.find(to->getID());
+        if (it_from != nodes_static.end() && it_to != nodes_static.end()) {
+            it_from->second->addNeighborOut(it_to->second.get()); 
+        }
     }
     
-    from->addNeighborOut(to);
-
     // // print the neigbors of 'to' after addition
     // std::cout << "Graph::addNeighborOut: Transaction " << from->getID()
     //           << " now has neighbors: ";
@@ -54,7 +60,6 @@ void Graph::addNeighborOut(Transaction* from, Transaction* to) {
 
 void Graph::printAll() const
 {
-    
     std::cout << "Graph contains " << nodes.size() << " node(s):\n";
     for (const auto &kv : nodes)
     {
@@ -181,7 +186,7 @@ std::unique_ptr<Transaction> Graph::removeTransaction(Transaction *rem)
         std::cout << "Transaction " << rem->getID() << " successfully removed from graph." << std::endl;
     }
 
-    printAll();
+    //printAll();
 
     return removed;
 }
@@ -399,13 +404,17 @@ int32_t Graph::getMergedOrders_()
             if (auto up = removeTransaction(T))
             {
                 // push the removed transaction into the merged order queue
-                merged.push(*up);
+                {
+                    std::lock_guard<std::mutex> lock(snapshot_mtx);
+                    merged.push(*up);
+                }
                 transaction_count++;
             }
         }
 
         // Print every transaction id currently in the merged order queue
         {
+            std::lock_guard<std::mutex> lock(snapshot_mtx);
             auto snapshot = merged.snapshot();
             std::cout << "Merged order queue (" << snapshot.size() << ") ids:";
             for (const auto &m : snapshot)
@@ -429,6 +438,7 @@ int32_t Graph::getMergedOrders_()
 
 void Graph::buildSnapshotProto(request::GraphSnapshot &snap) const
 {
+    std::lock_guard<std::mutex> lock(snapshot_mtx);
     snap.Clear();
     // Use the process/server id if available, fallback to PID
     snap.set_node_id(std::to_string(my_id));
