@@ -412,17 +412,17 @@ int32_t Graph::getMergedOrders_()
             }
         }
 
-        // Print every transaction id currently in the merged order queue
-        {
-            std::lock_guard<std::mutex> lock(snapshot_mtx);
-            auto snapshot = merged.snapshot();
-            std::cout << "Merged order queue (" << snapshot.size() << ") ids:";
-            for (const auto &m : snapshot)
-            {
-                std::cout << " " << m.getID();
-            }
-            std::cout << std::endl;
-        }
+        // // Print every transaction id currently in the merged order queue
+        // {
+        //     std::lock_guard<std::mutex> lock(snapshot_mtx);
+        //     auto snapshot = merged.snapshot();
+        //     std::cout << "Merged order queue (" << snapshot.size() << ") ids:";
+        //     for (const auto &m : snapshot)
+        //     {
+        //         std::cout << " " << m.getID();
+        //     }
+        //     std::cout << std::endl;
+        // }
 
         for (int p : neighbors_in[c])
         {
