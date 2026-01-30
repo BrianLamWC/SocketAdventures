@@ -51,7 +51,6 @@ private:
 
     // Copy of the graph
     Graph graph;
-    std::mutex graph_mtx;
 
 public:
     // Constructor receives the list of expected server ids.
