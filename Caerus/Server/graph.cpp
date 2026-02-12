@@ -55,7 +55,7 @@ Transaction *Graph::addNode(std::unique_ptr<Transaction> uptr)
         );
     }
 
-    appendGraphLog("add_node", "tx=" + key + " size=" + std::to_string(nodes.size()));
+    //appendGraphLog("add_node", "tx=" + key + " size=" + std::to_string(nodes.size()));
 
     return ptr;
 }
