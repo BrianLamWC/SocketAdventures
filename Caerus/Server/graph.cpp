@@ -3,8 +3,43 @@
 #include <iostream>
 #include <queue>
 #include <algorithm>
+#include <chrono>
+#include <ctime>
+#include <fstream>
+#include <iomanip>
+#include <mutex>
+#include <sstream>
 
 #include "graph.h"
+
+namespace
+{
+constexpr const char *kGraphLogPath = "graph.log";
+std::mutex graph_log_mtx;
+
+void appendGraphLog(const std::string &event, const std::string &details)
+{
+    const auto now = std::chrono::system_clock::now();
+    const std::time_t t = std::chrono::system_clock::to_time_t(now);
+    std::tm tm_snapshot{};
+#if defined(_WIN32)
+    localtime_s(&tm_snapshot, &t);
+#else
+    localtime_r(&t, &tm_snapshot);
+#endif
+
+    std::ostringstream line;
+    line << std::put_time(&tm_snapshot, "%Y-%m-%d %H:%M:%S")
+         << " | " << event << " | " << details << '\n';
+
+    std::lock_guard<std::mutex> guard(graph_log_mtx);
+    std::ofstream out(kGraphLogPath, std::ios::app);
+    if (out.is_open())
+    {
+        out << line.str();
+    }
+}
+} // namespace
 
 Transaction *Graph::addNode(std::unique_ptr<Transaction> uptr)
 {
@@ -23,7 +58,7 @@ Transaction *Graph::addNode(std::unique_ptr<Transaction> uptr)
         );
     }
 
-    //std::cout << "Graph::addNode: added transaction " << key << ", graph size now " << nodes.size() << std::endl;
+    appendGraphLog("add_node", "tx=" + key + " size=" + std::to_string(nodes.size()));
 
     return ptr;
 }
@@ -47,15 +82,10 @@ void Graph::addNeighborOut(Transaction* from, Transaction* to) {
         }
     }
     
-    // // print the neigbors of 'to' after addition
-    // std::cout << "Graph::addNeighborOut: Transaction " << from->getID()
-    //           << " now has neighbors: ";
-    // const auto &nbr = from->getOutNeighbors();
-    // for (auto *n : nbr)
-    // {
-    //     std::cout << " " << n->getID();
-    // }
-    // std::cout << "\n";
+    const auto &nbr = from->getOutNeighbors();
+    appendGraphLog(
+        "add_edge",
+        "from=" + from->getID() + " to=" + to->getID() + " out_deg=" + std::to_string(nbr.size()));
 }
 
 void Graph::printAll() const
