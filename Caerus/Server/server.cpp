@@ -98,7 +98,7 @@ void *handlePeer(void *server_args)
 
             // if partial sequence is empty, ignore
             if (req_proto.transaction_size() > 0) {
-                printf("MERGER: received partial sequence from: %d\n", req_proto.server_id());
+                //printf("MERGER: received partial sequence from: %d\n", req_proto.server_id());
             }
             
             {

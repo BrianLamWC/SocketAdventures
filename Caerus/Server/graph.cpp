@@ -359,7 +359,7 @@ bool Graph::isSCCComplete(const int &scc_index)
         {
             if (txn_scc_index_map.at(nbr) != scc_index)
             {
-                std::cout << "SCC " << scc_index << " incomplete due to txn " << T->getID() << " having outgoing edge to txn " << nbr->getID() << ".\n";
+                //std::cout << "SCC " << scc_index << " incomplete due to txn " << T->getID() << " having outgoing edge to txn " << nbr->getID() << ".\n";
                 return false;
             }
         }
@@ -367,7 +367,7 @@ bool Graph::isSCCComplete(const int &scc_index)
         // Ensure transaction has observed all expected regions.
         if (T->getSeenRegions() != T->getExpectedRegions())
         {
-            std::cout << "SCC " << scc_index << " incomplete due to txn " << T->getID() << " missing regions.\n";
+            //std::cout << "SCC " << scc_index << " incomplete due to txn " << T->getID() << " missing regions.\n";
             return false;
         }
     }
