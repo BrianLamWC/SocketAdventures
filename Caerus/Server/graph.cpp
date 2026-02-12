@@ -16,6 +16,7 @@ namespace
 constexpr const char *kGraphLogPath = "graph.log";
 std::mutex graph_log_mtx;
 std::atomic<uint64_t> graph_log_seq{0};
+std::once_flag graph_log_init_once;
 
 void appendGraphLog(const std::string &event, const std::string &details)
 {
@@ -26,6 +27,9 @@ void appendGraphLog(const std::string &event, const std::string &details)
          << " | " << event << " | " << details << '\n';
 
     std::lock_guard<std::mutex> guard(graph_log_mtx);
+    std::call_once(graph_log_init_once, []() {
+        std::ofstream reset(kGraphLogPath, std::ios::trunc);
+    });
     std::ofstream out(kGraphLogPath, std::ios::app);
     if (out.is_open())
     {
