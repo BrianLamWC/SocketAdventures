@@ -3,8 +3,7 @@
 #include <iostream>
 #include <queue>
 #include <algorithm>
-#include <chrono>
-#include <ctime>
+#include <atomic>
 #include <fstream>
 #include <iomanip>
 #include <mutex>
@@ -16,20 +15,14 @@ namespace
 {
 constexpr const char *kGraphLogPath = "graph.log";
 std::mutex graph_log_mtx;
+std::atomic<uint64_t> graph_log_seq{0};
 
 void appendGraphLog(const std::string &event, const std::string &details)
 {
-    const auto now = std::chrono::system_clock::now();
-    const std::time_t t = std::chrono::system_clock::to_time_t(now);
-    std::tm tm_snapshot{};
-#if defined(_WIN32)
-    localtime_s(&tm_snapshot, &t);
-#else
-    localtime_r(&t, &tm_snapshot);
-#endif
+    const uint64_t seq = graph_log_seq.fetch_add(1, std::memory_order_relaxed) + 1;
 
     std::ostringstream line;
-    line << std::put_time(&tm_snapshot, "%Y-%m-%d %H:%M:%S")
+    line << '#' << std::setw(8) << std::setfill('0') << seq
          << " | " << event << " | " << details << '\n';
 
     std::lock_guard<std::mutex> guard(graph_log_mtx);
