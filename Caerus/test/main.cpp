@@ -13,6 +13,8 @@
 #include <set>
 #include <unordered_map>
 #include <atomic>
+#include <mutex>
+#include <iomanip>
 #include <uuid/uuid.h>
 #include <unistd.h>
 #include <vector>
@@ -28,6 +30,9 @@ using json = nlohmann::json;
 
 std::atomic<int32_t> globalTransactionCounter{1};
 std::mt19937 rng{std::random_device{}()};
+std::atomic<uint64_t> sentTxnLogSeq{0};
+std::mutex sentTxnLogMtx;
+std::ofstream sentTxnLogFile;
 
 struct DataItem
 {
@@ -293,8 +298,57 @@ std::vector<std::vector<TxnSpec>> parseJsonFile(const std::string &filename)
 void requestMergedOrderFromHost(const int server_id, const int fd);
 void compareSnapshots();
 void verfiyMergedOrderFromHost(const std::string &host);
-void generateRandomTransactions(int num_txns, int max_ops_per_txn, std::ofstream *log_file);
-void logTxnJsonl(std::ofstream &log_file, const request::Request &req);
+void generateRandomTransactions(int num_txns, int max_ops_per_txn);
+
+void initSentTxnLog(const std::string &path)
+{
+    std::lock_guard<std::mutex> guard(sentTxnLogMtx);
+    if (sentTxnLogFile.is_open())
+    {
+        sentTxnLogFile.close();
+    }
+    sentTxnLogFile.open(path, std::ios::out | std::ios::trunc);
+    if (!sentTxnLogFile.is_open())
+    {
+        std::cerr << "Failed to open sent transaction log file: " << path << "\n";
+    }
+}
+
+void logSentTxnOneLine(const request::Request &req)
+{
+    if (req.transaction_size() <= 0)
+    {
+        return;
+    }
+
+    const auto &txn = req.transaction(0);
+    const uint64_t seq = sentTxnLogSeq.fetch_add(1, std::memory_order_relaxed) + 1;
+    std::ostringstream ops;
+    for (int i = 0; i < txn.operations_size(); ++i)
+    {
+        const auto &op = txn.operations(i);
+        if (i > 0)
+        {
+            ops << ",";
+        }
+        ops << (op.type() == request::Operation::WRITE ? "W" : "R") << ":" << op.key();
+        if (op.type() == request::Operation::WRITE)
+        {
+            ops << "=" << op.value();
+        }
+    }
+
+    std::lock_guard<std::mutex> guard(sentTxnLogMtx);
+    if (!sentTxnLogFile.is_open())
+    {
+        return;
+    }
+    sentTxnLogFile << '#' << std::setw(8) << std::setfill('0') << seq
+                   << " | tx=" << txn.id()
+                   << " | target=" << req.target_server_id()
+                   << " | ops=[" << ops.str() << "]\n";
+    sentTxnLogFile.flush();
+}
 
 void handleCommand(const std::string &command)
 {
@@ -338,14 +392,7 @@ void handleCommand(const std::string &command)
 
         int max_ops_per_txn = 5; // default max operations per transaction
 
-        const std::string log_path = "./txn_log.jsonl";
-        std::ofstream log_file(log_path, std::ios::trunc);
-        if (!log_file.is_open())
-        {
-            std::cerr << "Failed to open log file for writing: " << log_path << "\n";
-        }
-
-        generateRandomTransactions(n, max_ops_per_txn, log_file.is_open() ? &log_file : nullptr);
+        generateRandomTransactions(n, max_ops_per_txn);
         return;
     }
 
@@ -394,6 +441,7 @@ void handleCommand(const std::string &command)
                 else
                 {
                     std::cout << "  Sent txn " << req.transaction(0).id() << " to server " << sid << "\n";
+                    logSentTxnOneLine(req);
                 }
             }
         }
@@ -650,7 +698,7 @@ void verfiyMergedOrderFromHost(const std::string &host)
     std::cout << "Verification completed for server_id=" << server_id << ".\n";
 }
 
-void generateRandomTransactions(int num_txns, int max_ops_per_txn, std::ofstream *log_file)
+void generateRandomTransactions(int num_txns, int max_ops_per_txn)
 {
     std::cout << "[DEBUG] generateRandomTransactions() called with num_txns=" << num_txns << ", max_ops_per_txn=" << max_ops_per_txn << "\n";
     std::cout << "[DEBUG] mockDB.size()=" << mockDB.size() << "\n";
@@ -722,10 +770,7 @@ void generateRandomTransactions(int num_txns, int max_ops_per_txn, std::ofstream
         else
         {
             std::cout << "  Sent txn " << req.transaction(0).id() << " to server " << sid << "\n";
-            if (log_file)
-            {
-                logTxnJsonl(*log_file, req);
-            }
+            logSentTxnOneLine(req);
         }
     }
 
@@ -737,41 +782,13 @@ void generateRandomTransactions(int num_txns, int max_ops_per_txn, std::ofstream
     }
 
 }
-
-void logTxnJsonl(std::ofstream &log_file, const request::Request &req)
-{
-    if (req.transaction_size() <= 0)
-        return;
-
-    const auto &txn = req.transaction(0);
-    json record;
-    record["txn_id"] = txn.id();
-    record["target_server_id"] = req.target_server_id();
-    record["ops"] = json::array();
-
-    for (int i = 0; i < txn.operations_size(); ++i)
-    {
-        const auto &op = txn.operations(i);
-        json op_rec;
-        op_rec["type"] = (op.type() == request::Operation::WRITE) ? "WRITE" : "READ";
-        op_rec["key"] = op.key();
-        if (op.type() == request::Operation::WRITE)
-        {
-            op_rec["value"] = op.value();
-        }
-        record["ops"].push_back(std::move(op_rec));
-    }
-
-    log_file << record.dump() << "\n";
-    log_file.flush();
-}
-
 int main()
 {
     GOOGLE_PROTOBUF_VERIFY_VERSION;
     std::string command;
     loadServersConfig();
     setupMockDB();
+    initSentTxnLog("./sent_transactions.log");
     while (true)
     {
         std::cout << "Enter command: ";
