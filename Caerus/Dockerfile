@@ -5,7 +5,7 @@ FROM ubuntu:22.04
 ENV DEBIAN_FRONTEND=noninteractive
 
 # Install dependencies
-RUN apt-get update -o APT::Get::AllowUnauthenticated=true && apt-get install -y -o APT::Get::AllowUnauthenticated=true \
+RUN apt-get update && apt-get install -y \
     build-essential \
     cmake \
     make \
@@ -30,6 +30,9 @@ RUN protoc --cpp_out=proto proto/request.proto
 # Build client and server
 RUN make -C Client
 RUN make -C Server
+
+# Set working directory to Server
+WORKDIR /app/Server
 
 # Set default command (change if you want client/server by default)
 CMD ["/bin/bash"]
