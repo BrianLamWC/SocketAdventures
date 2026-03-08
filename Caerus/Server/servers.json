@@ -2,7 +2,7 @@
     "servers": [
         { "ip": "52.197.171.78", "port": 8001, "id": 1, "leader": true },
         { "ip": "13.114.184.34", "port": 8001, "id": 2, "leader": false },
-        { "ip": "13.114.184.34", "port": 8001, "id": 3, "leader": false }
+        { "ip": "43.206.222.252", "port": 8001, "id": 3, "leader": false }
     ]
 }
 
