@@ -53,24 +53,13 @@ void Batcher::batchRequests()
             std::ofstream log_file("./batcher_logs/received_batch_" + std::to_string(my_id) + ".log", std::ios::app);
             if (log_file)
             {
-                log_file << "Transactions Received by Batcher:\n";
                 for (const auto &req : batch)
                 {
-                    log_file << "  Transaction ID: " << req.transaction(0).id() << "\n";
-                    log_file << "  Client ID: " << req.transaction(0).client_id() << "\n";
-                    log_file << "  Operations:\n";
-                    for (const auto &op : req.transaction(0).operations())
-                    {
-                        log_file << "    - Type: " << (op.type() == request::Operation::WRITE ? "WRITE" : "READ")
-                                 << ", Key: " << op.key();
-                        if (op.type() == request::Operation::WRITE)
-                        {
-                            log_file << ", Value: " << op.value();
-                        }
-                        log_file << "\n";
-                    }
+                    log_file << "round=" << current_window
+                             << " tx=" << req.transaction(0).id()
+                             << " ops=" << req.transaction(0).operations_size()
+                             << "\n";
                 }
-                log_file << "----------------------------------------\n";
             }
             else
             {
@@ -154,24 +143,13 @@ void Batcher::processBatch()
         std::ofstream log_file("./batcher_logs/local_pushed_" + std::to_string(my_id) + ".log", std::ios::app);
         if (log_file)
         {
-            log_file << "Pushing local transactions to partial sequencer:\n";
             for (const auto &req : batch_for_partial_sequencer)
             {
-                log_file << "  Transaction ID: " << req.transaction(0).id() << "\n";
-                log_file << "  batcher_round: " << req.batcher_round() << "\n";
-                log_file << "  Operations:\n";
-                for (const auto &op : req.transaction(0).operations())
-                {
-                    log_file << "    - Type: " << (op.type() == request::Operation::WRITE ? "WRITE" : "READ")
-                             << ", Key: " << op.key();
-                    if (op.type() == request::Operation::WRITE)
-                    {
-                        log_file << ", Value: " << op.value();
-                    }
-                    log_file << "\n";
-                }
+                log_file << "round=" << req.batcher_round()
+                         << " tx=" << req.transaction(0).id()
+                         << " ops=" << req.transaction(0).operations_size()
+                         << "\n";
             }
-            log_file << "----------------------------------------\n";
         }
         else
         {
@@ -208,25 +186,14 @@ void Batcher::sendTransaction(request::Request &req_proto) // send batch actuall
     std::ofstream log_file("./batcher_logs/sent_batches_" + std::to_string(my_id) + ".log", std::ios::app);
     if (log_file)
     {
-        log_file << "Sending transaction to node " << target_id << ":\n";
-        log_file << "  Transactions:\n";
-
         for (const auto &txn : req_proto.transaction())
         {
-            log_file << "    Transaction ID: " << txn.id() << "\n";
-            // log_file << "    Operations:\n";
-            // for (const auto &op : txn.operations())
-            // {
-            //     log_file << "      - Type: " << (op.type() == request::Operation::WRITE ? "WRITE" : "READ")
-            //              << ", Key: " << op.key();
-            //     if (op.type() == request::Operation::WRITE)
-            //     {
-            //         log_file << ", Value: " << op.value();
-            //     }
-            //     log_file << "\n";
-            // }
+            log_file << "to=" << target_id
+                     << " round=" << req_proto.batcher_round()
+                     << " tx=" << txn.id()
+                     << " ops=" << txn.operations_size()
+                     << "\n";
         }
-        log_file << "----------------------------------------\n";
     }
     else
     {
