@@ -55,15 +55,13 @@ void PartialSequencer::processPartialSequence()
                                std::ios::app);
             if (logf)
             {
-                logf << "PartialSequence window=" << window
-                     << " txns=" << partial_sequence_.transaction_size() << " [";
                 for (int i = 0; i < partial_sequence_.transaction_size(); ++i)
                 {
-                    if (i > 0)
-                        logf << ", ";
-                    logf << partial_sequence_.transaction(i).id();
+                    logf << "round=" << window
+                         << " tx=" << partial_sequence_.transaction(i).id()
+                         << " ops=" << partial_sequence_.transaction(i).operations_size()
+                         << "\n";
                 }
-                logf << "]\n";
             }
         }
 
@@ -89,6 +87,19 @@ void PartialSequencer::sendPartialSequence()
         int &connfd = merger_fds[target_id];
 
         partial_sequence_.set_target_server_id(target_id);
+
+        std::ofstream logf("partial_sequence_sent_" + std::to_string(my_id) + ".log", std::ios::app);
+        if (logf)
+        {
+            for (const auto &txn : partial_sequence_.transaction())
+            {
+                logf << "to=" << target_id
+                     << " round=" << partial_sequence_.round()
+                     << " tx=" << txn.id()
+                     << " ops=" << txn.operations_size()
+                     << "\n";
+            }
+        }
 
         // (re)connect on-demand if we lost it
         if (connfd < 0)
@@ -127,6 +138,15 @@ void PartialSequencer::sendPartialSequence()
 
 void PartialSequencer::pushReceivedTransactionIntoPartialSequence(const request::Request &req_proto)
 {
+    std::ofstream logf("partial_sequencer_received_" + std::to_string(my_id) + ".log", std::ios::app);
+    if (logf && req_proto.transaction_size() > 0)
+    {
+        logf << "round=" << req_proto.batcher_round()
+             << " tx=" << req_proto.transaction(0).id()
+             << " ops=" << req_proto.transaction(0).operations_size()
+             << "\n";
+    }
+
     // Push the transaction into the queue
     batcher_to_partial_sequencer_queue_.push(req_proto);
 }
@@ -135,7 +155,8 @@ PartialSequencer::PartialSequencer()
 {
 
     std::ofstream init_log("partial_sequence_log_" + std::to_string(my_id) + ".log", std::ios::out | std::ios::trunc);
-    // std::ofstream init_recv_log("partial_sequencer_received_log_" + std::to_string(my_id) + ".log", std::ios::out | std::ios::trunc);
+    std::ofstream init_recv_log("partial_sequencer_received_" + std::to_string(my_id) + ".log", std::ios::out | std::ios::trunc);
+    std::ofstream init_sent_log("partial_sequence_sent_" + std::to_string(my_id) + ".log", std::ios::out | std::ios::trunc);
 
     if (pthread_create(&partial_sequencer_thread, NULL, [](void *arg) -> void *
                        {
